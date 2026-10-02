@@ -27,3 +27,24 @@ class Student(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    applications = relationship(
+        "Application",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+    documents = relationship(
+        "Document",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+    actions = relationship(
+        "Action",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+    planner_goal = relationship(
+        "PlannerGoal",
+        back_populates="student",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )

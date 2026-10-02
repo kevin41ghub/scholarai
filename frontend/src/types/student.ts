@@ -8,6 +8,7 @@ export interface StudentProfile {
   twelfth_percentage: number;
   category: string;
   state: string;
+  gender?: string;
 }
 
 export interface FundingProfile {
@@ -61,4 +62,231 @@ export interface HealthResponse {
   environment: string;
   database: string;
   trust_principle?: string;
+}
+
+// Block 2: Scholarships
+export interface EligibilityRule {
+  id: number;
+  rule_type: string;
+  criteria_value: string;
+  operator: string;
+  description: string;
+  is_mandatory: boolean;
+}
+
+export interface ScholarshipRequirement {
+  id: number;
+  name: string;
+  document_type: string;
+  type: string;
+  is_required: boolean;
+  description?: string;
+}
+
+export interface ScholarshipListItem {
+  id: number;
+  name: string;
+  provider: string;
+  description: string;
+  amount: number;
+  currency: string;
+  deadline: string;
+  verification_status: string;
+  eligibility_summary?: string;
+  application_effort?: string;
+  status: string;
+  match_status?: "eligible" | "possibly_eligible" | "ineligible" | "needs_verification";
+  match_score?: number;
+  fit_reasons?: string[];
+  days_remaining?: number;
+  deadline_risk?: string;
+  application_status?: string;
+  application_id?: number;
+}
+
+export interface FundingImpact {
+  current_funding_gap: number;
+  scholarship_amount: number;
+  potential_remaining_gap: number;
+  gap_coverage_percentage: number;
+  disclaimer: string;
+}
+
+export interface EligibilityResult {
+  status: "eligible" | "possibly_eligible" | "ineligible" | "needs_verification";
+  score: number;
+  reasons: string[];
+  matched_rules: string[];
+  unmatched_rules: string[];
+  verification_notes: string[];
+  disclaimer: string;
+}
+
+export interface ScholarshipDetail extends Omit<ScholarshipListItem, "deadline_risk"> {
+  application_url?: string;
+  source_url?: string;
+  source_name?: string;
+  last_verified_at?: string;
+  eligibility_rules: EligibilityRule[];
+  requirements: ScholarshipRequirement[];
+  eligibility?: EligibilityResult;
+  funding_impact?: FundingImpact;
+  deadline_risk?: {
+    risk_level: string;
+    days_remaining: number;
+    hours_remaining: number;
+    message: string;
+    badge_variant: string;
+  };
+  current_application?: {
+    id: number;
+    status: string;
+    progress: number;
+    started_at: string;
+  };
+}
+
+// Block 2: Applications & Requirements
+export interface ApplicationRequirementItem {
+  id: number;
+  application_id: number;
+  name: string;
+  document_type: string;
+  type: string;
+  is_required: boolean;
+  status: "MISSING" | "AVAILABLE" | "VERIFIED" | "NOT_REQUIRED" | "NEEDS_VERIFICATION";
+  document_id?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationItem {
+  id: number;
+  student_id: number;
+  scholarship_id: number;
+  status: string;
+  progress: number;
+  personal_statement?: string | null;
+  started_at: string;
+  submitted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  scholarship_name: string;
+  scholarship_provider: string;
+  scholarship_amount: number;
+  scholarship_deadline: string;
+  verification_status: string;
+  deadline_risk: {
+    risk_level: string;
+    days_remaining: number;
+    hours_remaining: number;
+    message: string;
+    badge_variant: string;
+  };
+  missing_requirements_count: number;
+  requirements: ApplicationRequirementItem[];
+  blockers: string[];
+  next_action?: string | null;
+}
+
+export interface PortfolioSummary {
+  active_applications_count: number;
+  at_risk_count: number;
+  blocked_count: number;
+  potential_funding_under_pursuit: number;
+  primary_shared_blocker?: {
+    document_type: string;
+    document_name: string;
+    document_status: string;
+    document_id?: number;
+    blocked_applications_count: number;
+    potential_funding_affected: number;
+    affected_applications: Array<{
+      application_id: number;
+      scholarship_name: string;
+      scholarship_amount: number;
+    }>;
+  };
+  top_next_best_action?: ActionItem;
+  upcoming_deadlines: Array<{
+    application_id: number;
+    scholarship_name: string;
+    deadline: string;
+    days_remaining: number;
+    risk_level: string;
+    progress: number;
+    amount: number;
+  }>;
+}
+
+// Block 2: Documents
+export interface DocumentItem {
+  id: number;
+  student_id: number;
+  name: string;
+  document_type: string;
+  status: "MISSING" | "AVAILABLE" | "VERIFIED" | "NEEDS_VERIFICATION" | "EXPIRED";
+  uploaded_at?: string | null;
+  verified_at?: string | null;
+  expiry_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  affected_applications_count: number;
+  potential_funding_affected: number;
+  is_shared_blocker: boolean;
+}
+
+// Block 2: Actions
+export interface ActionItem {
+  id?: number;
+  title: string;
+  reason: string;
+  urgency: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  deadline?: string | null;
+  effort_estimate: string;
+  potential_funding_impact: number;
+  blocker_impact?: string | null;
+  action_type: string;
+  target_type?: string;
+  target_id?: number;
+  is_completed?: boolean;
+}
+
+// Block 2: Planner
+export interface PlannerOverview {
+  funding_overview: {
+    annual_education_cost: number;
+    existing_support: number;
+    funding_gap: number;
+    target_funding: number;
+    potential_funding_identified: number;
+    potential_remaining_gap: number;
+    funding_progress: number;
+  };
+  goal_preferences: {
+    purpose: string;
+    timeline: string;
+    available_hours_per_week: number;
+    priorities: string;
+  };
+  suggested_weekly_plan: {
+    total_hours: number;
+    allocations: Array<{
+      task: string;
+      allocated_hours: number;
+      reason: string;
+      category: string;
+    }>;
+    methodology_disclaimer: string;
+  };
+  funding_strategy: {
+    active_applications_count: number;
+    potential_combined_coverage: number;
+    distinctions: Array<{
+      concept: string;
+      meaning: string;
+    }>;
+    concurrent_award_rule: string;
+  };
 }
