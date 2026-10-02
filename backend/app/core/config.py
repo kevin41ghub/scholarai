@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     AI_BASE_URL: str = ""
     AI_TIMEOUT_SECONDS: float = 30.0
 
+    # Gemini AI Configuration
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-flash-latest"
+
     # CORS configuration
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
@@ -68,7 +72,13 @@ class Settings(BaseSettings):
                     "Specify exact allowed frontend domain(s) in CORS_ORIGINS."
                 )
             # 3. If real AI provider is selected, ensure API key is present
-            if self.AI_PROVIDER.lower() != "demo" and not self.AI_API_KEY.strip():
+            provider_type = self.AI_PROVIDER.lower().strip()
+            if provider_type == "gemini":
+                if not (self.GEMINI_API_KEY.strip() or self.AI_API_KEY.strip()):
+                    raise ValueError(
+                        "AI Configuration Error: AI_PROVIDER is set to 'gemini', but GEMINI_API_KEY is empty."
+                    )
+            elif provider_type != "demo" and not self.AI_API_KEY.strip():
                 raise ValueError(
                     f"AI Configuration Error: AI_PROVIDER is set to '{self.AI_PROVIDER}', but AI_API_KEY is empty."
                 )

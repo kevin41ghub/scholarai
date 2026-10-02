@@ -47,3 +47,10 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def default_demo_ai_provider(monkeypatch):
+    """Ensure test suite defaults safely to DemoAIProvider without making external API calls."""
+    from app.core import config
+    monkeypatch.setattr(config.settings, "AI_PROVIDER", "demo")
