@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import logging
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -19,7 +20,7 @@ logger = logging.getLogger("scholarai")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables are created and demo student is seeded
+    # Startup: ensure tables are created and seed data is verified
     logger.info("Initializing database and verifying seed data...")
     db = SessionLocal()
     try:
@@ -34,8 +35,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Student Funding & Application Intelligence API — Phase 1 Foundation",
+    description="Student Funding & Application Intelligence Platform — Autonomous Scholarship Discovery & Application Assistant",
     lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG or settings.ENVIRONMENT != "production" else None,
+    redoc_url="/redoc" if settings.DEBUG or settings.ENVIRONMENT != "production" else None,
 )
 
 # CORS middleware
@@ -46,6 +49,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Production-hardened exception handler preventing internal stack trace disclosure
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error processing {request.method} {request.url.path}: {exc}", exc_info=True)
+    if settings.ENVIRONMENT.lower() == "production":
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "An internal server error occurred. Our engineering team has been notified."},
+        )
+    # In development/testing, expose readable detail
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": str(exc)},
+    )
 
 
 # Root health endpoint matching exact specification: GET /api/health
@@ -77,7 +96,7 @@ def root():
     return {
         "message": "Welcome to SCHOLARAi API — Student Funding & Application Intelligence",
         "phase": settings.PHASE,
-        "docs_url": "/docs",
+        "docs_url": "/docs" if settings.DEBUG or settings.ENVIRONMENT != "production" else "Disabled in production",
         "health_check": "/api/health",
         "trust_principle": "AI assists. Official sources decide. Student approves.",
     }

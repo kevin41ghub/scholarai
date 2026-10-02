@@ -44,15 +44,16 @@ def get_current_user(
             if user:
                 return user
 
-    # Fallback to demo user for local exploration / backward compatibility
-    demo_user = db.query(User).filter(User.email == settings.DEMO_USER_EMAIL).first()
-    if demo_user:
-        return demo_user
+    # Fallback to demo user ONLY for local exploration / non-production environments
+    if settings.ENVIRONMENT.lower() != "production":
+        demo_user = db.query(User).filter(User.email == settings.DEMO_USER_EMAIL).first()
+        if demo_user:
+            return demo_user
 
-    # If demo user not yet in DB, check demo student
-    demo_student = db.query(Student).filter(Student.email == "arjun.kumar@demo.edu").first()
-    if demo_student and demo_student.user:
-        return demo_student.user
+        # If demo user not yet in DB, check demo student
+        demo_student = db.query(Student).filter(Student.email == "arjun.kumar@demo.edu").first()
+        if demo_student and demo_student.user:
+            return demo_student.user
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

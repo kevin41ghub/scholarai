@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: scholarai-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scholarai
+      POSTGRES_PASSWORD: scholarai_dev_password
+      POSTGRES_DB: scholarai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scholarai -d scholarai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - scholarai-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: scholarai-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PROJECT_NAME: "SCHOLARAi API"
+      ENVIRONMENT: "production"
+      DEBUG: "False"
+      DATABASE_URL: "postgresql://scholarai:scholarai_dev_password@db:5432/scholarai"
+      AUTH_SECRET: "prod-secret-must-be-changed-in-real-production-environment-2026"
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      AI_PROVIDER: "demo"
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python scripts/bootstrap_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - scholarai-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+    container_name: scholarai-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: "production"
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+    ports:
+      - "3000:3000"
+    networks:
+      - scholarai-network
+
+volumes:
+  pgdata:
+
+networks:
+  scholarai-network:
+    driver: bridge

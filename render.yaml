@@ -1,0 +1,52 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: scholarai-api
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/bootstrap_db.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: scholarai-postgres
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: demo
+      - key: CORS_ORIGINS
+        value: https://scholarai-web.onrender.com
+
+  # Next.js Frontend Service
+  - type: web
+    name: scholarai-web
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_BASE_URL
+        fromService:
+          type: web
+          name: scholarai-api
+          property: host
+
+databases:
+  # Managed PostgreSQL Database
+  - name: scholarai-postgres
+    databaseName: scholarai
+    user: scholarai
+    region: oregon
+    plan: starter

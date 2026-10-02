@@ -169,7 +169,10 @@ def logout(response: Response):
     """
     response.delete_cookie(
         key=settings.SESSION_COOKIE_NAME,
-        path="/"
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production"
     )
     return {"message": "Logged out successfully."}
 
