@@ -290,3 +290,177 @@ export interface PlannerOverview {
     concurrent_award_rule: string;
   };
 }
+
+// ==========================================
+// Block 3: Advanced Intelligence Interfaces
+// ==========================================
+
+export interface User {
+  id: number;
+  email: string;
+  is_active: boolean;
+  is_demo: boolean;
+  student_id: number;
+  student_name: string;
+}
+
+export interface AuthResponse {
+  message: string;
+  user: User;
+  session_token: string;
+}
+
+export interface EvidenceItem {
+  id: number;
+  student_id: number;
+  title: string;
+  category: "ACADEMIC" | "PROJECT" | "INTERNSHIP" | "WORK_EXPERIENCE" | "AWARD" | "CERTIFICATION" | "LEADERSHIP" | "VOLUNTEERING" | "EXTRACURRICULAR" | "FINANCIAL" | "CAREER_GOAL" | "PERSONAL" | "OTHER";
+  description: string;
+  date?: string | null;
+  organization?: string | null;
+  evidence_text?: string | null;
+  source_document_id?: number | null;
+  source_type: string;
+  source_name: string;
+  verification_status: "USER_PROVIDED" | "VERIFIED" | "NEEDS_VERIFICATION" | "REJECTED";
+  confidence: "HIGH_EVIDENCE_SUPPORT" | "PARTIAL_EVIDENCE" | "NEEDS_VERIFICATION";
+  used_in_applications?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvidenceCreatePayload {
+  title: string;
+  category: string;
+  description: string;
+  date?: string;
+  organization?: string;
+  evidence_text?: string;
+  source_document_id?: number | null;
+  source_type?: string;
+  source_name?: string;
+}
+
+export interface ActionConfirmation {
+  action_type: string;
+  description: string;
+  proposed_payload: Record<string, any>;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED";
+}
+
+export interface ChatMessageResponse {
+  reply: string;
+  trust_category: string;
+  sources_cited: string[];
+  suggested_prompts: string[];
+  pending_action_confirmation?: ActionConfirmation | null;
+  tools_used: string[];
+  model_provider: string;
+}
+
+export interface KnowledgeSourceItem {
+  id: number;
+  name: string;
+  source_url: string;
+  source_type: string;
+  authority_level: string;
+  verification_status: string;
+  last_verified_at?: string | null;
+  monitoring_status: string;
+  last_checked?: string | null;
+  last_changed?: string | null;
+  change_summary?: string | null;
+  change_severity: string;
+}
+
+export interface KnowledgeChunkItem {
+  id: number;
+  document_id: number;
+  chunk_text: string;
+  section: string;
+  page_number?: number | null;
+  source_url: string;
+  source_name?: string | null;
+  authority_level?: string;
+  verification_status?: string;
+  last_verified_at?: string | null;
+}
+
+export interface KnowledgeSearchResponse {
+  query: string;
+  chunks: KnowledgeChunkItem[];
+  sources_cited: string[];
+  total_found: number;
+}
+
+export interface ApplicationDraftResponse {
+  draft_text: string;
+  evidence_used: Array<{
+    id: number;
+    title: string;
+    category: string;
+    source: string;
+    status: string;
+  }>;
+  sources_used: string[];
+  trust_label: string;
+  student_approval_required: boolean;
+  claims_detected: string[];
+}
+
+export interface ApplicationReviewResponse {
+  review_feedback: string;
+  unsupported_claims: string[];
+  vague_statements: string[];
+  strengths: string[];
+  completeness_score: number;
+  recommendations: string[];
+}
+
+export interface EvidenceCheckResponse {
+  claims_evaluated: number;
+  supported_claims: string[];
+  unsupported_claims: string[];
+  confidence_level: string;
+}
+
+export interface NotificationItem {
+  id: number;
+  student_id: number;
+  type: "DEADLINE" | "DOCUMENT" | "ELIGIBILITY" | "SCHOLARSHIP_CHANGE" | "APPLICATION" | "FUNDING" | "SYSTEM";
+  title: string;
+  message: string;
+  severity: "INFO" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  related_application_id?: number | null;
+  related_scholarship_id?: number | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationSummary {
+  unread_count: number;
+  notifications: NotificationItem[];
+}
+
+export interface VoiceInterpretResponse {
+  interpreted_text: string;
+  detected_language: string;
+  intent: string;
+  extracted_params: Record<string, any>;
+  requires_confirmation: boolean;
+  confirmation_message: string;
+  action_payload?: Record<string, any> | null;
+}
+
+export interface MonitoringCheckResponse {
+  source_id: number;
+  source_name: string;
+  change_detected: boolean;
+  change_category?: string | null;
+  previous_value?: string | null;
+  new_value?: string | null;
+  affected_applications: string[];
+  affected_requirements: string[];
+  notification_created: boolean;
+  recommended_next_action?: string | null;
+}

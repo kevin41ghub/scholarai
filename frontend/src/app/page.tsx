@@ -79,29 +79,38 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">
-              <span>Block 2 Core Product</span>
+              <span>Block 3 Active</span>
               <span>&bull;</span>
-              <span>Active</span>
+              <span>Intelligence & RAG Layer</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
               Welcome back, {student.name}
             </h1>
             <p className="text-sm text-slate-600 max-w-2xl">
-              Student Funding & Application Intelligence &bull; Connecting funding needs, scholarship rules, application states, and next best actions.
+              Student Funding & Application Intelligence &bull; Evidence Bank, controlled AI assistance, RAG retrieval, and adaptive planning.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
-              href="/discover"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+              href="/assistant"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm flex items-center space-x-1.5"
             >
-              Discover Scholarships
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Ask Assistant</span>
             </Link>
             <Link
-              href="/profile"
-              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+              href="/evidence"
+              className="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
             >
-              Profile
+              Evidence Bank
+            </Link>
+            <Link
+              href="/discover"
+              className="px-3.5 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+            >
+              Discover
             </Link>
           </div>
         </div>

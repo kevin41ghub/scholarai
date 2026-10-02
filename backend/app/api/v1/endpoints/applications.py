@@ -294,3 +294,77 @@ def update_application_requirement(
     db.commit()
     db.refresh(req)
     return ApplicationRequirementResponse.model_validate(req)
+
+
+# ==================================================
+# BLOCK 3: AI APPLICATION ASSISTANCE ENDPOINTS
+# ==================================================
+
+from app.schemas.application_ai import (
+    ApplicationDraftRequest,
+    ApplicationDraftResponse,
+    ApplicationReviewRequest,
+    ApplicationReviewResponse,
+    EvidenceCheckRequest,
+    EvidenceCheckResponse,
+)
+from app.services.ai.application_ai_service import (
+    generate_application_draft,
+    review_application_answer,
+    check_unsupported_claims,
+)
+from app.core.auth import get_current_user
+from app.models.user import User
+
+
+@router.post("/{id}/draft", response_model=ApplicationDraftResponse)
+def create_application_draft(
+    id: int,
+    req: ApplicationDraftRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate an AI application response draft strictly grounded in approved student evidence.
+    Tag: AI GENERATED DRAFT. Requires explicit student approval before saving.
+    """
+    return generate_application_draft(
+        db=db,
+        student_id=current_user.student_id,
+        application_id=id,
+        request=req
+    )
+
+
+@router.post("/{id}/review", response_model=ApplicationReviewResponse)
+def review_application(
+    id: int,
+    req: ApplicationReviewRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Review draft application answer for unsupported claims, vague statements, and completeness.
+    """
+    return review_application_answer(
+        db=db,
+        student_id=current_user.student_id,
+        request=req
+    )
+
+
+@router.post("/{id}/evidence-check", response_model=EvidenceCheckResponse)
+def check_application_claims(
+    id: int,
+    req: EvidenceCheckRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Check draft for unsupported claims against Evidence Bank and Student Profile.
+    """
+    return check_unsupported_claims(
+        db=db,
+        student_id=current_user.student_id,
+        request=req
+    )

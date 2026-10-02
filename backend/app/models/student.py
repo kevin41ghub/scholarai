@@ -48,3 +48,24 @@ class Student(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    user = relationship(
+        "User",
+        back_populates="student",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    evidence_items = relationship(
+        "Evidence",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+    notifications = relationship(
+        "Notification",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
+    ai_logs = relationship(
+        "AIInteractionLog",
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )

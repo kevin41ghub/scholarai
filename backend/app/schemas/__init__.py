@@ -36,6 +36,48 @@ from app.schemas.planner import (
     PlannerGoalUpdate,
     PlannerOverviewResponse,
 )
+from app.schemas.auth import (
+    UserRegisterRequest,
+    UserLoginRequest,
+    UserResponse,
+    AuthResponse,
+)
+from app.schemas.evidence import (
+    EvidenceCreate,
+    EvidenceUpdate,
+    EvidenceResponse,
+)
+from app.schemas.knowledge import (
+    KnowledgeSourceResponse,
+    KnowledgeDocumentResponse,
+    KnowledgeChunkResponse,
+    KnowledgeSearchResponse,
+)
+from app.schemas.assistant import (
+    ChatMessageRequest,
+    ChatMessageResponse,
+    ActionConfirmation,
+)
+from app.schemas.application_ai import (
+    ApplicationDraftRequest,
+    ApplicationDraftResponse,
+    ApplicationReviewRequest,
+    ApplicationReviewResponse,
+    EvidenceCheckRequest,
+    EvidenceCheckResponse,
+)
+from app.schemas.notification import (
+    NotificationResponse,
+    NotificationSummary,
+)
+from app.schemas.voice import (
+    VoiceInterpretRequest,
+    VoiceInterpretResponse,
+)
+from app.schemas.monitoring import (
+    MonitoringCheckRequest,
+    MonitoringCheckResponse,
+)
 
 __all__ = [
     "StudentBase",
@@ -64,4 +106,30 @@ __all__ = [
     "ActionResponse",
     "PlannerGoalUpdate",
     "PlannerOverviewResponse",
+    "UserRegisterRequest",
+    "UserLoginRequest",
+    "UserResponse",
+    "AuthResponse",
+    "EvidenceCreate",
+    "EvidenceUpdate",
+    "EvidenceResponse",
+    "KnowledgeSourceResponse",
+    "KnowledgeDocumentResponse",
+    "KnowledgeChunkResponse",
+    "KnowledgeSearchResponse",
+    "ChatMessageRequest",
+    "ChatMessageResponse",
+    "ActionConfirmation",
+    "ApplicationDraftRequest",
+    "ApplicationDraftResponse",
+    "ApplicationReviewRequest",
+    "ApplicationReviewResponse",
+    "EvidenceCheckRequest",
+    "EvidenceCheckResponse",
+    "NotificationResponse",
+    "NotificationSummary",
+    "VoiceInterpretRequest",
+    "VoiceInterpretResponse",
+    "MonitoringCheckRequest",
+    "MonitoringCheckResponse",
 ]

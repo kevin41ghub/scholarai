@@ -128,3 +128,7 @@ class NextBestActionService:
 
 
 next_best_action_service = NextBestActionService()
+
+
+def get_ranked_actions_for_student(db: Session, student_id: int) -> List[Dict[str, Any]]:
+    return next_best_action_service.generate_and_rank_actions(db, student_id)

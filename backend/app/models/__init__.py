@@ -10,6 +10,11 @@ from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
 from app.models.action import Action
 from app.models.planner import PlannerGoal
+from app.models.user import User
+from app.models.evidence import Evidence
+from app.models.knowledge import KnowledgeSource, KnowledgeDocument, KnowledgeChunk
+from app.models.notification import Notification
+from app.models.ai_log import AIInteractionLog
 
 __all__ = [
     "Base",
@@ -24,4 +29,11 @@ __all__ = [
     "ApplicationRequirement",
     "Action",
     "PlannerGoal",
+    "User",
+    "Evidence",
+    "KnowledgeSource",
+    "KnowledgeDocument",
+    "KnowledgeChunk",
+    "Notification",
+    "AIInteractionLog",
 ]

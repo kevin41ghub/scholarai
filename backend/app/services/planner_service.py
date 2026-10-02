@@ -130,3 +130,14 @@ class PlannerService:
 
 
 planner_service = PlannerService()
+
+
+def generate_weekly_plan(db: Session, student_id: int, available_hours: float = 5.0) -> Dict[str, Any]:
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return {}
+    if available_hours:
+        goal = planner_service.get_or_create_goal(db, student_id)
+        goal.available_hours_per_week = available_hours
+        db.commit()
+    return planner_service.generate_plan(db, student)

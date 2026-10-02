@@ -155,3 +155,21 @@ class DependencyService:
 
 
 dependency_service = DependencyService()
+
+
+def build_dependency_graph(db: Session, student_id: int) -> Dict[str, Any]:
+    return dependency_service.get_dependency_graph(db, student_id)
+
+
+def find_shared_blockers(db: Session, student_id: int) -> List[Dict[str, Any]]:
+    graph = dependency_service.get_dependency_graph(db, student_id)
+    blockers = []
+    if graph.get("primary_blocker"):
+        pb = graph["primary_blocker"]
+        blockers.append({
+            "document_name": pb.get("document_name"),
+            "affected_application_count": pb.get("blocked_applications_count", 0),
+            "affected_scholarship_names": pb.get("blocked_scholarships", []),
+            "potential_funding_affected": pb.get("potential_funding_affected", 0.0),
+        })
+    return blockers

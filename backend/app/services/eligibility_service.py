@@ -179,3 +179,19 @@ class EligibilityService:
 
 
 eligibility_service = EligibilityService()
+
+
+def evaluate_scholarship_eligibility(db, scholarship_id: int, student_id: int) -> Dict[str, Any]:
+    student = db.query(Student).filter(Student.id == student_id).first()
+    scholarship = db.query(Scholarship).filter(Scholarship.id == scholarship_id).first()
+    if not student or not scholarship:
+        return {
+            "status": "needs_verification",
+            "score": 0.0,
+            "reasons": ["Record not found."],
+            "matched_rules": [],
+            "unmatched_rules": [],
+            "verification_notes": [],
+            "disclaimer": "AI assists. Official sources decide. Student approves."
+        }
+    return eligibility_service.evaluate_scholarship(student, scholarship)

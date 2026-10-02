@@ -14,6 +14,19 @@ class Settings(BaseSettings):
     # Database URL: default SQLite for local development, migratable to PostgreSQL
     DATABASE_URL: str = "sqlite:///./scholarai.db"
 
+    # Authentication & Session Security
+    AUTH_SECRET: str = "dev-secret-key-change-in-production-scholarai-2026"
+    SESSION_COOKIE_NAME: str = "scholarai_session"
+    SESSION_MAX_AGE_SECONDS: int = 86400 * 7
+    DEMO_USER_EMAIL: str = "demo@scholarai.local"
+    DEMO_USER_PASSWORD: str = "DemoStudent@2026"
+
+    # AI Provider Configuration (Default: demo mode if API key is empty)
+    AI_PROVIDER: str = "demo"
+    AI_API_KEY: str = ""
+    AI_MODEL: str = "demo-scholar-v1"
+    AI_BASE_URL: str = ""
+
     # CORS configuration
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",

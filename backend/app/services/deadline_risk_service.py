@@ -62,3 +62,8 @@ class DeadlineRiskService:
 
 
 deadline_risk_service = DeadlineRiskService()
+
+
+def calculate_scholarship_deadline_risk(deadline: datetime, completed: int = 0, total: int = 0) -> Dict[str, Any]:
+    progress = (completed / total * 100.0) if total > 0 else 0.0
+    return deadline_risk_service.calculate_risk(deadline, progress)

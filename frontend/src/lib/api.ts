@@ -12,6 +12,21 @@ import {
   DocumentItem,
   ActionItem,
   PlannerOverview,
+  User,
+  AuthResponse,
+  EvidenceItem,
+  EvidenceCreatePayload,
+  ChatMessageResponse,
+  ActionConfirmation,
+  KnowledgeSourceItem,
+  KnowledgeSearchResponse,
+  ApplicationDraftResponse,
+  ApplicationReviewResponse,
+  EvidenceCheckResponse,
+  NotificationSummary,
+  NotificationItem,
+  VoiceInterpretResponse,
+  MonitoringCheckResponse,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -28,6 +43,7 @@ class ApiError extends Error {
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const response = await fetch(url, {
+    credentials: "include",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -191,4 +207,200 @@ export function formatINR(amount: number): string {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+// ==========================================
+// Block 3: Auth API Methods
+// ==========================================
+
+export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function registerUser(payload: Record<string, any>): Promise<AuthResponse> {
+  return request<AuthResponse>("/api/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function logoutUser(): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/v1/auth/logout", {
+    method: "POST",
+  });
+}
+
+export async function getMe(): Promise<User> {
+  return request<User>("/api/v1/auth/me");
+}
+
+// ==========================================
+// Block 3: Evidence Bank API Methods
+// ==========================================
+
+export async function getEvidence(category?: string, status?: string): Promise<EvidenceItem[]> {
+  const params = new URLSearchParams();
+  if (category) params.append("category", category);
+  if (status) params.append("status", status);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return request<EvidenceItem[]>(`/api/v1/evidence${q}`);
+}
+
+export async function createEvidence(payload: EvidenceCreatePayload): Promise<EvidenceItem> {
+  return request<EvidenceItem>("/api/v1/evidence", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateEvidence(id: number, payload: Partial<EvidenceItem>): Promise<EvidenceItem> {
+  return request<EvidenceItem>(`/api/v1/evidence/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteEvidence(id: number): Promise<void> {
+  return request<void>(`/api/v1/evidence/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// ==========================================
+// Block 3: Knowledge & RAG API Methods
+// ==========================================
+
+export async function getKnowledgeSources(): Promise<KnowledgeSourceItem[]> {
+  return request<KnowledgeSourceItem[]>("/api/v1/knowledge/sources");
+}
+
+export async function searchKnowledge(q: string, scholarshipId?: number): Promise<KnowledgeSearchResponse> {
+  const params = new URLSearchParams();
+  params.append("q", q);
+  if (scholarshipId) params.append("scholarship_id", scholarshipId.toString());
+  return request<KnowledgeSearchResponse>(`/api/v1/knowledge/search?${params.toString()}`);
+}
+
+// ==========================================
+// Block 3: AI Assistant API Methods
+// ==========================================
+
+export async function sendAssistantMessage(
+  message: string,
+  history?: Array<{ role: string; content: string }>,
+  confirmedAction?: ActionConfirmation | null
+): Promise<ChatMessageResponse> {
+  return request<ChatMessageResponse>("/api/v1/assistant/chat", {
+    method: "POST",
+    body: JSON.stringify({
+      message,
+      conversation_history: history,
+      confirmed_action: confirmedAction,
+    }),
+  });
+}
+
+// ==========================================
+// Block 3: AI Application Assistance Methods
+// ==========================================
+
+export async function draftApplicationAnswer(
+  applicationId: number,
+  question: string,
+  evidenceIds?: number[]
+): Promise<ApplicationDraftResponse> {
+  return request<ApplicationDraftResponse>(`/api/v1/applications/${applicationId}/draft`, {
+    method: "POST",
+    body: JSON.stringify({
+      question,
+      selected_evidence_ids: evidenceIds,
+    }),
+  });
+}
+
+export async function reviewApplicationAnswer(
+  applicationId: number,
+  question: string,
+  answerText: string
+): Promise<ApplicationReviewResponse> {
+  return request<ApplicationReviewResponse>(`/api/v1/applications/${applicationId}/review`, {
+    method: "POST",
+    body: JSON.stringify({
+      question,
+      answer_text: answerText,
+    }),
+  });
+}
+
+export async function checkEvidenceClaims(
+  applicationId: number,
+  draftText: string
+): Promise<EvidenceCheckResponse> {
+  return request<EvidenceCheckResponse>(`/api/v1/applications/${applicationId}/evidence-check`, {
+    method: "POST",
+    body: JSON.stringify({
+      draft_text: draftText,
+    }),
+  });
+}
+
+// ==========================================
+// Block 3: Notifications API Methods
+// ==========================================
+
+export async function getNotifications(): Promise<NotificationSummary> {
+  return request<NotificationSummary>("/api/v1/notifications");
+}
+
+export async function markNotificationRead(id: number): Promise<NotificationItem> {
+  return request<NotificationItem>(`/api/v1/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/v1/notifications/mark-all-read", {
+    method: "POST",
+  });
+}
+
+// ==========================================
+// Block 3: Voice Decoder API Methods
+// ==========================================
+
+export async function interpretVoice(
+  transcription: string,
+  language: string = "en"
+): Promise<VoiceInterpretResponse> {
+  return request<VoiceInterpretResponse>("/api/v1/voice/interpret", {
+    method: "POST",
+    body: JSON.stringify({
+      transcription,
+      language,
+    }),
+  });
+}
+
+// ==========================================
+// Block 3: Monitoring API Methods
+// ==========================================
+
+export async function getMonitoredSources(): Promise<KnowledgeSourceItem[]> {
+  return request<KnowledgeSourceItem[]>("/api/v1/monitoring");
+}
+
+export async function runMonitoringCheck(
+  scholarshipId?: number,
+  simulateChangeType?: string
+): Promise<MonitoringCheckResponse> {
+  return request<MonitoringCheckResponse>("/api/v1/monitoring/check", {
+    method: "POST",
+    body: JSON.stringify({
+      scholarship_id: scholarshipId,
+      simulate_change_type: simulateChangeType,
+    }),
+  });
 }

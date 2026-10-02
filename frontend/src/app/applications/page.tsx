@@ -7,8 +7,16 @@ import {
   updateApplication,
   updateApplicationRequirement,
   formatINR,
+  draftApplicationAnswer,
+  reviewApplicationAnswer,
+  checkEvidenceClaims,
 } from "@/lib/api";
-import { ApplicationItem } from "@/types/student";
+import {
+  ApplicationItem,
+  ApplicationDraftResponse,
+  ApplicationReviewResponse,
+  EvidenceCheckResponse,
+} from "@/types/student";
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
@@ -76,6 +84,60 @@ export default function ApplicationsPage() {
       setError(err?.message || "Failed to update requirement status.");
     } finally {
       setUpdatingReqId(null);
+    }
+  };
+
+  // AI Application Assistant State
+  const [aiDraftResults, setAiDraftResults] = useState<Record<number, ApplicationDraftResponse | null>>({});
+  const [aiReviewResults, setAiReviewResults] = useState<Record<number, ApplicationReviewResponse | null>>({});
+  const [aiClaimResults, setAiClaimResults] = useState<Record<number, EvidenceCheckResponse | null>>({});
+  const [aiLoading, setAiLoading] = useState<Record<number, boolean>>({});
+
+  const handleDraftAnswer = async (appId: number) => {
+    try {
+      setAiLoading((prev) => ({ ...prev, [appId]: true }));
+      const question = "Describe your academic background, technical projects, and financial need.";
+      const res = await draftApplicationAnswer(appId, question);
+      setAiDraftResults((prev) => ({ ...prev, [appId]: res }));
+      setAiReviewResults((prev) => ({ ...prev, [appId]: null }));
+    } catch (e: any) {
+      setError(e?.message || "Failed to generate draft from Evidence Bank.");
+    } finally {
+      setAiLoading((prev) => ({ ...prev, [appId]: false }));
+    }
+  };
+
+  const handleReviewAnswer = async (appId: number) => {
+    try {
+      setAiLoading((prev) => ({ ...prev, [appId]: true }));
+      const currentText = statementDrafts[appId] || "";
+      const res = await reviewApplicationAnswer(appId, "Personal Statement", currentText);
+      setAiReviewResults((prev) => ({ ...prev, [appId]: res }));
+    } catch (e: any) {
+      setError(e?.message || "Failed to review statement.");
+    } finally {
+      setAiLoading((prev) => ({ ...prev, [appId]: false }));
+    }
+  };
+
+  const handleCheckClaims = async (appId: number) => {
+    try {
+      setAiLoading((prev) => ({ ...prev, [appId]: true }));
+      const currentText = statementDrafts[appId] || "";
+      const res = await checkEvidenceClaims(appId, currentText);
+      setAiClaimResults((prev) => ({ ...prev, [appId]: res }));
+    } catch (e: any) {
+      setError(e?.message || "Failed to verify claims.");
+    } finally {
+      setAiLoading((prev) => ({ ...prev, [appId]: false }));
+    }
+  };
+
+  const handleApproveDraft = (appId: number) => {
+    const draft = aiDraftResults[appId];
+    if (draft) {
+      setStatementDrafts((prev) => ({ ...prev, [appId]: draft.draft_text }));
+      setSuccessToast("Draft applied to statement. Click 'Save Draft' to persist.");
     }
   };
 
@@ -265,6 +327,153 @@ export default function ApplicationsPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* AI Application Assistant Panel */}
+                    <div className="bg-white p-4 rounded-xl border border-indigo-200 shadow-sm space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-2.5">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-xs text-slate-900 uppercase tracking-wider">
+                              AI Application Assistant
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                              Evidence Grounded
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Drafts grounded in Evidence Bank • Unsupported claim detection • Student approval required
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDraftAnswer(app.id)}
+                            disabled={aiLoading[app.id]}
+                            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors disabled:opacity-50"
+                          >
+                            {aiLoading[app.id] ? "Drafting..." : "Draft from Evidence Bank"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReviewAnswer(app.id)}
+                            disabled={aiLoading[app.id]}
+                            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors disabled:opacity-50"
+                          >
+                            Review Statement
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCheckClaims(app.id)}
+                            disabled={aiLoading[app.id]}
+                            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors disabled:opacity-50"
+                          >
+                            Check Claims
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* AI Draft Display */}
+                      {aiDraftResults[app.id] && (
+                        <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white uppercase tracking-wider">
+                              AI Generated Draft
+                            </span>
+                            <span className="text-[11px] text-slate-500 italic">
+                              Student approval required before persisting
+                            </span>
+                          </div>
+
+                          <p className="text-slate-800 whitespace-pre-line leading-relaxed bg-white p-3 rounded border border-slate-200">
+                            {aiDraftResults[app.id]?.draft_text}
+                          </p>
+
+                          {aiDraftResults[app.id]?.evidence_used && aiDraftResults[app.id]!.evidence_used.length > 0 && (
+                            <div className="text-[11px] text-slate-600">
+                              <span className="font-semibold text-slate-700">Evidence Citing: </span>
+                              {aiDraftResults[app.id]!.evidence_used.map((e) => e.title).join("; ")}
+                            </div>
+                          )}
+
+                          <div className="pt-2 flex items-center justify-end space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => handleApproveDraft(app.id)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition-colors"
+                            >
+                              Approve & Apply to Statement
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAiDraftResults((prev) => ({ ...prev, [app.id]: null }))}
+                              className="px-3 py-1.5 text-slate-500 hover:text-slate-700"
+                            >
+                              Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* AI Review Results Display */}
+                      {aiReviewResults[app.id] && (
+                        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900">Application Statement Review</span>
+                            <span className="font-bold text-indigo-700">
+                              Completeness Score: {aiReviewResults[app.id]?.completeness_score.toFixed(0)}/100
+                            </span>
+                          </div>
+                          <p className="text-slate-600">{aiReviewResults[app.id]?.review_feedback}</p>
+
+                          {aiReviewResults[app.id]?.unsupported_claims && aiReviewResults[app.id]!.unsupported_claims.length > 0 && (
+                            <div className="p-2 bg-rose-50 border border-rose-200 rounded text-rose-800 space-y-1">
+                              <p className="font-bold">Unsupported Claims Detected:</p>
+                              <ul className="list-disc list-inside">
+                                {aiReviewResults[app.id]!.unsupported_claims.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {aiReviewResults[app.id]?.recommendations && (
+                            <div className="text-[11px] text-slate-600">
+                              <span className="font-semibold text-slate-700">Recommendations: </span>
+                              {aiReviewResults[app.id]!.recommendations.join(" • ")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Claims Check Result */}
+                      {aiClaimResults[app.id] && (
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900">Claim Grounding Status</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              aiClaimResults[app.id]?.confidence_level === "HIGH EVIDENCE SUPPORT"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}>
+                              {aiClaimResults[app.id]?.confidence_level}
+                            </span>
+                          </div>
+                          {aiClaimResults[app.id]?.unsupported_claims && aiClaimResults[app.id]!.unsupported_claims.length > 0 ? (
+                            <div className="text-rose-700 bg-rose-50 p-2 rounded border border-rose-200">
+                              <p className="font-bold">Statements needing evidence:</p>
+                              <ul className="list-disc list-inside mt-1">
+                                {aiClaimResults[app.id]!.unsupported_claims.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p className="text-emerald-700">All statements are backed by your current profile and Evidence Bank!</p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Personal Statement Draft */}

@@ -14,6 +14,13 @@ from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
 from app.models.action import Action
 from app.models.planner import PlannerGoal
+from app.models.user import User
+from app.models.evidence import Evidence
+from app.models.knowledge import KnowledgeSource, KnowledgeDocument, KnowledgeChunk
+from app.models.notification import Notification
+from app.core.security import hash_password
+from app.core.config import settings
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -439,3 +446,214 @@ def init_db(db: Session) -> None:
         db.add_all(initial_actions)
         db.commit()
         logger.info("Initial next-best-actions seeded.")
+
+    # 7. Seed Demo User Account for Arjun Kumar
+    if student and not db.query(User).filter(User.student_id == student.id).first():
+        logger.info("Seeding demo user account (demo@scholarai.local)...")
+        pwd_hash, salt = hash_password(settings.DEMO_USER_PASSWORD)
+        demo_user = User(
+            email=settings.DEMO_USER_EMAIL,
+            password_hash=pwd_hash,
+            salt=salt,
+            student_id=student.id,
+            is_active=True,
+            is_demo=True
+        )
+        db.add(demo_user)
+        db.commit()
+        logger.info("Demo user account seeded successfully.")
+
+    # 8. Seed Evidence Bank for Arjun Kumar (Explicitly grounded in profile & project facts)
+    if student and db.query(Evidence).filter(Evidence.student_id == student.id).count() == 0:
+        logger.info("Seeding initial Evidence Bank items for Arjun Kumar...")
+        marksheet_doc = db.query(Document).filter(Document.student_id == student.id, Document.document_type == "MARKSHEET").first()
+        demo_evidence = [
+            Evidence(
+                student_id=student.id,
+                title="Academic Merit: Cumulative 8.4 CGPA in B.Tech Computer Science",
+                category="ACADEMIC",
+                description="Completed 3 semesters with distinction at Demo Engineering College, demonstrating strong mathematical and computational foundations.",
+                date="2025-2026",
+                organization="Demo Engineering College",
+                evidence_text="Authenticated university transcripts confirming an aggregate 8.4 CGPA.",
+                source_document_id=marksheet_doc.id if marksheet_doc else None,
+                source_type="STUDENT_PROFILE",
+                source_name="Student Profile / Semester III Marksheet",
+                verification_status="VERIFIED",
+                confidence="HIGH_EVIDENCE_SUPPORT",
+                used_in_applications="National Merit-cum-Means, CSR STEM Bursary"
+            ),
+            Evidence(
+                student_id=student.id,
+                title="Full-Stack Technical Project: Scholarship Funding & Planning Platform",
+                category="PROJECT",
+                description="Designed and developed a student funding coordination platform integrating deterministic eligibility evaluation, cross-application shared dependency tracking, and deadline risk prioritization using Next.js and FastAPI.",
+                date="2026",
+                organization="Independent Technical Portfolio",
+                evidence_text="Full-stack repository architecture featuring REST APIs, SQLite ORM models, and reactive UI components.",
+                source_type="USER_PROVIDED",
+                source_name="User Provided Project Repository",
+                verification_status="USER_PROVIDED",
+                confidence="HIGH_EVIDENCE_SUPPORT",
+                used_in_applications="NextGen Technology Grant, CSR STEM Bursary"
+            ),
+            Evidence(
+                student_id=student.id,
+                title="Higher Secondary Academic Excellence (89.2% in Class 12th)",
+                category="ACADEMIC",
+                description="Achieved 89.2% in Senior Secondary Pre-University Examinations with distinction in Physics, Chemistry, and Mathematics.",
+                date="2024",
+                organization="Karnataka Pre-University Education Board",
+                evidence_text="State board matriculation transcript.",
+                source_type="STUDENT_PROFILE",
+                source_name="Student Academic Profile",
+                verification_status="VERIFIED",
+                confidence="HIGH_EVIDENCE_SUPPORT",
+                used_in_applications="National Merit-cum-Means"
+            )
+        ]
+        db.add_all(demo_evidence)
+        db.commit()
+        logger.info("Initial Evidence Bank items seeded.")
+
+    # 9. Seed Knowledge Sources & RAG Chunks (Clearly marked DEMO DATA)
+    if db.query(KnowledgeSource).count() == 0:
+        logger.info("Seeding demo knowledge sources and RAG documentation...")
+        now = datetime.now(timezone.utc)
+        
+        csr_s = db.query(Scholarship).filter(Scholarship.name == "CSR STEM Bursary").first()
+        nmm_s = db.query(Scholarship).filter(Scholarship.name == "National Merit-cum-Means Scholarship").first()
+
+        sources_data = [
+            {
+                "name": "TechCorp Global CSR Education Portal (Demo Source)",
+                "source_url": "https://scholarships.demo.techcorp.org/stem-bursary",
+                "source_type": "DEMO_SOURCE",
+                "authority_level": "DEMO",
+                "verification_status": "DEMO_DATA",
+                "last_verified_at": now - timedelta(days=2),
+                "monitoring_status": "ACTIVE",
+                "last_checked": now,
+                "change_severity": "INFO",
+                "docs": [
+                    {
+                        "title": "CSR STEM Bursary Official Demo Guidelines 2026",
+                        "scholarship_id": csr_s.id if csr_s else None,
+                        "content": (
+                            "TechCorp Global CSR STEM Bursary provides non-repayable direct financial assistance of ₹60,000 "
+                            "to undergraduate students enrolled in accredited computer science and engineering degree programs. "
+                            "Eligibility criteria strictly mandate a minimum CGPA of 7.5 and an annual gross family income "
+                            "not exceeding ₹3,50,000.\n\n"
+                            "Mandatory verification documents comprise an authorized current fiscal year Income Certificate, "
+                            "authenticated university semester marksheet, and institutional bonafide student endorsement. "
+                            "Concurrent Award Policy: Recipients may apply for other schemes, but concurrent receipt with "
+                            "other corporate CSR sponsorships requires prior institutional disclosure and official review."
+                        ),
+                        "section": "Eligibility & Documentation Guidelines"
+                    }
+                ]
+            },
+            {
+                "name": "National Scholarship Portal Guidelines (Demo Source)",
+                "source_url": "https://scholarships.gov.in.demo/nmm-guidelines",
+                "source_type": "DEMO_SOURCE",
+                "authority_level": "DEMO",
+                "verification_status": "DEMO_DATA",
+                "last_verified_at": now - timedelta(days=5),
+                "monitoring_status": "ACTIVE",
+                "last_checked": now,
+                "change_severity": "INFO",
+                "docs": [
+                    {
+                        "title": "National Merit-cum-Means Scheme Demo Documentation",
+                        "scholarship_id": nmm_s.id if nmm_s else None,
+                        "content": (
+                            "The National Merit-cum-Means Scholarship provides an annual stipend of ₹50,000 for higher "
+                            "education support. Applicants must demonstrate minimum 70% aggregate marks (or 7.0 CGPA) "
+                            "and parental income within the statutory ceiling of ₹2,50,000 per annum.\n\n"
+                            "Mandatory documents: Revenue Authority Income Certificate, Current College Marksheet, "
+                            "and Aadhaar-linked domicile identity proof. Concurrent award restriction: Beneficiaries "
+                            "holding this central scheme cannot simultaneously draw benefits from another central government "
+                            "scholarship covering identical tuition components."
+                        ),
+                        "section": "National Scheme Overview & Concurrent Holding"
+                    }
+                ]
+            }
+        ]
+
+        for s_info in sources_data:
+            docs_info = s_info.pop("docs")
+            ks = KnowledgeSource(**s_info)
+            db.add(ks)
+            db.flush()
+
+            for d_info in docs_info:
+                content = d_info["content"]
+                c_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+                kd = KnowledgeDocument(
+                    source_id=ks.id,
+                    scholarship_id=d_info.get("scholarship_id"),
+                    title=d_info["title"],
+                    content=content,
+                    document_url=ks.source_url,
+                    content_hash=c_hash,
+                    retrieved_at=now,
+                    last_verified_at=now,
+                    verification_status="DEMO_DATA"
+                )
+                db.add(kd)
+                db.flush()
+
+                # Ingest chunks
+                paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
+                for idx, p in enumerate(paragraphs):
+                    chunk = KnowledgeChunk(
+                        document_id=kd.id,
+                        chunk_text=p,
+                        section=f"{d_info['section']} (Part {idx + 1})" if len(paragraphs) > 1 else d_info["section"],
+                        source_url=ks.source_url,
+                        metadata_json=f'{{"source_id": {ks.id}, "part": {idx + 1}}}'
+                    )
+                    db.add(chunk)
+
+        db.commit()
+        logger.info("Demo knowledge sources and RAG chunks seeded.")
+
+    # 10. Seed Initial Relevant Notifications for Arjun Kumar
+    if student and db.query(Notification).filter(Notification.student_id == student.id).count() == 0:
+        logger.info("Seeding initial relevant notifications...")
+        csr_bursary = db.query(Scholarship).filter(Scholarship.name == "CSR STEM Bursary").first()
+        csr_app = db.query(Application).filter(Application.scholarship_id == csr_bursary.id).first() if csr_bursary else None
+
+        initial_notifs = [
+            Notification(
+                student_id=student.id,
+                type="DEADLINE",
+                title="Approaching Deadline: CSR STEM Bursary",
+                message="Submission deadline is approaching in 4 days. Complete your missing Income Certificate requirement to submit.",
+                severity="URGENT",
+                related_scholarship_id=csr_bursary.id if csr_bursary else None,
+                related_application_id=csr_app.id if csr_app else None,
+                read=False
+            ),
+            Notification(
+                student_id=student.id,
+                type="DOCUMENT",
+                title="Shared Blocker Identified: Income Certificate",
+                message="Your Income Certificate is currently marked as Missing. This single document is required across 3 active applications totaling ₹1,35,000 in potential funding.",
+                severity="HIGH",
+                read=False
+            ),
+            Notification(
+                student_id=student.id,
+                type="SYSTEM",
+                title="Evidence Bank Activated",
+                message="Your verified student profile achievements have been indexed into the Evidence Bank for reusable application drafting.",
+                severity="INFO",
+                read=True
+            )
+        ]
+        db.add_all(initial_notifs)
+        db.commit()
+        logger.info("Initial notifications seeded.")

@@ -1,6 +1,6 @@
 # SCHOLARAi — Student Funding & Application Intelligence
 
-**Current Status: Block 2 — Core Funding & Application Intelligence**
+**Current Status: Block 3 — Advanced AI, Evidence, RAG & Adaptive Intelligence**
 
 ---
 
@@ -8,133 +8,163 @@
 
 Scholarship discovery is a search problem. Scholarship pursuit is a coordination and decision problem.
 
-**SCHOLARAi** is the student-first intelligence platform that connects:
-- Student funding need
-- Scholarship rules
-- Application state
-- Documents & evidence
+**SCHOLARAi** is the student-first intelligence platform connecting:
+- Funding Need
+- Scholarship Rules
+- Student Evidence
+- Application State
+- Documents
 - Deadlines
 - Dependencies
-- Next best actions
+- Knowledge Sources
+- AI Assistance
+- Next Best Action
 
 ### Core Trust Principle
 > **"AI assists. Official sources decide. Student approves."**
 > 
-> *Critical Notice:* SCHOLARAi does not claim guaranteed eligibility or guaranteed scholarship awards. Final eligibility criteria and awards are determined exclusively by official awarding authorities. All seeded scholarship records are **DEMO DATA** and not verified live opportunities.
+> *Critical Notice:* SCHOLARAi does not claim guaranteed eligibility or guaranteed scholarship awards. Final eligibility criteria and awards are determined exclusively by official awarding authorities. All seeded scholarship records are **DEMO DATA** and not verified live opportunities. The system will never auto-submit applications on behalf of students.
 
 ---
 
-## 2. Block 2 Scope & Implemented Capabilities
+## 2. Block 3 Scope & Implemented Capabilities
 
-### A. Scholarship Discovery & Management
-- Structured scholarship catalog with 8 comprehensive demo records, all clearly marked `DEMO DATA`.
-- Multi-dimensional search across title, provider, and description.
-- Filters by eligibility (`eligible`, `possibly_eligible`, `ineligible`, `needs_verification`), deadline, award amount, and verification status.
-- Sorting by recommended match score, upcoming deadline, and award amount.
-- Transparent *"Why this may fit"* explanations tailored to student profile attributes.
+### A. Verified Evidence Bank (`/evidence`)
+- Persistent library of student accomplishments, coursework, projects, internships, leadership roles, and academic awards.
+- Evidence categories: `ACADEMIC`, `PROJECT`, `INTERNSHIP`, `WORK_EXPERIENCE`, `AWARD`, `CERTIFICATION`, `LEADERSHIP`, `VOLUNTEERING`, `FINANCIAL`, `OTHER`.
+- Grounded attribution: Tracks whether evidence is sourced from `Student Profile`, `Document Metadata`, or `User Provided`.
+- Verification statuses: `USER_PROVIDED`, `VERIFIED`, `NEEDS_VERIFICATION`, `REJECTED`.
+- Trust Rule: AI uses approved evidence only; it never fabricates unverified achievements or competition wins.
 
-### B. Deterministic Eligibility Rule Engine
-- Evaluates student CGPA, 12th percentage, annual family income, course/degree level, academic year, domicile state, reservation category, and gender restrictions.
-- Deterministic evaluation logic without LLM hallucinations.
-- Returns explicit human-readable reasons for eligibility, ineligibility, or verification requirements.
+### B. AI Assistant (`/assistant`)
+- Conversational assistant with access to 16 controlled tools (no raw database exposure).
+- Tools: `search_scholarships`, `get_scholarship_details`, `check_eligibility`, `get_user_funding_goal`, `get_user_applications`, `get_application_status`, `get_missing_documents`, `get_user_evidence`, `find_application_blockers`, `build_dependency_graph`, `calculate_deadline_risk`, `estimate_application_effort`, `get_next_best_actions`, `optimize_application_plan`, `retrieve_scholarship_knowledge`, `retrieve_official_rules`.
+- Response Trust Categorization: Explicitly distinguishes `FACTS FROM USER DATA`, `OFFICIAL SOURCE INFORMATION`, `AI ANALYSIS`, and `AI SUGGESTIONS`.
+- Action Confirmation: Proposing state mutations (e.g., updating weekly study hours or verifying evidence) requires explicit student confirmation (`[Confirm]` / `[Cancel]`).
+- Audit Log: Tracks all assistant interactions in `AIInteractionLog`.
 
-### C. Potential Funding Impact Analysis
-- Analyzes candidate scholarships against the student's remaining funding gap:
-  $$\text{Potential Remaining Gap} = \max(0, \text{Funding Gap} - \text{Scholarship Amount})$$
-- Explicitly labeled as simulated potential impact, never assuming award receipt.
+### C. AI Application Assistance (`/applications`)
+- **Grounded Essay Drafting**: Generates application question answers grounded in approved items from the Evidence Bank. Labeled `AI GENERATED DRAFT`. Never auto-submitted.
+- **Unsupported Claim Detection**: Analyzes candidate answers against the Evidence Bank and student profile, flagging ungrounded claims (e.g. exaggerated team sizes or unrecorded awards).
+- **Application Review**: Evaluates responses for completeness, metric grounding, and clarity, providing constructive review recommendations.
+- **Approval Workflow**: Explicit student approval is required before applying drafts to personal statements.
 
-### D. Application Tracking & Checklist Coordination
-- Full application lifecycle: `NOT_STARTED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `READY` $\rightarrow$ `SUBMITTED` $\rightarrow$ `UNDER_REVIEW` $\rightarrow$ `APPROVED` / `REJECTED` / `WITHDRAWN`.
-- Prevents duplicate active applications for the same scholarship.
-- Requirement-level checklists tracking documents, essays, and forms.
-- Interactive personal statement drafting and saving.
+### D. RAG Knowledge Base & Citations
+- Models: `KnowledgeSource`, `KnowledgeDocument`, `KnowledgeChunk`.
+- Ingests official guidelines and scheme rules, chunked and indexed with SHA-256 content hashes.
+- RAG search returns relevant chunks with source citations, authority levels, and verification dates.
+- Citation transparency: Cites sources clearly; demo records remain labeled `DEMO_DATA`.
 
-### E. Cross-Application Dependency Graph & Shared Blockers
-- Models dependencies between Student $\rightarrow$ Documents $\rightarrow$ Application Requirements $\rightarrow$ Applications $\rightarrow$ Scholarships.
-- Automatically identifies **Shared Blockers**: missing documents that block multiple active applications.
-- Computes `potential_funding_affected` across all blocked applications.
-- **Document Cascade Unblocking**: Updating a document status (e.g., from `MISSING` to `AVAILABLE`) automatically synchronizes dependent requirements across all applications and recalculates application readiness.
+### E. Scholarship Change Monitoring & Alerts
+- Monitors source content hashes and timestamps.
+- Change detection detects modifications (e.g., deadline advanced from 4 days to 1 day remaining).
+- Automatically recalculates affected applications, updates deadline risk, and creates high-priority notifications.
 
-### F. Application Bottleneck & Next-Best-Action Engine
-- Identifies the highest-leverage bottleneck in the student's application portfolio.
-- Deterministically ranks next-best actions factoring in deadline urgency, funding gap coverage, document blockers, and application completion.
+### F. Adaptive Planning & Rejection Fallback
+- Dynamic adjustments in response to status transitions:
+  - If an application is marked `REJECTED`, its funding pursued drops to ₹0, funding gap adjusts, and alternative matching scholarships and planner allocations are prioritized.
+  - If an application is marked `APPROVED`, award amounts are recorded while flagging concurrent holding restrictions as requiring official provider verification.
 
-### G. Deadline Risk Engine
-- Categorizes deadline risk into `URGENT`, `HIGH`, `MEDIUM`, `LOW`, and `EXPIRED` based on remaining days and application progress.
+### G. Voice Decoder
+- Decodes speech and transcription queries in English, Tamil, and Tanglish (e.g., *"Enakku 5 hours irukku this week"*).
+- Extracts structured intent (`weekly_available_hours`, `funding_goal`, `scholarship_search`, `blocker_inquiry`).
+- Trust Rule: Always echoes *"You said: ... Is this correct?"* with confirmation buttons before executing any change.
 
-### H. Time-Constrained Portfolio Planner & Funding Strategy
-- Allows the student to specify available weekly preparation hours (e.g., 5 hours/week).
-- Generates a suggested weekly plan allocating time between shared blocker resolution, urgent deadline applications, and statement preparation.
-- Highlights crucial distinctions: `CAN APPLY` vs `CAN RECEIVE` vs `CAN HOLD CONCURRENTLY`.
-- Outlines concurrent-award compliance caveats: *"Concurrent award rule: Needs verification."*
+### H. Authentication, Authorization & Security Hardening
+- Authentication: Secure registration and login with PBKDF2-HMAC-SHA256 password hashing (600,000 iterations, cryptographic salts).
+- Session Management: Cryptographically signed HttpOnly session cookies (`scholarai_session`).
+- Multi-User Authorization & IDOR Defense: All student-specific endpoints are strictly scoped to `current_user.student_id`. Cross-user access is blocked with HTTP 403 Forbidden.
+- Prompt Injection Defense: Sanitizes untrusted content and defangs override instructions into inert text.
+- SSRF Defense: Validates URLs, blocking private IP ranges, localhost, and non-HTTP schemes.
+- Demo Account: Pre-configured demo student Arjun Kumar accessible via `demo@scholarai.local` (`DemoStudent@2026`).
 
 ---
 
 ## 3. Technology Stack
 
-- **Frontend**: Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS 4
-- **Backend**: Python 3.14, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn
-- **Database**: SQLite for local development (`scholarai.db`); clean schema ready for PostgreSQL
-- **Testing**: Pytest, HTTPX, TypeScript (`tsc --noEmit`), Next.js Production Build
+- **Backend**: Python 3.14+, FastAPI, SQLAlchemy 2.0 ORM, Pydantic v2
+- **Database**: SQLite (local development, migratable to PostgreSQL)
+- **Frontend**: Next.js 16 (App Router, Turbopack), React 19, TypeScript, Vanilla Tailwind CSS
+- **Testing**: pytest, anyio, httpx
 
 ---
 
-## 4. Quick Start & Setup
+## 4. API Reference Summary
 
-### Prerequisites
-- Node.js (v18+) & npm
-- Python (v3.10+)
+### Authentication
+- `POST /api/v1/auth/register` — Register student account
+- `POST /api/v1/auth/login` — Sign in and receive session cookie
+- `POST /api/v1/auth/logout` — Sign out and invalidate session
+- `GET /api/v1/auth/me` — Get current user identity
 
-### Backend Setup
+### Evidence Bank
+- `GET /api/v1/evidence` — List student evidence items (filtered by category/status)
+- `POST /api/v1/evidence` — Add evidence item
+- `GET /api/v1/evidence/{id}` — Get evidence detail
+- `PATCH /api/v1/evidence/{id}` — Update evidence item
+- `DELETE /api/v1/evidence/{id}` — Delete evidence item
+
+### AI Assistant & Application AI
+- `POST /api/v1/assistant/chat` — Conversational assistant with tool execution
+- `POST /api/v1/applications/{id}/draft` — Draft answer using Evidence Bank
+- `POST /api/v1/applications/{id}/review` — Review application answer
+- `POST /api/v1/applications/{id}/evidence-check` — Detect unsupported claims
+
+### RAG Knowledge Base
+- `GET /api/v1/knowledge/sources` — List knowledge sources
+- `GET /api/v1/knowledge/search` — Search chunks with citations
+- `GET /api/v1/knowledge/{id}` — Get knowledge source detail
+
+### Monitoring & Notifications
+- `GET /api/v1/notifications` — List notifications with unread count
+- `PATCH /api/v1/notifications/{id}/read` — Mark notification read
+- `POST /api/v1/notifications/mark-all-read` — Mark all notifications read
+- `GET /api/v1/monitoring` — List monitored sources
+- `POST /api/v1/monitoring/check` — Check or simulate source changes
+
+### Voice Decoder
+- `POST /api/v1/voice/interpret` — Interpret voice/text intent with confirmation
+
+### Core Funding & Applications (Block 2)
+- `GET /api/v1/scholarships` — Catalog search, filtering, and sorting
+- `GET /api/v1/scholarships/{id}` — Detail and potential funding impact
+- `GET /api/v1/scholarships/{id}/eligibility` — Deterministic criteria evaluation
+- `POST /api/v1/scholarships/{id}/apply` — Start application
+- `GET /api/v1/applications` — Active applications portfolio
+- `PATCH /api/v1/applications/{id}` — Update application status or personal statement
+- `PATCH /api/v1/applications/{id}/requirements/{req_id}` — Update requirement status
+- `GET /api/v1/documents` — Document status & shared blockers
+- `PATCH /api/v1/documents/{id}` — Update document status (triggers cascade unblocking)
+- `GET /api/v1/actions` — Ranked next-best actions
+- `GET /api/v1/planner` — Portfolio planning & weekly hour allocations
+
+---
+
+## 5. Local Setup & Verification
+
+### Running the Backend
 ```bash
 cd backend
-python -m pip install -r requirements.txt
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-API Documentation: `http://127.0.0.1:8000/docs`
 
-### Frontend Setup
+### Running the Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Portal URL: `http://localhost:3000`
 
----
-
-## 5. Running Tests
-
-### Backend Test Suite (Pytest)
+### Running Test Suites
 ```bash
-python -m pytest backend/tests
-```
+# Run all backend unit & integration tests (26 tests)
+cd backend
+python -m pytest tests
 
-### TypeScript Validation
-```bash
-cd frontend
-npx tsc --noEmit
-```
-
-### Frontend Build
-```bash
-cd frontend
-npm run build
-```
-
-### End-to-End Live Integration Test
-```bash
+# Run live integration verification
+python test_live_block3.py
 python test_live_block2.py
 ```
-
----
-
-## 6. What Is Deferred to Later Phases
-
-To maintain strict Block 2 focus, the following capabilities are explicitly deferred:
-- **Real secure binary file upload and encrypted document storage** (Phase 3).
-- **Advanced external LLM reasoning and conversational assistants** (Phase 3).
-- **Retrieval-Augmented Generation / RAG over official government PDF gazettes** (Phase 3).
-- **Live web scraping of third-party portals** (Phase 3).
-- **Multi-user authentication, JWT tokens, and OAuth2 login** (Phase 3).
-- **Automated SMS/Email notification delivery** (Phase 3).
