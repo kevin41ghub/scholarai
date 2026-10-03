@@ -95,7 +95,7 @@ def register(req: UserRegisterRequest, response: Response, db: Session = Depends
         value=token,
         max_age=settings.SESSION_MAX_AGE_SECONDS,
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=settings.ENVIRONMENT == "production",
         path="/"
     )
@@ -141,7 +141,7 @@ def login(req: UserLoginRequest, response: Response, db: Session = Depends(get_d
         value=token,
         max_age=settings.SESSION_MAX_AGE_SECONDS,
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=settings.ENVIRONMENT == "production",
         path="/"
     )
@@ -171,7 +171,7 @@ def logout(response: Response):
         key=settings.SESSION_COOKIE_NAME,
         path="/",
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=settings.ENVIRONMENT == "production"
     )
     return {"message": "Logged out successfully."}
