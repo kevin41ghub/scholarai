@@ -1,181 +1,432 @@
 # SCHOLARAi — Student Funding & Application Intelligence
 
-**Current Status: Block 4 — Production Ready, Deployment Hardened & Full QA**
+> A student-focused decision and coordination platform for discovering scholarships, understanding requirements, managing application readiness, and planning funding pursuit.
 
----
+**Project type:** College mini-project / resume portfolio project  
+**Current stage:** Deployed, production-hardened prototype with Gemini AI integration  
+**Trust principle:** **AI assists. Official sources decide. Student approves.**
 
-## 1. Product Overview
+## 1. Problem
 
 Scholarship discovery is a search problem. Scholarship pursuit is a coordination and decision problem.
 
-**SCHOLARAi** is the student-first intelligence platform connecting:
-- Funding Need
-- Scholarship Rules
-- Student Evidence
-- Application State
-- Documents
-- Deadlines
-- Dependencies
-- Knowledge Sources
-- AI Assistance
-- Next Best Action
+Students must simultaneously track funding needs, scholarship rules, eligibility, evidence, documents, application state, deadlines, dependencies, and changing requirements. SCHOLARAi is designed around that coordination problem rather than treating scholarships as a simple search list.
 
-### Core Trust Principle
-> **"AI assists. Official sources decide. Student approves."**
-> 
-> *Critical Notice:* SCHOLARAi does not claim guaranteed eligibility or guaranteed scholarship awards. Final eligibility criteria and awards are determined exclusively by official awarding authorities. All seeded scholarship records are **DEMO DATA** and not verified live opportunities. The system will never auto-submit applications on behalf of students.
+## 2. What SCHOLARAi Does
 
----
+SCHOLARAi connects:
 
-## 2. Block 4 Scope & Implemented Capabilities
+- Funding need and financial gap
+- Scholarship rules and eligibility criteria
+- Student evidence and verified achievements
+- Application state and readiness
+- Required documents and shared blockers
+- Deadlines and deadline risk
+- Dependencies between documents, requirements, and applications
+- Scholarship knowledge sources and citations
+- AI-assisted planning and application support
+- Next-best actions for the student
 
-### A. Production Security & Hardening
-- **Strict Authentication**: Password hashing using salted PBKDF2-HMAC-SHA256 (600,000 rounds).
-- **Session Security**: HMAC-SHA256 signed session tokens delivered via `HttpOnly`, `SameSite=Lax`, and `Secure` (in production) cookies.
-- **Production Secret Validation**: Rejects default development `AUTH_SECRET` and wildcard CORS origins on production boot.
-- **SSRF & Prompt Injection Guards**: Blocks access to localhost/private IP spaces; sanitizes and defangs retrieved RAG content.
-- **Exception Sanitization**: Suppresses raw stack traces in production to prevent information disclosure.
+### Core capabilities
 
-### B. Real AI Provider & Fallback Architecture
-- **Provider Abstraction**: Modular `AIProvider` base class supporting `generate()`, `summarize()`, `classify()`, `extract()`, and `embed()`.
-- **OpenAI-Compatible Adapter**: Production REST adapter supporting OpenAI (GPT-4o, GPT-4o-mini), Groq (Llama-3), Together, DeepSeek, Google Gemini (via OpenAI compatibility), and Ollama.
-- **Demo AI Fallback**: Safe deterministic mode (`AI_PROVIDER="demo"`) ensuring local usability with zero external keys.
-- **Secret Redaction**: API keys and authorization headers are never logged or exposed in client error payloads.
+1. **Scholarship Goal Planner** — converts a funding target into an actionable pursuit plan.
+2. **Scholarship Discovery & Eligibility** — deterministic eligibility analysis and explainable fit signals.
+3. **Cross-Scholarship Dependency Graph** — identifies shared documents and requirements that affect multiple applications.
+4. **Application Bottleneck Agent** — identifies the highest-impact blocker and explains why it matters.
+5. **Time-Constrained Portfolio Optimizer** — prioritizes applications using funding value, urgency, eligibility, readiness, effort, progress, dependencies, and conflicts.
+6. **Verified Evidence Bank** — stores reusable student achievements and credentials with verification/source metadata.
+7. **RAG Scholarship Knowledge Layer** — grounds AI assistance in scholarship knowledge, source metadata, and verification state.
+8. **AI Application Assistance** — drafts, reviews, and checks claims against approved student evidence; the student remains the approver.
+9. **Continuous Scholarship Intelligence Architecture** — supports source snapshots and change detection without pretending that demo records are live verified data.
+10. **Voice Intent Decoder** — supports English/Tamil/Tanglish-style intent where available and converts speech/text into structured intent with confirmation.
+11. **Notifications & Adaptive Planning** — surfaces deadline risks, blockers, and planning changes.
+12. **Authentication & Security Controls** — authenticated access, authorization checks, prompt-injection defenses, SSRF protections, secure sessions, and sanitized errors.
 
-### C. Controlled AI Tool Execution (Zero Direct SQL)
-- 16 strictly typed, validated backend tools wrapping business logic in `AIToolkit`.
-- AI assistant cannot issue raw SQL queries or mutate databases directly.
-- Consequential state changes require student confirmation dialogs before persisting.
+## 3. AI Architecture
 
-### D. Verified Evidence Bank (`/evidence`)
-- Persistent library of student accomplishments across 13 categories (`ACADEMIC`, `PROJECT`, `WORK_EXPERIENCE`, `AWARD`, `LEADERSHIP`, etc.).
-- Provenance tracking (`Student Profile`, `Document`, `User Provided`).
-- Verification statuses: `USER_PROVIDED`, `VERIFIED`, `NEEDS_VERIFICATION`, `REJECTED`.
-- Grounded drafting: Generates application answers citing verified evidence IDs.
-- Unsupported claim detection: Automatically flags ungrounded assertions.
+SCHOLARAi uses a controlled AI architecture rather than allowing the language model to directly manipulate application state or access the database.
 
-### E. RAG Knowledge Base & Citations
-- Relational schema: `KnowledgeSource` $\rightarrow$ `KnowledgeDocument` $\rightarrow$ `KnowledgeChunk`.
-- Ingests guidelines, chunked with SHA-256 content hashes.
-- Preserves source citations, authority levels (`OFFICIAL`, `DEMO`), and verification dates.
+### AI agents / responsibilities
 
-### F. Adaptive Planning & Change Monitoring
-- Rejection recalculation: Drops potential funding from rejected applications to **₹0** and re-allocates preparation hours.
-- Approval handling: Logs award values and flags concurrent holding rules with *"Concurrent holding eligibility requires official verification."*
-- Deadline compression: Dynamically escalates urgency when deadlines approach.
-- Monitoring service: Detects source content changes and triggers high-severity targeted notifications.
+- Discovery Agent
+- Eligibility Agent
+- Goal Planning Agent
+- Document Agent
+- Bottleneck Agent
+- Portfolio Optimization Agent
+- Application Agent
+- Monitoring Agent
+- Notification Agent
 
-### G. Voice Decoder
-- Speech/text intent interpreter supporting English, Tamil, and Tanglish.
-- Enforces mandatory user confirmation before applying interpreted intents.
+### Controlled tool layer
 
----
+The backend exposes **16 strictly typed AI tools**. Tools provide controlled access to scholarship search, scholarship details, official rules, eligibility checks, documents, evidence, dependency analysis, deadline risk, effort estimation, planning, monitoring, and notifications.
 
-## 3. End-to-End User Journey
+The AI layer does **not** receive direct SQL/database access. Consequential state changes require explicit confirmation.
 
-$$\text{DISCOVER} \longrightarrow \text{UNDERSTAND} \longrightarrow \text{PLAN} \longrightarrow \text{UNBLOCK} \longrightarrow \text{APPLY} \longrightarrow \text{MONITOR} \longrightarrow \text{ADAPT}$$
+### Provider abstraction
 
-1. **Discover**: Browse opportunities matching student academic & financial profile with transparent eligibility criteria.
-2. **Understand**: Inspect potential funding impact (e.g. ₹60,000 gap reduced by ₹50,000 award $\rightarrow$ ₹10,000 remaining gap).
-3. **Plan**: Configure weekly available hours (e.g. 5.0 hrs) and generate time-constrained effort allocations.
-4. **Unblock**: Identify shared blockers (e.g. Income Certificate blocking 3 active applications affecting ₹1,35,000) and observe cascade unblocking to 100% readiness.
-5. **Apply & Assist**: AI drafts answers strictly grounded in Evidence Bank; flags unsupported claims; requires student approval.
-6. **Monitor & Adapt**: Source change alerts re-prioritize applications and adjust deadline risk automatically.
+The project supports a provider abstraction for:
 
----
+- **Gemini** — active integration using Google's official SDK with REST fallback.
+- **OpenAI-compatible providers** — supported through an adapter.
+- **Demo AI provider** — deterministic local fallback for demonstrations and testing.
 
-## 4. API Endpoints
+The production integration uses `gemini-flash-latest` through environment configuration. API keys are never committed to the repository.
 
-### Authentication & Identity
-- `POST /api/v1/auth/register` — Register student account
-- `POST /api/v1/auth/login` — Authenticate and receive signed session cookie
-- `POST /api/v1/auth/logout` — Clear session cookie
-- `GET /api/v1/auth/me` — Current user identity and student profile
+## 4. Trust Model
 
-### AI Assistant & Evidence
-- `POST /api/v1/assistant/chat` — Conversational assistant with tool execution
-- `GET /api/v1/evidence` — List student evidence items
-- `POST /api/v1/evidence` — Create new evidence item
-- `GET /api/v1/evidence/{id}` — Get evidence detail
-- `PATCH /api/v1/evidence/{id}` — Update evidence item
-- `DELETE /api/v1/evidence/{id}` — Delete evidence item
+SCHOLARAi deliberately separates different kinds of information:
 
-### AI Application Assistance
-- `POST /api/v1/applications/{id}/draft` — Generate grounded draft citing Evidence Bank
-- `POST /api/v1/applications/{id}/review` — Review application answer
-- `POST /api/v1/applications/{id}/evidence-check` — Check for unsupported claims
+| Label | Meaning |
+|---|---|
+| **VERIFIED** | Supported by a trusted/verified source or credential state. |
+| **AI ANALYSIS** | Reasoning or interpretation generated by the AI system. |
+| **USER PROVIDED** | Information entered or supplied by the student. |
+| **NEEDS VERIFICATION** | Information that should not yet be treated as authoritative. |
 
-### RAG Knowledge Base & Monitoring
-- `GET /api/v1/knowledge/sources` — List knowledge sources
-- `GET /api/v1/knowledge/search` — Search RAG chunks with citation preservation
-- `GET /api/v1/knowledge/{id}` — Get knowledge source detail
-- `GET /api/v1/notifications` — List notifications with unread count
-- `PATCH /api/v1/notifications/{id}/read` — Mark notification read
-- `POST /api/v1/notifications/mark-all-read` — Mark all notifications read
-- `GET /api/v1/monitoring` — List monitored sources
-- `POST /api/v1/monitoring/check` — Check or simulate source changes
+The system does not guarantee eligibility, scholarship awards, or application outcomes.
 
-### Voice Decoder
-- `POST /api/v1/voice/interpret` — Interpret voice/text intent with confirmation
+**Critical demo-data notice:** seeded scholarship records are explicitly treated as **DEMO_DATA**. They must not be represented as live government/official scholarship listings.
 
-### Core Funding & Applications
-- `GET /api/v1/scholarships` — Catalog search, filtering, and sorting
-- `GET /api/v1/scholarships/{id}` — Detail and potential funding impact
-- `GET /api/v1/scholarships/{id}/eligibility` — Deterministic criteria evaluation
-- `POST /api/v1/scholarships/{id}/apply` — Start application
-- `GET /api/v1/applications` — Active applications portfolio
-- `PATCH /api/v1/applications/{id}` — Update application status
-- `GET /api/v1/documents` — Document status & shared blockers
-- `PATCH /api/v1/documents/{id}` — Update document status (cascade unblocking)
-- `GET /api/v1/actions` — Ranked next-best actions
-- `GET /api/v1/planner` — Portfolio planning & weekly hour allocations
+The system also does not automatically submit applications to government portals.
 
----
+## 5. Example Decision Flow
 
-## 5. Deployment & Local Setup
-
-### Local Docker Compose (PostgreSQL + FastAPI + Next.js)
-```bash
-docker-compose up --build -d
+```text
+Student Goal
+    ↓
+Funding Gap Analysis
+    ↓
+Scholarship Discovery
+    ↓
+Eligibility Analysis
+    ↓
+Evidence + Document Readiness
+    ↓
+Dependency / Bottleneck Analysis
+    ↓
+Portfolio Prioritization
+    ↓
+Application Assistance
+    ↓
+Student Review & Approval
+    ↓
+Notifications / Adaptive Planning
 ```
-Access at `http://localhost:3000` (Frontend) and `http://localhost:8000/api/health` (Backend).
 
-### Running Manually
+A key design idea is that one missing document can affect multiple applications. For example, the demo **Income Certificate** is modelled as a shared blocker rather than as an isolated checklist item.
 
-#### Backend
-```bash
+## 6. Technology Stack
+
+### Frontend
+
+- Next.js 16
+- React 19
+- TypeScript 5
+- Tailwind CSS 4
+
+### Backend
+
+- Python
+- FastAPI
+- SQLAlchemy 2.0
+- Pydantic
+
+### Data / AI
+
+- SQLite for development
+- PostgreSQL-compatible production database
+- RAG knowledge and citation metadata
+- Embedding support
+- Gemini integration
+- Deterministic rules and scoring alongside AI reasoning
+
+### Deployment / Operations
+
+- Render deployment architecture
+- Separate frontend and backend services
+- PostgreSQL production database
+- Environment-based secrets/configuration
+- Docker/Compose deployment blueprint
+
+## 7. Architecture
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    Next.js Frontend                     │
+│ Dashboard · Discover · Applications · Documents         │
+│ My Goal · Evidence · Assistant · Notifications          │
+└──────────────────────────┬──────────────────────────────┘
+                           │ REST API
+┌──────────────────────────▼──────────────────────────────┐
+│                     FastAPI Backend                     │
+│ Auth · Scholarships · Applications · Documents          │
+│ Evidence · Goals · Planning · Notifications · AI       │
+└───────────────┬──────────────────────┬──────────────────┘
+                │                      │
+        ┌───────▼────────┐     ┌──────▼─────────────────┐
+        │ Rules / Domain │     │ Controlled AI Toolkit  │
+        │ Intelligence   │     │ 16 typed tools         │
+        └───────┬────────┘     └──────┬─────────────────┘
+                │                      │
+                └──────────┬───────────┘
+                           ▼
+                 ┌───────────────────┐
+                 │ Data + RAG Layer  │
+                 │ Student / Funding │
+                 │ Scholarships      │
+                 │ Applications      │
+                 │ Documents         │
+                 │ Evidence          │
+                 │ Knowledge Sources │
+                 └───────────────────┘
+```
+
+The architecture separates UI, API/domain logic, deterministic decision logic, controlled AI tooling, persistence, and knowledge retrieval.
+
+## 8. Security Engineering
+
+Security is treated as part of the application architecture rather than a presentation feature.
+
+Implemented controls include:
+
+- PBKDF2-HMAC-SHA256 password hashing with 600,000 iterations.
+- Signed HttpOnly session cookies.
+- Cross-origin production sessions use `SameSite=None; Secure` where required by the deployed frontend/backend architecture.
+- Authorization and IDOR protection around authenticated resources.
+- Production secret/configuration validation.
+- SSRF protection for external-source access.
+- Prompt-injection defense for retrieved/external content.
+- Sanitized exception responses so internal details are not exposed through the API.
+- AI audit logging.
+- Secret redaction in AI/provider logging.
+- No committed API keys or production secrets.
+
+## 9. Demo Student / Data
+
+The current seeded demonstration uses a fictional student profile and seeded scholarship records so the complete decision workflow can be evaluated consistently.
+
+The demo intentionally includes an **Income Certificate** as a missing shared document. This demonstrates:
+
+- application readiness impact,
+- dependency propagation,
+- bottleneck detection,
+- funding impact calculation,
+- and cascade unblocking when the document becomes available.
+
+The demo data is not evidence that the corresponding scholarships are currently open, available, or officially verified.
+
+## 10. Backend API Areas
+
+Representative API areas include:
+
+- `/api/health`
+- Authentication/session endpoints
+- Student/profile endpoints
+- Funding and goal endpoints
+- Scholarship discovery/detail endpoints
+- Eligibility endpoints
+- Application/readiness endpoints
+- Document endpoints
+- Dependency/bottleneck endpoints
+- Evidence Bank endpoints
+- AI Assistant endpoints
+- Application-assistance endpoints
+- RAG/knowledge endpoints
+- Monitoring/change endpoints
+- Notification endpoints
+
+The API is organized around domain responsibilities rather than exposing database tables directly to the frontend or AI layer.
+
+## 11. Local Development
+
+### Prerequisites
+
+- Node.js
+- npm
+- Python 3.x
+- Git
+
+### Backend
+
+```powershell
 cd backend
-python -m venv venv
-.\venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+Create the local environment file from the provided example and configure development values/secrets as required.
+
+Then bootstrap the database and start FastAPI:
+
+```powershell
 python scripts/bootstrap_db.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-#### Frontend
-```bash
+Backend health check:
+
+```text
+http://127.0.0.1:8000/api/health
+```
+
+### Frontend
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-### Running Test Suites
-```bash
-# 1. Pytest Unit & Security Suite (33 tests)
+Configure `NEXT_PUBLIC_API_BASE_URL` to point to the backend when running the frontend locally.
+
+## 12. Environment Configuration
+
+Do not commit secrets.
+
+Important configuration areas include:
+
+- Database URL
+- Session/auth configuration
+- CORS configuration
+- AI provider selection
+- Gemini/OpenAI-compatible provider credentials
+- AI model configuration
+- Demo/development configuration
+
+Use the repository's `.env.example` files as the configuration contract. Production secrets belong in the deployment platform's secret/environment configuration, not in source control.
+
+## 13. Testing & Quality Gates
+
+The project has been developed with regression testing across the major blocks rather than relying only on manual UI checks.
+
+Current verified backend baseline:
+
+- **34 backend tests passing** after Gemini integration and the latest assistant evidence-routing fix.
+- Block 2 regression coverage.
+- Block 3 regression coverage.
+- Block 4 production-hardening coverage.
+- Frontend TypeScript check completed successfully.
+- Production frontend build completed successfully during the deployment QA cycle.
+- Live Gemini integration was verified with a successful grounded assistant request.
+
+Typical local checks:
+
+```powershell
 cd backend
-python -m pytest tests -v
+python -m pytest tests -q
 
-# 2. Block 2 Live Integration Regression (14 assertions)
-python test_live_block2.py
-
-# 3. Block 3 Live Integration Regression (16 assertions)
-python test_live_block3.py
-
-# 4. Block 4 Live E2E QA & Hardening Suite (14 assertions)
-python test_live_block4.py
-
-# 5. Frontend Typecheck & Build
-cd frontend
-npx.cmd tsc --noEmit
-npm.cmd run build
+cd ..\frontend
+npx tsc --noEmit
+npm run build
 ```
+
+## 14. Deployment
+
+The current deployed architecture uses separate Render services for the frontend, backend, and PostgreSQL database.
+
+- Frontend: `https://scholarai-web.onrender.com`
+- Backend: `https://scholarai-api-jxgl.onrender.com`
+- Health endpoint: `https://scholarai-api-jxgl.onrender.com/api/health`
+
+The backend health contract reports service health, environment, database connectivity, and the project trust principle.
+
+Deployment documentation and configuration are maintained under `docs/` and the Render deployment configuration in the repository.
+
+## 15. Current Limitations
+
+This project intentionally distinguishes implemented architecture from future production integrations.
+
+Current limitations include:
+
+- Seeded scholarship records are demo data, not a live verified scholarship marketplace.
+- Automated web crawling is not enabled; monitoring is designed around controlled source snapshots/diffing.
+- Binary document upload/storage is not yet the primary document workflow; current readiness tracking focuses on document metadata/state.
+- External email/SMS delivery is not enabled.
+- Government portal auto-submission is intentionally excluded.
+- Password recovery is a remaining production feature area.
+- Real-world scholarship-source onboarding and verification workflows remain future expansion areas.
+
+These limitations are explicit so the project does not overstate its capabilities.
+
+## 16. Recommended Future Work
+
+1. Integrate verified official scholarship sources with source-specific ingestion pipelines.
+2. Add robust binary document storage and secure document processing.
+3. Expand OCR/document extraction with human confirmation.
+4. Add production-grade background jobs and Redis-backed scheduling.
+5. Improve semantic retrieval with production vector infrastructure where appropriate.
+6. Add password recovery and broader account-management flows.
+7. Add more comprehensive end-to-end browser tests.
+8. Add observability, metrics, tracing, and structured production monitoring.
+9. Build stronger scholarship-source verification and freshness workflows.
+10. Expand multilingual voice support while retaining confirmation before consequential actions.
+
+## 17. Project Structure
+
+```text
+scholarai/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   │   └── ai/
+│   │   └── main.py
+│   ├── scripts/
+│   ├── tests/
+│   └── requirements.txt
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   └── package.json
+├── docs/
+│   ├── architecture.md
+│   ├── deployment.md
+│   └── ...
+├── render.yaml
+└── README.md
+```
+
+## 18. Engineering Principles
+
+SCHOLARAi is intentionally designed around the following principles:
+
+- **AI assists; it does not become the source of truth.**
+- **Official sources decide official scholarship facts.**
+- **Student evidence is grounded in explicit stored records.**
+- **Deterministic rules handle decisions that should be reproducible.**
+- **AI is constrained through typed tools and confirmation boundaries.**
+- **Shared dependencies are first-class domain relationships.**
+- **Security is part of the architecture, not an afterthought.**
+- **Demo data is clearly separated from verified external information.**
+- **The system should explain why it recommends an action.**
+
+## 19. Resume / Portfolio Positioning
+
+**SCHOLARAi — Student Funding & Application Intelligence Platform**
+
+Designed and developed a full-stack student funding platform that combines deterministic eligibility/risk analysis, dependency-aware application planning, verified student evidence, RAG-grounded AI assistance, typed AI tools, and production security controls. Built with Next.js, React, TypeScript, FastAPI, SQLAlchemy, PostgreSQL-compatible persistence, and Gemini, with automated regression testing and Render deployment.
+
+### Strong technical talking points
+
+- Full-stack architecture and REST API design
+- AI provider abstraction and Gemini integration
+- RAG and source-grounded AI responses
+- Typed tool-calling architecture with 16 controlled tools
+- Deterministic rules/scoring alongside LLM reasoning
+- Dependency graphs and bottleneck analysis
+- Authentication, authorization, IDOR, SSRF, and prompt-injection defenses
+- PostgreSQL-compatible deployment architecture
+- Automated backend regression testing
+- Production deployment and debugging of cross-origin session behavior
+
+## 20. Project Status
+
+SCHOLARAi is a functioning college mini-project / portfolio system with a deployed web application, backend API, database-backed workflows, Gemini integration, security hardening, automated tests, and explicit documentation of remaining limitations.
+
+The project should be evaluated as an engineered prototype rather than as a claim of a fully integrated live scholarship marketplace.
