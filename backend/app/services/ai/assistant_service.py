@@ -131,6 +131,15 @@ def process_assistant_chat(
                 ev_items = toolkit.get_user_evidence()
                 tools_used.append("get_user_evidence")
                 sources_cited.append("Student Evidence Bank")
+            
+            if "evidence" in msg_lower or "project" in msg_lower:
+                evidence_lines = [
+                    f"- {e['title']} ({e['category']}) | Source: {e['source_name']} | Status: {e['verification_status']}"
+                    for e in ev_items
+                ]
+                evidence_text = "\n".join(evidence_lines)
+            else:
+                evidence_text = "No Evidence Bank records retrieved for this query."
 
             # 2. Format context cleanly
             if blockers:
@@ -179,7 +188,8 @@ def process_assistant_chat(
                 "3. If a fact or number is not in the context, explicitly state that it is not available.\n"
                 "4. Never claim guaranteed scholarship awards or guaranteed eligibility.\n"
                 "5. When asked what SCHOLARAi does, explain that it connects student funding need, scholarship rules, application state, documents/evidence, and deadlines into coordinated application intelligence.\n"
-                "6. Format your answer with clean Markdown (bullet points, bold text)."
+                "6. For questions about the student's evidence, projects, achievements, credentials, or reusable application evidence, prioritize the STUDENT EVIDENCE BANK below. Do not replace an evidence answer with scholarship recommendations unless the student explicitly asks for scholarships.\n"
+                "7. Format your answer with clean Markdown (bullet points, bold text)."
             )
 
             grounded_prompt = (
@@ -195,6 +205,8 @@ def process_assistant_chat(
                 f"{apps_text}\n\n"
                 f"=== RANKED NEXT-BEST ACTIONS ===\n"
                 f"{actions_text}\n\n"
+                f"=== STUDENT EVIDENCE BANK ===\n"
+                f"{evidence_text}\n\n"
                 f"=== RETRIEVED KNOWLEDGE BASE ===\n"
                 f"{knowledge_text}\n\n"
                 f"=== STUDENT MESSAGE ===\n"
@@ -207,7 +219,8 @@ def process_assistant_chat(
                 temperature=0.2,
                 max_tokens=800,
             )
-            trust_category = "OFFICIAL SOURCE INFORMATION" if chunks else "FACTS FROM USER DATA"
+            is_evidence_query = "evidence" in msg_lower or "project" in msg_lower
+            trust_category = "FACTS FROM USER DATA" if is_evidence_query else ("OFFICIAL SOURCE INFORMATION" if chunks else "FACTS FROM USER DATA")
 
         except Exception as e:
             safe_err = str(e)
@@ -286,7 +299,18 @@ def process_assistant_chat(
             )
             trust_category = "FACTS FROM USER DATA"
             sources_cited = ["Student Funding Profile (backend-calculated)"]
-
+            
+        elif "evidence" in msg_lower or "project" in msg_lower:
+            tools_used.append("get_user_evidence")
+            ev_items = toolkit.get_user_evidence()
+            if ev_items:
+                items_str = "\n".join(f"• **{e['title']}** ({e['category']}) — Source: {e['source_name']} [{e['verification_status']}]" for e in ev_items[:4])
+                reply = f"**Available Reusable Evidence:**\n\n{items_str}\n\nYou can reuse these approved facts across personal statements and short answers without inventing credentials."
+            else:
+                reply = "No evidence items found in your Evidence Bank. Add projects, academic achievements, or leadership roles under the Evidence tab."
+            trust_category = "FACTS FROM USER DATA"
+            sources_cited = ["Student Evidence Bank"]
+          
         elif "scholarship" in msg_lower or "focus" in msg_lower or "match" in msg_lower:
             tools_used.extend(["search_scholarships", "get_user_funding_goal"])
             scholarships = toolkit.search_scholarships(limit=4)
@@ -304,17 +328,7 @@ def process_assistant_chat(
             trust_category = "OFFICIAL SOURCE INFORMATION"
             sources_cited = ["Demo Scholarship Catalog (DEMO DATA)"]
 
-        elif "evidence" in msg_lower:
-            tools_used.append("get_user_evidence")
-            ev_items = toolkit.get_user_evidence()
-            if ev_items:
-                items_str = "\n".join(f"• **{e['title']}** ({e['category']}) — Source: {e['source_name']} [{e['verification_status']}]" for e in ev_items[:4])
-                reply = f"**Available Reusable Evidence:**\n\n{items_str}\n\nYou can reuse these approved facts across personal statements and short answers without inventing credentials."
-            else:
-                reply = "No evidence items found in your Evidence Bank. Add projects, academic achievements, or leadership roles under the Evidence tab."
-            trust_category = "FACTS FROM USER DATA"
-            sources_cited = ["Student Evidence Bank"]
-
+        
         else:
             # General question with knowledge retrieval
             tools_used.append("retrieve_scholarship_knowledge")
