@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { sendAssistantMessage, interpretVoice } from "@/lib/api";
-import { ChatMessageResponse, ActionConfirmation } from "@/types/student";
+import { ChatMessageResponse, ActionConfirmation, VoiceInterpretResponse } from "@/types/student";
+import { useAuth } from "@/context/AuthContext";
 
 interface MessageItem {
   id: string;
@@ -24,23 +25,39 @@ const DEFAULT_PROMPTS = [
 ];
 
 export default function AssistantPage() {
-  const [messages, setMessages] = useState<MessageItem[]>([
-    {
-      id: "intro",
-      sender: "assistant",
-      text: "Hello Arjun! I am your SCHOLARAi Assistant.\n\nI can help evaluate shared application blockers, suggest high-yield weekly actions, verify scholarship rules against official documentation, and ground essay answers in your Evidence Bank.\n\nWhat would you like to review today?",
-      trustCategory: "AI ANALYSIS",
-      sourcesCited: ["Student Portfolio & Catalog Registry"],
-    },
-  ]);
+  const { displayName } = useAuth();
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceQuery, setVoiceQuery] = useState("");
   const [voiceInterpreting, setVoiceInterpreting] = useState(false);
-  const [voiceConfirmation, setVoiceConfirmation] = useState<any>(null);
+  const [voiceConfirmation, setVoiceConfirmation] = useState<VoiceInterpretResponse | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const msgCountRef = useRef(0);
+
+  const getNextId = (prefix: string) => {
+    msgCountRef.current += 1;
+    return `${prefix}-${msgCountRef.current}`;
+  };
+
+  // Initialize intro message with real authenticated name
+  useEffect(() => {
+    const greetingName = displayName ? displayName.split(" ")[0] : "Scholar";
+    const timer = setTimeout(() => {
+      setMessages([
+        {
+          id: "intro",
+          sender: "assistant",
+          text: `Hello ${greetingName}! I am your SCHOLARAi Assistant.\n\nI can evaluate shared application blockers, suggest high-yield weekly actions, verify scholarship rules against official documentation, and ground essay answers in your Evidence Bank.\n\nWhat would you like to review today?`,
+          trustCategory: "AI ANALYSIS",
+          sourcesCited: ["Student Portfolio & Catalog Registry"],
+        },
+      ]);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [displayName]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,7 +67,7 @@ export default function AssistantPage() {
     const trimmed = textToSend.trim();
     if (!trimmed && !confirmedAction) return;
 
-    const userMsgId = `user-${Date.now()}`;
+    const userMsgId = getNextId("user");
     const newHistory = [
       ...messages,
       {
@@ -64,7 +81,6 @@ export default function AssistantPage() {
     setLoading(true);
 
     try {
-      // Map history for API
       const historyPayload = newHistory.map((m) => ({
         role: m.sender,
         content: m.text,
@@ -76,7 +92,7 @@ export default function AssistantPage() {
         confirmedAction
       );
 
-      const assistantMsgId = `asst-${Date.now()}`;
+      const assistantMsgId = getNextId("asst");
       setMessages((prev) => [
         ...prev,
         {
@@ -89,12 +105,11 @@ export default function AssistantPage() {
           pendingConfirmation: res.pending_action_confirmation,
         },
       ]);
-    } catch (err: any) {
-      console.error(err);
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
-          id: `err-${Date.now()}`,
+          id: getNextId("err"),
           sender: "assistant",
           text: "I encountered an error querying the assistant tools. Please try again.",
           trustCategory: "UNKNOWN",
@@ -114,9 +129,9 @@ export default function AssistantPage() {
     setMessages((prev) => [
       ...prev,
       {
-        id: `cancel-${Date.now()}`,
+        id: getNextId("cancel"),
         sender: "assistant",
-        text: `Action cancelled. No changes were made to your profile.`,
+        text: `Action cancelled for "${action.description}". No changes were made to your profile or preferences.`,
         trustCategory: "FACTS FROM USER DATA",
       },
     ]);
@@ -129,8 +144,7 @@ export default function AssistantPage() {
     try {
       const res = await interpretVoice(speechText);
       setVoiceConfirmation(res);
-    } catch (e) {
-      console.error(e);
+    } catch {
       alert("Voice interpretation failed.");
     } finally {
       setVoiceInterpreting(false);
@@ -147,17 +161,17 @@ export default function AssistantPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-7rem)] pb-4 space-y-4">
+    <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-8rem)] pb-4 space-y-4">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex-shrink-0 transition-colors">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">SCHOLARAi Assistant</h1>
-            <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-100 text-emerald-800">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SCHOLARAi Assistant</h1>
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
               Controlled Tools Active
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Conversational decision support grounded strictly in verified profile facts and official documentation.
           </p>
         </div>
@@ -165,9 +179,9 @@ export default function AssistantPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setVoiceModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 transition-colors"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/20 transition-colors"
           >
-            <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
             <span>Voice Decoder</span>
@@ -176,37 +190,37 @@ export default function AssistantPage() {
       </div>
 
       {/* Trust Principle Banner */}
-      <div className="px-4 py-2 bg-slate-900 text-slate-300 rounded-lg text-xs flex items-center justify-between flex-shrink-0">
+      <div className="px-4 py-2 bg-slate-900 dark:bg-slate-800 text-slate-300 rounded-lg text-xs flex items-center justify-between flex-shrink-0 border border-slate-800 dark:border-slate-700">
         <span>Trust Principle: <strong>&ldquo;AI assists. Official sources decide. Student approves.&rdquo;</strong></span>
         <span className="text-[11px] text-slate-400">Strictly bounds AI to stored facts</span>
       </div>
 
       {/* Chat Messages Area */}
-      <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm p-4 overflow-y-auto space-y-4">
+      <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs p-4 overflow-y-auto space-y-4 transition-colors">
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
           >
             <div
-              className={`max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+              className={`max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                 msg.sender === "user"
-                  ? "bg-indigo-600 text-white rounded-br-none"
-                  : "bg-slate-50 text-slate-900 border border-slate-200 rounded-bl-none"
+                  ? "bg-blue-600 text-white rounded-br-none"
+                  : "bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-none"
               }`}
             >
               {/* Trust Category Pill */}
               {msg.sender === "assistant" && msg.trustCategory && (
-                <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <div className="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-1.5">
                   <span
                     className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
                       msg.trustCategory === "FACTS FROM USER DATA"
-                        ? "bg-indigo-100 text-indigo-800"
+                        ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
                         : msg.trustCategory === "OFFICIAL SOURCE INFORMATION"
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
                         : msg.trustCategory === "AI SUGGESTIONS"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-purple-100 text-purple-800"
+                        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                        : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
                     }`}
                   >
                     {msg.trustCategory}
@@ -218,8 +232,8 @@ export default function AssistantPage() {
 
               {/* Citations */}
               {msg.sourcesCited && msg.sourcesCited.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-slate-200 text-[11px] text-slate-500 space-y-1">
-                  <span className="font-semibold text-slate-700">Sources Cited:</span>
+                <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Sources Cited:</span>
                   <ul className="list-disc list-inside">
                     {msg.sourcesCited.map((cite, i) => (
                       <li key={i}>{cite}</li>
@@ -230,9 +244,9 @@ export default function AssistantPage() {
 
               {/* Action Confirmation Request */}
               {msg.pendingConfirmation && msg.pendingConfirmation.status === "PENDING" && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2">
-                  <p className="font-bold text-amber-900">Student Confirmation Required</p>
-                  <p className="text-amber-800">{msg.pendingConfirmation.description}</p>
+                <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs space-y-2">
+                  <p className="font-bold text-amber-900 dark:text-amber-300">Student Confirmation Required</p>
+                  <p className="text-amber-800 dark:text-amber-400">{msg.pendingConfirmation.description}</p>
                   <div className="flex items-center space-x-2 pt-1">
                     <button
                       onClick={() => handleActionConfirm(msg.pendingConfirmation!)}
@@ -242,7 +256,7 @@ export default function AssistantPage() {
                     </button>
                     <button
                       onClick={() => handleActionCancel(msg.pendingConfirmation!)}
-                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
@@ -254,22 +268,22 @@ export default function AssistantPage() {
         ))}
 
         {loading && (
-          <div className="flex items-center space-x-2 text-xs text-slate-500 p-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-            <span>Gathering structured application context via tools...</span>
+          <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 p-2">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            <span>Gathering verified context via domain tools...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Suggested Prompt Chips */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-1 flex-shrink-0 text-xs text-slate-600">
-        <span className="font-semibold text-slate-400 text-[11px] uppercase tracking-wider flex-shrink-0">Suggested:</span>
+      <div className="flex items-center space-x-2 overflow-x-auto pb-1 flex-shrink-0 text-xs text-slate-600 dark:text-slate-400">
+        <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider flex-shrink-0">Suggested:</span>
         {DEFAULT_PROMPTS.map((p, i) => (
           <button
             key={i}
             onClick={() => handleSendMessage(p)}
-            className="px-3 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 whitespace-nowrap transition-colors shadow-2xs"
+            className="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 whitespace-nowrap transition-colors shadow-2xs"
           >
             {p}
           </button>
@@ -282,12 +296,12 @@ export default function AssistantPage() {
           e.preventDefault();
           handleSendMessage(inputText);
         }}
-        className="flex items-center space-x-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex-shrink-0"
+        className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex-shrink-0 transition-colors"
       >
         <button
           type="button"
           onClick={() => setVoiceModalOpen(true)}
-          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
+          className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           title="Voice query"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,13 +315,13 @@ export default function AssistantPage() {
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           disabled={loading}
-          className="flex-1 px-3 py-2 text-sm focus:outline-none focus:ring-0 bg-transparent"
+          className="flex-1 px-3 py-2 text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
         />
 
         <button
           type="submit"
           disabled={loading || !inputText.trim()}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs disabled:opacity-40 transition-colors"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-2xs disabled:opacity-40 transition-colors"
         >
           Send
         </button>
@@ -315,18 +329,18 @@ export default function AssistantPage() {
 
       {/* Voice Decoder Modal */}
       {voiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Voice Intent Decoder</h2>
-                  <p className="text-[11px] text-slate-500">Supports English, Tamil, and Tanglish</p>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">Voice Intent Decoder</h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Multilingual: English, Tamil, and Tanglish</p>
                 </div>
               </div>
               <button
@@ -334,14 +348,14 @@ export default function AssistantPage() {
                   setVoiceModalOpen(false);
                   setVoiceConfirmation(null);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <p className="text-slate-600">
+              <p className="text-slate-600 dark:text-slate-400">
                 Type or speak your intent. The decoder identifies goals, weekly hours, or search requests and prompts for your explicit confirmation.
               </p>
 
@@ -349,21 +363,21 @@ export default function AssistantPage() {
                 <button
                   type="button"
                   onClick={() => setVoiceQuery("I have 5 hours this week.")}
-                  className="px-2 py-1 bg-slate-100 rounded text-[11px] hover:bg-slate-200"
+                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
                   &ldquo;I have 5 hours this week&rdquo;
                 </button>
                 <button
                   type="button"
                   onClick={() => setVoiceQuery("Enakku sixty thousand fees funding thevai irukku.")}
-                  className="px-2 py-1 bg-slate-100 rounded text-[11px] hover:bg-slate-200"
+                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
                   &ldquo;Enakku sixty thousand fees...&rdquo; (Tanglish)
                 </button>
                 <button
                   type="button"
                   onClick={() => setVoiceQuery("What document is blocking my applications?")}
-                  className="px-2 py-1 bg-slate-100 rounded text-[11px] hover:bg-slate-200"
+                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
                   &ldquo;What document is blocking...&rdquo;
                 </button>
@@ -374,39 +388,39 @@ export default function AssistantPage() {
                 value={voiceQuery}
                 onChange={(e) => setVoiceQuery(e.target.value)}
                 placeholder="Spoken query transcription..."
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 focus:outline-none"
               />
 
               <button
                 type="button"
                 onClick={() => handleVoiceInterpret(voiceQuery)}
                 disabled={voiceInterpreting || !voiceQuery.trim()}
-                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors"
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors shadow-2xs"
               >
                 {voiceInterpreting ? "Interpreting..." : "Decode Spoken Intent"}
               </button>
 
               {/* Confirmation Dialog */}
               {voiceConfirmation && (
-                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2 mt-3">
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-200 text-indigo-800">
+                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-2 mt-3">
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/20 text-blue-800 dark:text-blue-300">
                     Intent: {voiceConfirmation.intent} ({voiceConfirmation.detected_language})
                   </span>
-                  <p className="font-semibold text-slate-900 whitespace-pre-line text-xs">
+                  <p className="font-semibold text-slate-900 dark:text-white whitespace-pre-line text-xs">
                     {voiceConfirmation.confirmation_message}
                   </p>
                   <div className="flex items-center space-x-2 pt-2">
                     <button
                       type="button"
                       onClick={handleApplyVoiceCommand}
-                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
                     >
                       Confirm
                     </button>
                     <button
                       type="button"
                       onClick={() => setVoiceConfirmation(null)}
-                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
+                      className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
                     >
                       Edit
                     </button>
@@ -416,7 +430,7 @@ export default function AssistantPage() {
                         setVoiceConfirmation(null);
                         setVoiceModalOpen(false);
                       }}
-                      className="px-3 py-1.5 text-slate-500 hover:text-slate-700"
+                      className="px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     >
                       Cancel
                     </button>

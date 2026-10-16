@@ -1,8 +1,8 @@
 import pytest
 
 
-def test_get_demo_student(client):
-    response = client.get("/api/v1/student/me")
+def test_get_demo_student(auth_client):
+    response = auth_client.get("/api/v1/student/me")
     assert response.status_code == 200
     data = response.json()
 
@@ -33,8 +33,8 @@ def test_get_demo_student(client):
     assert funding["funding_progress_percentage"] == 50.0
 
 
-def test_get_student_funding(client):
-    response = client.get("/api/v1/student/funding")
+def test_get_student_funding(auth_client):
+    response = auth_client.get("/api/v1/student/funding")
     assert response.status_code == 200
     data = response.json()
     assert data["annual_education_cost"] == 120000.0
@@ -44,7 +44,7 @@ def test_get_student_funding(client):
     assert data["annual_family_income"] == 240000.0
 
 
-def test_update_student_profile_and_funding(client):
+def test_update_student_profile_and_funding(auth_client):
     update_payload = {
         "name": "Arjun K. Updated",
         "phone": "+91 99999 88888",
@@ -60,7 +60,7 @@ def test_update_student_profile_and_funding(client):
         "annual_family_income": 300000.0,
     }
 
-    response = client.put("/api/v1/student/me", json=update_payload)
+    response = auth_client.put("/api/v1/student/me", json=update_payload)
     assert response.status_code == 200
     data = response.json()
 
@@ -81,55 +81,55 @@ def test_update_student_profile_and_funding(client):
     assert data["funding_profile"]["funding_progress_percentage"] == 25.0
 
     # Persistence verification via GET
-    get_res = client.get("/api/v1/student/me")
+    get_res = auth_client.get("/api/v1/student/me")
     assert get_res.status_code == 200
     assert get_res.json()["name"] == "Arjun K. Updated"
     assert get_res.json()["funding_profile"]["funding_gap"] == 150000.0
 
     # Funding endpoint also returns updated values
-    funding_res = client.get("/api/v1/student/funding")
+    funding_res = auth_client.get("/api/v1/student/funding")
     assert funding_res.status_code == 200
     assert funding_res.json()["funding_gap"] == 150000.0
     assert funding_res.json()["funding_progress_percentage"] == 25.0
 
 
-def test_validation_cgpa_range(client):
+def test_validation_cgpa_range(auth_client):
     # CGPA > 10.0 should fail
-    response = client.put("/api/v1/student/me", json={"cgpa": 10.5})
+    response = auth_client.put("/api/v1/student/me", json={"cgpa": 10.5})
     assert response.status_code == 422
 
     # CGPA < 0.0 should fail
-    response = client.put("/api/v1/student/me", json={"cgpa": -1.0})
+    response = auth_client.put("/api/v1/student/me", json={"cgpa": -1.0})
     assert response.status_code == 422
 
 
-def test_validation_percentage_range(client):
+def test_validation_percentage_range(auth_client):
     # 12th percentage > 100.0 should fail
-    response = client.put("/api/v1/student/me", json={"twelfth_percentage": 105.0})
+    response = auth_client.put("/api/v1/student/me", json={"twelfth_percentage": 105.0})
     assert response.status_code == 422
 
     # 12th percentage < 0.0 should fail
-    response = client.put("/api/v1/student/me", json={"twelfth_percentage": -5.0})
+    response = auth_client.put("/api/v1/student/me", json={"twelfth_percentage": -5.0})
     assert response.status_code == 422
 
 
-def test_validation_financial_non_negative(client):
+def test_validation_financial_non_negative(auth_client):
     # Cost < 0 should fail
-    response = client.put("/api/v1/student/me", json={"annual_education_cost": -500.0})
+    response = auth_client.put("/api/v1/student/me", json={"annual_education_cost": -500.0})
     assert response.status_code == 422
 
     # Support < 0 should fail
-    response = client.put("/api/v1/student/me", json={"existing_support": -100.0})
+    response = auth_client.put("/api/v1/student/me", json={"existing_support": -100.0})
     assert response.status_code == 422
 
     # Income < 0 should fail
-    response = client.put("/api/v1/student/me", json={"annual_family_income": -1000.0})
+    response = auth_client.put("/api/v1/student/me", json={"annual_family_income": -1000.0})
     assert response.status_code == 422
 
 
-def test_funding_gap_non_negative_when_support_exceeds_cost(client):
+def test_funding_gap_non_negative_when_support_exceeds_cost(auth_client):
     # If support > cost, gap must be 0 (max(0, cost - support))
-    response = client.put(
+    response = auth_client.put(
         "/api/v1/student/me",
         json={
             "annual_education_cost": 50000.0,

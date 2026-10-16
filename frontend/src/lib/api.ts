@@ -177,8 +177,8 @@ export async function getActions(): Promise<ActionItem[]> {
   return request<ActionItem[]>("/api/v1/actions", { cache: "no-store" });
 }
 
-export async function toggleAction(id: number): Promise<any> {
-  return request<any>(`/api/v1/actions/${id}/toggle`, {
+export async function toggleAction(id: number): Promise<ActionItem> {
+  return request<ActionItem>(`/api/v1/actions/${id}/toggle`, {
     method: "PATCH",
   });
 }
@@ -220,7 +220,7 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   });
 }
 
-export async function registerUser(payload: Record<string, any>): Promise<AuthResponse> {
+export async function registerUser(payload: Record<string, unknown>): Promise<AuthResponse> {
   return request<AuthResponse>("/api/v1/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),

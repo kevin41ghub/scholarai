@@ -90,13 +90,14 @@ def register(req: UserRegisterRequest, response: Response, db: Session = Depends
 
     # 6. Generate Session Token and Cookie
     token = create_session_token(user_id=user.id, email=user.email)
+    is_prod = settings.ENVIRONMENT.lower() == "production"
     response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=token,
         max_age=settings.SESSION_MAX_AGE_SECONDS,
         httponly=True,
-        samesite="none",
-        secure=settings.ENVIRONMENT == "production",
+        samesite="none" if is_prod else "lax",
+        secure=is_prod,
         path="/"
     )
 
@@ -136,13 +137,14 @@ def login(req: UserLoginRequest, response: Response, db: Session = Depends(get_d
         )
 
     token = create_session_token(user_id=user.id, email=user.email)
+    is_prod = settings.ENVIRONMENT.lower() == "production"
     response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=token,
         max_age=settings.SESSION_MAX_AGE_SECONDS,
         httponly=True,
-        samesite="none",
-        secure=settings.ENVIRONMENT == "production",
+        samesite="none" if is_prod else "lax",
+        secure=is_prod,
         path="/"
     )
 
@@ -167,12 +169,13 @@ def logout(response: Response):
     """
     Log out student and invalidate session cookie.
     """
+    is_prod = settings.ENVIRONMENT.lower() == "production"
     response.delete_cookie(
         key=settings.SESSION_COOKIE_NAME,
         path="/",
         httponly=True,
-        samesite="none",
-        secure=settings.ENVIRONMENT == "production"
+        samesite="none" if is_prod else "lax",
+        secure=is_prod
     )
     return {"message": "Logged out successfully."}
 

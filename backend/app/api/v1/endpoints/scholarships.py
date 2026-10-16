@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.services.student_service import student_service
+from app.core.auth import get_current_student
+from app.models.student import Student
 from app.services.eligibility_service import eligibility_service
 from app.services.deadline_risk_service import deadline_risk_service
 from app.models.scholarship import Scholarship
@@ -26,9 +27,10 @@ def list_scholarships(
     status_filter: Optional[str] = Query(None, description="Filter by: ACTIVE, CLOSED, etc."),
     verification_filter: Optional[str] = Query(None, description="Filter by: DEMO_DATA, VERIFIED, NEEDS_VERIFICATION"),
     sort_by: Optional[str] = Query("recommended", description="Sort by: recommended, deadline, amount_high, amount_low, best_match"),
+    current_student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ):
-    student = student_service.get_or_create_primary_student(db)
+    student = current_student
 
     # Base query
     scholarships_query = db.query(Scholarship)
@@ -122,20 +124,27 @@ def list_scholarships(
 
 
 @router.get("/recommended", response_model=List[ScholarshipListItemResponse], summary="Get Recommended Scholarships")
-def get_recommended_scholarships(db: Session = Depends(get_db)):
+def get_recommended_scholarships(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
     """
     Returns scholarships sorted by transparent deterministic recommendation score.
     """
-    return list_scholarships(sort_by="recommended", db=db)
+    return list_scholarships(sort_by="recommended", current_student=current_student, db=db)
 
 
 @router.get("/{id}", response_model=ScholarshipDetailResponse, summary="Get Scholarship Detail")
-def get_scholarship_detail(id: int, db: Session = Depends(get_db)):
+def get_scholarship_detail(
+    id: int,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
     scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()
     if not scholarship:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
-    student = student_service.get_or_create_primary_student(db)
+    student = current_student
     eval_res = eligibility_service.evaluate_scholarship(student, scholarship)
     risk_info = deadline_risk_service.calculate_risk(scholarship.deadline)
 
@@ -193,17 +202,25 @@ def get_scholarship_detail(id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{id}/eligibility", summary="Evaluate Scholarship Eligibility")
-def check_scholarship_eligibility(id: int, db: Session = Depends(get_db)):
+def check_scholarship_eligibility(
+    id: int,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
     scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()
     if not scholarship:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
-    student = student_service.get_or_create_primary_student(db)
+    student = current_student
     return eligibility_service.evaluate_scholarship(student, scholarship)
 
 
 @router.post("/{id}/apply", summary="Start Application for Scholarship")
-def apply_to_scholarship(id: int, db: Session = Depends(get_db)):
+def apply_to_scholarship(
+    id: int,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
     """
     Starts an application for the specified scholarship.
     Prevents duplicate active applications.
@@ -213,7 +230,7 @@ def apply_to_scholarship(id: int, db: Session = Depends(get_db)):
     if not scholarship:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
-    student = student_service.get_or_create_primary_student(db)
+    student = current_student
 
     # Check for existing application
     existing = (

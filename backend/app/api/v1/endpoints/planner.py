@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.services.student_service import student_service
+from app.core.auth import get_current_student
+from app.models.student import Student
 from app.services.planner_service import planner_service
 from app.schemas.planner import PlannerGoalUpdate, PlannerOverviewResponse
 
@@ -9,14 +10,21 @@ router = APIRouter()
 
 
 @router.get("", response_model=PlannerOverviewResponse, summary="Get Funding Goal & Suggested Weekly Plan")
-def get_planner(db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def get_planner(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
     return planner_service.generate_plan(db, student)
 
 
 @router.post("", response_model=PlannerOverviewResponse, summary="Update Planner Goal & Re-allocate Plan")
-def update_planner(payload: PlannerGoalUpdate, db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def update_planner(
+    payload: PlannerGoalUpdate,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
     goal = planner_service.get_or_create_goal(db, student.id)
 
     if payload.target_funding is not None:

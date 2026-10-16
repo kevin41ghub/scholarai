@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getCurrentStudent, updateStudent, formatINR } from "@/lib/api";
 import { StudentDetail, StudentUpdatePayload } from "@/types/student";
@@ -13,11 +13,9 @@ export default function ProfilePage() {
 
   // Form state
   const [formData, setFormData] = useState({
-    // Personal
     name: "",
     email: "",
     phone: "",
-    // Academic
     institution: "",
     course: "",
     year: "",
@@ -25,40 +23,43 @@ export default function ProfilePage() {
     twelfth_percentage: "",
     category: "",
     state: "",
-    // Financial
     annual_education_cost: "",
     existing_support: "",
     annual_family_income: "",
   });
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        setLoading(true);
-        const data: StudentDetail = await getCurrentStudent();
-        setFormData({
-          name: data.name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          institution: data.profile?.institution || "",
-          course: data.profile?.course || "",
-          year: data.profile?.year || "",
-          cgpa: data.profile?.cgpa?.toString() || "",
-          twelfth_percentage: data.profile?.twelfth_percentage?.toString() || "",
-          category: data.profile?.category || "",
-          state: data.profile?.state || "",
-          annual_education_cost: data.funding_profile?.annual_education_cost?.toString() || "0",
-          existing_support: data.funding_profile?.existing_support?.toString() || "0",
-          annual_family_income: data.funding_profile?.annual_family_income?.toString() || "0",
-        });
-      } catch (err: any) {
-        setErrorMessage(err?.message || "Failed to load profile from backend.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data: StudentDetail = await getCurrentStudent();
+      setFormData({
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        institution: data.profile?.institution || "",
+        course: data.profile?.course || "",
+        year: data.profile?.year || "",
+        cgpa: data.profile?.cgpa?.toString() || "",
+        twelfth_percentage: data.profile?.twelfth_percentage?.toString() || "",
+        category: data.profile?.category || "",
+        state: data.profile?.state || "",
+        annual_education_cost: data.funding_profile?.annual_education_cost?.toString() || "0",
+        existing_support: data.funding_profile?.existing_support?.toString() || "0",
+        annual_family_income: data.funding_profile?.annual_family_income?.toString() || "0",
+      });
+    } catch (err: unknown) {
+      setErrorMessage((err as Error)?.message || "Failed to load student profile.");
+    } finally {
+      setLoading(false);
     }
-    fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProfile();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchProfile]);
 
   // Compute live funding gap preview
   const numCost = Math.max(0, parseFloat(formData.annual_education_cost) || 0);
@@ -120,9 +121,9 @@ export default function ProfilePage() {
 
     try {
       await updateStudent(payload);
-      setSuccessMessage("Profile and funding details successfully saved to database!");
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Failed to save profile changes.");
+      setSuccessMessage("Profile and funding details saved successfully!");
+    } catch (err: unknown) {
+      setErrorMessage((err as Error)?.message || "Failed to save profile changes.");
     } finally {
       setSaving(false);
     }
@@ -131,8 +132,8 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm text-slate-500 font-medium">Loading profile from database...</p>
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Loading authenticated student profile...</p>
       </div>
     );
   }
@@ -142,54 +143,56 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
-            <Link href="/" className="hover:text-indigo-600 transition-colors">Dashboard</Link>
+          <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
             <span>/</span>
-            <span className="text-slate-800 font-medium">Edit Profile</span>
+            <span className="text-slate-800 dark:text-slate-200 font-medium">Academic Profile</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Student Profile & Funding</h1>
-          <p className="text-sm text-slate-500">
-            Keep your personal, academic, and financial information accurate to receive reliable scholarship matching.
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Academic Profile & Funding Ledger
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Maintain your academic credentials and financial parameters to ensure accurate deterministic eligibility matching.
           </p>
         </div>
         <Link
           href="/"
-          className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm self-start sm:self-auto"
+          className="inline-flex items-center px-4 py-2 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-2xs self-start sm:self-auto"
         >
-          &larr; Back to Dashboard
+          &larr; Return to Dashboard
         </Link>
       </div>
 
       {/* Notifications */}
       {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center space-x-3">
-          <svg className="w-5 h-5 flex-shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center space-x-3">
+          <svg className="w-5 h-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          <span className="font-medium">{successMessage}</span>
+          <span>{successMessage}</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center space-x-3">
-          <svg className="w-5 h-5 flex-shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-xs font-medium flex items-center space-x-3">
+          <svg className="w-5 h-5 flex-shrink-0 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span className="font-medium">{errorMessage}</span>
+          <span>{errorMessage}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Personal Information */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-semibold text-slate-900">1. Personal Information</h2>
-            <p className="text-xs text-slate-500">Official student contact details</p>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4 transition-colors">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">1. Personal Identity</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Primary contact and account representation</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Full Name <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Full Name <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -197,13 +200,13 @@ export default function ProfilePage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Arjun Kumar"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. Priya Sharma"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Email Address <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Email Address <span className="text-rose-500">*</span>
               </label>
               <input
                 type="email"
@@ -211,12 +214,12 @@ export default function ProfilePage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. arjun.kumar@demo.edu"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. student@university.edu"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Phone Number
               </label>
               <input
@@ -224,7 +227,7 @@ export default function ProfilePage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
                 placeholder="e.g. +91 98765 43210"
               />
             </div>
@@ -232,15 +235,15 @@ export default function ProfilePage() {
         </div>
 
         {/* Section 2: Academic Information */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-semibold text-slate-900">2. Academic Information</h2>
-            <p className="text-xs text-slate-500">Institution, scores, and eligibility category</p>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4 transition-colors">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">2. Academic Credentials</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Enrolled institution, degree path, and verified merit metrics</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Institution / College <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Institution / University <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -248,13 +251,13 @@ export default function ProfilePage() {
                 required
                 value={formData.institution}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Demo Engineering College"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. Indian Institute of Technology"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Course of Study <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Course of Study <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -262,13 +265,13 @@ export default function ProfilePage() {
                 required
                 value={formData.course}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. B.Tech Computer Science"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. B.Tech Computer Science & Engineering"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Academic Year <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Academic Year <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -276,13 +279,13 @@ export default function ProfilePage() {
                 required
                 value={formData.year}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. 2nd Year"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. 3rd Year"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Current CGPA (0.0 – 10.0 scale) <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Current CGPA (0.0 – 10.0 scale) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -293,13 +296,13 @@ export default function ProfilePage() {
                 required
                 value={formData.cgpa}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. 8.4"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-mono"
+                placeholder="e.g. 8.5"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                12th Standard Percentage (0 – 100%) <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                12th Standard Percentage (0 – 100%) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -310,13 +313,13 @@ export default function ProfilePage() {
                 required
                 value={formData.twelfth_percentage}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. 89.2"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-mono"
+                placeholder="e.g. 91.4"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Reservation Category <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Reservation Category <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -324,13 +327,13 @@ export default function ProfilePage() {
                 required
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. OBC, General, SC, ST, EWS"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. General, OBC, SC, ST, EWS"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Domicile State <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Domicile State <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -338,26 +341,26 @@ export default function ProfilePage() {
                 required
                 value={formData.state}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. Karnataka"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                placeholder="e.g. Tamil Nadu, Karnataka, Maharashtra"
               />
             </div>
           </div>
         </div>
 
         {/* Section 3: Financial Details & Live Funding Gap Preview */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-semibold text-slate-900">3. Financial Details</h2>
-            <p className="text-xs text-slate-500">
-              Education expenses and existing support determine your precise funding gap
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-6 transition-colors">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">3. Financial Ledger & Need</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Education expenses and existing support determine your accurate funding gap
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Annual Education Cost (₹) <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Annual Education Cost (₹) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -367,17 +370,17 @@ export default function ProfilePage() {
                 required
                 value={formData.annual_education_cost}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-mono"
                 placeholder="120000"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
                 Formatted: {formatINR(numCost)}
               </span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Existing Support / Scholarships (₹) <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Existing Support / Scholarships (₹) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -387,17 +390,17 @@ export default function ProfilePage() {
                 required
                 value={formData.existing_support}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-mono"
                 placeholder="60000"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
                 Formatted: {formatINR(numSupport)}
               </span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Annual Family Income (₹) <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Annual Family Income (₹) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -407,52 +410,52 @@ export default function ProfilePage() {
                 required
                 value={formData.annual_family_income}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 font-mono"
                 placeholder="240000"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 block">
                 Formatted: {formatINR(parseFloat(formData.annual_family_income) || 0)}
               </span>
             </div>
           </div>
 
           {/* LIVE FUNDING GAP PREVIEW BOX */}
-          <div className="p-5 rounded-xl bg-indigo-50/70 border border-indigo-200/80 space-y-3">
+          <div className="p-5 rounded-xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
-                <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                <span className="text-xs font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider">
                   Live Funding Gap Preview
                 </span>
               </div>
-              <span className="text-xs font-medium text-indigo-700">
-                Formula: max(0, Cost &minus; Support)
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-400 font-mono">
+                max(0, Cost &minus; Support)
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="bg-white/80 p-3 rounded-lg border border-indigo-100">
-                <span className="text-xs text-slate-500 block">Annual Cost</span>
-                <span className="text-lg font-bold text-slate-800">{formatINR(numCost)}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">Annual Cost</span>
+                <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200">{formatINR(numCost)}</span>
               </div>
-              <div className="bg-white/80 p-3 rounded-lg border border-indigo-100">
-                <span className="text-xs text-slate-500 block">Existing Support</span>
-                <span className="text-lg font-bold text-slate-800">{formatINR(numSupport)}</span>
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">Existing Support</span>
+                <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200">{formatINR(numSupport)}</span>
               </div>
-              <div className="bg-white/90 p-3 rounded-lg border border-indigo-200">
-                <span className="text-xs text-slate-500 block">Calculated Funding Gap</span>
-                <span className="text-lg font-bold text-indigo-700">{formatINR(liveFundingGap)}</span>
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-500/30">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">Calculated Funding Gap</span>
+                <span className="text-lg font-bold font-mono text-blue-700 dark:text-blue-400">{formatINR(liveFundingGap)}</span>
               </div>
             </div>
 
             <div className="pt-2">
-              <div className="flex justify-between text-xs text-slate-600 mb-1">
+              <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1 font-medium">
                 <span>Coverage Ratio</span>
-                <span className="font-semibold text-indigo-700">{liveCoverage.toFixed(1)}%</span>
+                <span className="font-bold font-mono text-blue-700 dark:text-blue-400">{liveCoverage.toFixed(1)}%</span>
               </div>
-              <div className="w-full h-2 bg-indigo-200/60 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                  className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300"
                   style={{ width: `${liveCoverage}%` }}
                 />
               </div>
@@ -464,22 +467,22 @@ export default function ProfilePage() {
         <div className="flex items-center justify-end space-x-4 pt-2">
           <Link
             href="/"
-            className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            className="px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm flex items-center space-x-2"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs flex items-center space-x-2 disabled:opacity-50"
           >
             {saving ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 <span>Saving to Database...</span>
               </>
             ) : (
-              <span>Save & Update Profile</span>
+              <span>Save Academic Profile</span>
             )}
           </button>
         </div>

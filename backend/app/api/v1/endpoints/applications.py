@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.services.student_service import student_service
+from app.core.auth import get_current_user, get_current_student, verify_student_access
+from app.models.user import User
+from app.models.student import Student
 from app.services.deadline_risk_service import deadline_risk_service
 from app.services.dependency_service import dependency_service
 from app.services.bottleneck_service import bottleneck_service
@@ -62,8 +64,11 @@ def _format_application_response(app: Application) -> ApplicationResponse:
 
 
 @router.get("", response_model=List[ApplicationResponse], summary="List Student Applications")
-def list_applications(db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def list_applications(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
     apps = (
         db.query(Application)
         .filter(Application.student_id == student.id)
@@ -74,8 +79,11 @@ def list_applications(db: Session = Depends(get_db)):
 
 
 @router.get("/portfolio-summary", response_model=PortfolioSummaryResponse, summary="Get Portfolio Dashboard Summary")
-def get_portfolio_summary(db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def get_portfolio_summary(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
     apps = (
         db.query(Application)
         .filter(Application.student_id == student.id)
@@ -129,25 +137,29 @@ def get_portfolio_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/{id}", response_model=ApplicationResponse, summary="Get Application Details")
-def get_application(id: int, db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
-    app = (
-        db.query(Application)
-        .filter(Application.id == id, Application.student_id == student.id)
-        .first()
-    )
+def get_application(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
     return _format_application_response(app)
 
 
 @router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED, summary="Create Application")
-def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)):
+def create_application(
+    payload: ApplicationCreate,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
     scholarship = db.query(Scholarship).filter(Scholarship.id == payload.scholarship_id).first()
     if not scholarship:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
-    student = student_service.get_or_create_primary_student(db)
+    student = current_student
 
     # Check duplicate
     existing = (
@@ -209,15 +221,16 @@ def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)
 
 
 @router.patch("/{id}", response_model=ApplicationResponse, summary="Update Application")
-def update_application(id: int, payload: ApplicationUpdate, db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
-    app = (
-        db.query(Application)
-        .filter(Application.id == id, Application.student_id == student.id)
-        .first()
-    )
+def update_application(
+    id: int,
+    payload: ApplicationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
 
     if payload.status is not None:
         app.status = payload.status
@@ -233,15 +246,15 @@ def update_application(id: int, payload: ApplicationUpdate, db: Session = Depend
 
 
 @router.get("/{id}/requirements", response_model=List[ApplicationRequirementResponse], summary="Get Application Requirements")
-def get_application_requirements(id: int, db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
-    app = (
-        db.query(Application)
-        .filter(Application.id == id, Application.student_id == student.id)
-        .first()
-    )
+def get_application_requirements(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
 
     return [ApplicationRequirementResponse.model_validate(r) for r in app.requirements]
 
@@ -251,16 +264,13 @@ def update_application_requirement(
     id: int,
     requirement_id: int,
     payload: ApplicationRequirementUpdate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    student = student_service.get_or_create_primary_student(db)
-    app = (
-        db.query(Application)
-        .filter(Application.id == id, Application.student_id == student.id)
-        .first()
-    )
+    app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
 
     req = (
         db.query(ApplicationRequirement)
@@ -313,8 +323,6 @@ from app.services.ai.application_ai_service import (
     review_application_answer,
     check_unsupported_claims,
 )
-from app.core.auth import get_current_user
-from app.models.user import User
 
 
 @router.post("/{id}/draft", response_model=ApplicationDraftResponse)
@@ -328,6 +336,11 @@ def create_application_draft(
     Generate an AI application response draft strictly grounded in approved student evidence.
     Tag: AI GENERATED DRAFT. Requires explicit student approval before saving.
     """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
     return generate_application_draft(
         db=db,
         student_id=current_user.student_id,
@@ -346,6 +359,11 @@ def review_application(
     """
     Review draft application answer for unsupported claims, vague statements, and completeness.
     """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
     return review_application_answer(
         db=db,
         student_id=current_user.student_id,
@@ -363,6 +381,11 @@ def check_application_claims(
     """
     Check draft for unsupported claims against Evidence Bank and Student Profile.
     """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
     return check_unsupported_claims(
         db=db,
         student_id=current_user.student_id,

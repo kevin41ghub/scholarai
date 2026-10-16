@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.services.student_service import student_service
+from app.core.auth import get_current_user, get_current_student, verify_student_access
+from app.models.user import User
+from app.models.student import Student
 from app.services.dependency_service import dependency_service
 from app.models.document import Document
 from app.schemas.document import DocumentResponse, DocumentCreate, DocumentUpdate
@@ -12,8 +14,11 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[DocumentResponse], summary="List Student Documents")
-def list_documents(db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def list_documents(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
     docs = db.query(Document).filter(Document.student_id == student.id).all()
 
     # Retrieve dependency graph to enrich each document
@@ -52,8 +57,12 @@ def list_documents(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED, summary="Create Document")
-def create_document(payload: DocumentCreate, db: Session = Depends(get_db)):
-    student = student_service.get_or_create_primary_student(db)
+def create_document(
+    payload: DocumentCreate,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    student = current_student
 
     new_doc = Document(
         student_id=student.id,
@@ -89,15 +98,20 @@ def create_document(payload: DocumentCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}", response_model=DocumentResponse, summary="Update Document Status (Triggers Cascade Unblocking)")
-def update_document(id: int, payload: DocumentUpdate, db: Session = Depends(get_db)):
+def update_document(
+    id: int,
+    payload: DocumentUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Updates document status and triggers automatic cascade unblocking
     across all dependent application requirements.
     """
-    student = student_service.get_or_create_primary_student(db)
-    doc = db.query(Document).filter(Document.id == id, Document.student_id == student.id).first()
+    doc = db.query(Document).filter(Document.id == id).first()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    verify_student_access(current_user, doc.student_id)
 
     status_changed = False
     if payload.name is not None:
@@ -119,10 +133,10 @@ def update_document(id: int, payload: DocumentUpdate, db: Session = Depends(get_
 
     # Trigger cascade unblocking if status changed
     if status_changed:
-        dependency_service.sync_document_to_requirements(db, student.id, doc)
+        dependency_service.sync_document_to_requirements(db, doc.student_id, doc)
 
     # Return updated document
-    dep_data = dependency_service.get_dependency_graph(db, student.id)
+    dep_data = dependency_service.get_dependency_graph(db, doc.student_id)
     blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}
     resolved_by_type = {r["document_type"]: r for r in dep_data.get("resolved_dependencies", [])}
 

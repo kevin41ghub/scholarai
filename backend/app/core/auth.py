@@ -32,34 +32,53 @@ def get_current_user(
 ) -> User:
     """
     Get currently authenticated user.
-    If authenticated via session or token, returns the authenticated User.
-    In development/demo mode, if unauthenticated, gracefully falls back to the Demo User
-    to preserve backward compatibility with unauthenticated Phase 1 & Block 2 client tests.
+    Requires a valid signed session token via HttpOnly cookie or Authorization Bearer header.
+    Rejects unauthenticated requests with HTTP 401 across all environments.
     """
     token = extract_token_from_request(request, bearer)
-    if token:
-        payload = verify_session_token(token)
-        if payload and "sub" in payload:
-            user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
-            if user:
-                return user
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    # Fallback to demo user ONLY for local exploration / non-production environments
-    if settings.ENVIRONMENT.lower() != "production":
-        demo_user = db.query(User).filter(User.email == settings.DEMO_USER_EMAIL).first()
-        if demo_user:
-            return demo_user
+    payload = verify_session_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-        # If demo user not yet in DB, check demo student
-        demo_student = db.query(Student).filter(Student.email == "arjun.kumar@demo.edu").first()
-        if demo_student and demo_student.user:
-            return demo_student.user
+    user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found or deactivated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authentication required",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    return user
+
+
+def get_current_student(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Student:
+    """
+    Resolve the authenticated user's own student record.
+    Never silently substitutes a demo student or primary student.
+    """
+    student = current_user.student
+    if not student and current_user.student_id:
+        student = db.query(Student).filter(Student.id == current_user.student_id).first()
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student profile associated with this account not found",
+        )
+    return student
 
 
 def get_required_authenticated_user(

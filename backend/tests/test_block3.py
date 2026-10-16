@@ -48,10 +48,10 @@ def test_auth_registration_and_login(client: TestClient):
     assert r_bad.status_code == 401
 
 
-def test_evidence_bank_crud(client: TestClient):
+def test_evidence_bank_crud(auth_client: TestClient):
     """Test Evidence Bank CRUD operations."""
     # List evidence for demo student (seeded with initial items)
-    r = client.get("/api/v1/evidence")
+    r = auth_client.get("/api/v1/evidence")
     assert r.status_code == 200
     items = r.json()
     assert len(items) >= 2
@@ -66,19 +66,19 @@ def test_evidence_bank_crud(client: TestClient):
         "source_type": "USER_PROVIDED",
         "source_name": "Competition Certificate",
     }
-    r_create = client.post("/api/v1/evidence", json=new_ev)
+    r_create = auth_client.post("/api/v1/evidence", json=new_ev)
     assert r_create.status_code == 201
     created = r_create.json()
     ev_id = created["id"]
     assert created["verification_status"] == "USER_PROVIDED"
 
     # Update evidence
-    r_patch = client.patch(f"/api/v1/evidence/{ev_id}", json={"description": "Updated description with technical specifics."})
+    r_patch = auth_client.patch(f"/api/v1/evidence/{ev_id}", json={"description": "Updated description with technical specifics."})
     assert r_patch.status_code == 200
     assert r_patch.json()["description"] == "Updated description with technical specifics."
 
     # Delete evidence
-    r_del = client.delete(f"/api/v1/evidence/{ev_id}")
+    r_del = auth_client.delete(f"/api/v1/evidence/{ev_id}")
     assert r_del.status_code == 204
 
 
@@ -100,10 +100,10 @@ def test_rag_knowledge_search_and_citations(client: TestClient):
     assert "DEMO_DATA" in res["sources_cited"][0] or "Needs Verification" in res["sources_cited"][0] or "Demo" in res["sources_cited"][0]
 
 
-def test_assistant_chat_and_tool_execution(client: TestClient):
+def test_assistant_chat_and_tool_execution(auth_client: TestClient):
     """Test AI assistant routing and tool execution for portfolio queries."""
     # Blocker question
-    r_blocker = client.post("/api/v1/assistant/chat", json={"message": "What document is blocking my applications?"})
+    r_blocker = auth_client.post("/api/v1/assistant/chat", json={"message": "What document is blocking my applications?"})
     assert r_blocker.status_code == 200
     data = r_blocker.json()
     assert "Income Certificate" in data["reply"]
@@ -111,17 +111,17 @@ def test_assistant_chat_and_tool_execution(client: TestClient):
     assert data["trust_category"] == "FACTS FROM USER DATA"
 
     # Next action question
-    r_action = client.post("/api/v1/assistant/chat", json={"message": "What should I do today?"})
+    r_action = auth_client.post("/api/v1/assistant/chat", json={"message": "What should I do today?"})
     assert r_action.status_code == 200
     action_data = r_action.json()
     assert len(action_data["tools_used"]) > 0
     assert action_data["trust_category"] in ("AI SUGGESTIONS", "AI ANALYSIS")
 
 
-def test_assistant_action_confirmation_workflow(client: TestClient):
+def test_assistant_action_confirmation_workflow(auth_client: TestClient):
     """Test that modifying persistent state via AI requires explicit user confirmation."""
     # Request to update study hours
-    r = client.post("/api/v1/assistant/chat", json={"message": "Update my weekly hours to 7 hours."})
+    r = auth_client.post("/api/v1/assistant/chat", json={"message": "Update my weekly hours to 7 hours."})
     assert r.status_code == 200
     res = r.json()
     assert res["pending_action_confirmation"] is not None
@@ -131,7 +131,7 @@ def test_assistant_action_confirmation_workflow(client: TestClient):
     # Confirm the action
     confirmed_payload = res["pending_action_confirmation"]
     confirmed_payload["status"] = "CONFIRMED"
-    r_confirm = client.post(
+    r_confirm = auth_client.post(
         "/api/v1/assistant/chat",
         json={"message": "Yes, confirm change.", "confirmed_action": confirmed_payload}
     )
@@ -139,22 +139,22 @@ def test_assistant_action_confirmation_workflow(client: TestClient):
     assert "Confirmed and updated" in r_confirm.json()["reply"]
 
     # Check that planner goal actually updated in database
-    r_plan = client.get("/api/v1/planner")
+    r_plan = auth_client.get("/api/v1/planner")
     assert r_plan.status_code == 200
     assert r_plan.json()["goal_preferences"]["available_hours_per_week"] == 7.0
 
 
-def test_ai_application_drafting_and_unsupported_claim_check(client: TestClient):
+def test_ai_application_drafting_and_unsupported_claim_check(auth_client: TestClient):
     """Test application drafting using Evidence Bank and unsupported claim detection."""
     # Get active application
-    r_apps = client.get("/api/v1/applications")
+    r_apps = auth_client.get("/api/v1/applications")
     assert r_apps.status_code == 200
     apps = r_apps.json()
     assert len(apps) > 0
     app_id = apps[0]["id"]
 
     # Generate draft
-    r_draft = client.post(f"/api/v1/applications/{app_id}/draft", json={
+    r_draft = auth_client.post(f"/api/v1/applications/{app_id}/draft", json={
         "question": "Describe a significant technical project you have developed."
     })
     assert r_draft.status_code == 200
@@ -165,7 +165,7 @@ def test_ai_application_drafting_and_unsupported_claim_check(client: TestClient)
 
     # Check for unsupported claims on exaggerated text
     exaggerated_text = "I am a student. I founded a startup and led a team of 50-person engineers to publish 4 patent filings."
-    r_check = client.post(f"/api/v1/applications/{app_id}/evidence-check", json={
+    r_check = auth_client.post(f"/api/v1/applications/{app_id}/evidence-check", json={
         "draft_text": exaggerated_text
     })
     assert r_check.status_code == 200
@@ -173,9 +173,9 @@ def test_ai_application_drafting_and_unsupported_claim_check(client: TestClient)
     assert len(check_data["unsupported_claims"]) > 0
 
 
-def test_monitoring_change_detection_and_alerts(client: TestClient):
+def test_monitoring_change_detection_and_alerts(auth_client: TestClient):
     """Test monitoring change detection and urgent notification generation."""
-    r_apps = client.get("/api/v1/applications")
+    r_apps = auth_client.get("/api/v1/applications")
     csr_app = next(a for a in r_apps.json() if "CSR STEM" in a["scholarship_name"])
 
     # Simulate deadline moving closer
@@ -183,7 +183,7 @@ def test_monitoring_change_detection_and_alerts(client: TestClient):
         "scholarship_id": csr_app["scholarship_id"],
         "simulate_change_type": "DEADLINE_CHANGED"
     }
-    r_check = client.post("/api/v1/monitoring/check", json=sim_req)
+    r_check = auth_client.post("/api/v1/monitoring/check", json=sim_req)
     assert r_check.status_code == 200
     res = r_check.json()
     assert res["change_detected"] is True
@@ -191,7 +191,7 @@ def test_monitoring_change_detection_and_alerts(client: TestClient):
     assert res["change_category"] == "DEADLINE_CHANGED"
 
     # Verify notification created
-    r_notifs = client.get("/api/v1/notifications")
+    r_notifs = auth_client.get("/api/v1/notifications")
     assert r_notifs.status_code == 200
     notif_data = r_notifs.json()
     assert notif_data["unread_count"] > 0

@@ -344,7 +344,7 @@ export interface EvidenceCreatePayload {
 export interface ActionConfirmation {
   action_type: string;
   description: string;
-  proposed_payload: Record<string, any>;
+  proposed_payload: Record<string, unknown>;
   status: "PENDING" | "CONFIRMED" | "CANCELLED";
 }
 
@@ -446,10 +446,10 @@ export interface VoiceInterpretResponse {
   interpreted_text: string;
   detected_language: string;
   intent: string;
-  extracted_params: Record<string, any>;
+  extracted_params: Record<string, unknown>;
   requires_confirmation: boolean;
   confirmation_message: string;
-  action_payload?: Record<string, any> | null;
+  action_payload?: Record<string, unknown> | null;
 }
 
 export interface MonitoringCheckResponse {

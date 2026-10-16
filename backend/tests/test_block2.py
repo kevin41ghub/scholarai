@@ -1,8 +1,8 @@
 import pytest
 
 
-def test_scholarships_listing_and_recommendation(client):
-    res = client.get("/api/v1/scholarships")
+def test_scholarships_listing_and_recommendation(auth_client):
+    res = auth_client.get("/api/v1/scholarships")
     assert res.status_code == 200
     scholarships = res.json()
     assert len(scholarships) >= 8
@@ -23,8 +23,8 @@ def test_scholarships_listing_and_recommendation(client):
         assert s["verification_status"] in ["DEMO_DATA", "NEEDS_VERIFICATION"]
 
 
-def test_deterministic_eligibility_evaluation(client):
-    res = client.get("/api/v1/scholarships")
+def test_deterministic_eligibility_evaluation(auth_client):
+    res = auth_client.get("/api/v1/scholarships")
     scholarships = {s["name"]: s for s in res.json()}
 
     # 1. Arjun should be eligible for National Merit-cum-Means (CGPA 8.4 >= 7.0, Income 2.4L <= 2.5L, 12th 89.2% >= 75%)
@@ -45,11 +45,11 @@ def test_deterministic_eligibility_evaluation(client):
     assert rss["match_status"] == "needs_verification"
 
 
-def test_scholarship_detail_and_funding_impact(client):
-    res_list = client.get("/api/v1/scholarships")
+def test_scholarship_detail_and_funding_impact(auth_client):
+    res_list = auth_client.get("/api/v1/scholarships")
     s_id = res_list.json()[0]["id"]
 
-    res_detail = client.get(f"/api/v1/scholarships/{s_id}")
+    res_detail = auth_client.get(f"/api/v1/scholarships/{s_id}")
     assert res_detail.status_code == 200
     data = res_detail.json()
 
@@ -60,25 +60,25 @@ def test_scholarship_detail_and_funding_impact(client):
     assert "potential funding impact only" in impact["disclaimer"].lower()
 
 
-def test_duplicate_application_prevention(client):
+def test_duplicate_application_prevention(auth_client):
     # Application for National Merit already exists from seed
-    res_list = client.get("/api/v1/scholarships")
+    res_list = auth_client.get("/api/v1/scholarships")
     nmm = next(s for s in res_list.json() if s["name"] == "National Merit-cum-Means Scholarship")
 
     # Trying to apply again via POST /api/v1/scholarships/{id}/apply
-    res_apply = client.post(f"/api/v1/scholarships/{nmm['id']}/apply")
+    res_apply = auth_client.post(f"/api/v1/scholarships/{nmm['id']}/apply")
     assert res_apply.status_code == 200
     assert res_apply.json()["is_new"] is False
     assert "already exists" in res_apply.json()["message"]
 
     # Trying to apply via POST /api/v1/applications
-    res_app_post = client.post("/api/v1/applications", json={"scholarship_id": nmm["id"]})
+    res_app_post = auth_client.post("/api/v1/applications", json={"scholarship_id": nmm["id"]})
     assert res_app_post.status_code == 400
 
 
-def test_shared_blocker_and_cascade_unblocking(client):
+def test_shared_blocker_and_cascade_unblocking(auth_client):
     # 1. Fetch initial documents
-    res_docs = client.get("/api/v1/documents")
+    res_docs = auth_client.get("/api/v1/documents")
     assert res_docs.status_code == 200
     docs = {d["document_type"]: d for d in res_docs.json()}
 
@@ -90,7 +90,7 @@ def test_shared_blocker_and_cascade_unblocking(client):
     assert income_doc["potential_funding_affected"] == 135000.0  # 50,000 + 60,000 + 25,000
 
     # 2. Check initial portfolio summary
-    res_summary = client.get("/api/v1/applications/portfolio-summary")
+    res_summary = auth_client.get("/api/v1/applications/portfolio-summary")
     assert res_summary.status_code == 200
     summary = res_summary.json()
     assert summary["blocked_count"] == 3
@@ -98,7 +98,7 @@ def test_shared_blocker_and_cascade_unblocking(client):
     assert summary["primary_shared_blocker"]["document_type"] == "INCOME_CERTIFICATE"
 
     # 3. Simulate student marking Income Certificate as AVAILABLE
-    res_patch = client.patch(
+    res_patch = auth_client.patch(
         f"/api/v1/documents/{income_doc['id']}",
         json={"status": "AVAILABLE"}
     )
@@ -109,7 +109,7 @@ def test_shared_blocker_and_cascade_unblocking(client):
 
     # 4. Verify CASCADE UNBLOCKING:
     # Applications that required Income Certificate should now have 100% progress and READY status!
-    res_apps = client.get("/api/v1/applications")
+    res_apps = auth_client.get("/api/v1/applications")
     assert res_apps.status_code == 200
     apps = res_apps.json()
 
@@ -127,13 +127,13 @@ def test_shared_blocker_and_cascade_unblocking(client):
                     assert req["status"] == "AVAILABLE"
 
     # 5. Check portfolio summary after unblocking
-    res_summary_after = client.get("/api/v1/applications/portfolio-summary")
+    res_summary_after = auth_client.get("/api/v1/applications/portfolio-summary")
     summary_after = res_summary_after.json()
     assert summary_after["blocked_count"] == 0
 
 
-def test_next_best_action_ranking(client):
-    res_actions = client.get("/api/v1/actions")
+def test_next_best_action_ranking(auth_client):
+    res_actions = auth_client.get("/api/v1/actions")
     assert res_actions.status_code == 200
     actions = res_actions.json()
     assert len(actions) > 0
@@ -143,9 +143,9 @@ def test_next_best_action_ranking(client):
     assert "potential_funding_impact" in actions[0]
 
 
-def test_planner_and_weekly_allocation(client):
+def test_planner_and_weekly_allocation(auth_client):
     # 1. Get initial planner overview
-    res_planner = client.get("/api/v1/planner")
+    res_planner = auth_client.get("/api/v1/planner")
     assert res_planner.status_code == 200
     data = res_planner.json()
 
@@ -161,7 +161,7 @@ def test_planner_and_weekly_allocation(client):
     assert "Needs verification" in strat["concurrent_award_rule"]
 
     # 2. Update available hours to 8 hours and verify allocation recalculation
-    res_update = client.post("/api/v1/planner", json={"available_hours_per_week": 8.0})
+    res_update = auth_client.post("/api/v1/planner", json={"available_hours_per_week": 8.0})
     assert res_update.status_code == 200
     updated_plan = res_update.json()
     assert updated_plan["suggested_weekly_plan"]["total_hours"] == 8.0
