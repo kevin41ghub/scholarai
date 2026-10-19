@@ -14,34 +14,34 @@ def test_get_demo_student(auth_client):
     # Academic profile
     profile = data["profile"]
     assert profile is not None
-    assert profile["course"] == "B.Tech Computer Science"
+    assert profile["course"] == "B.Sc Computer Science"
     assert profile["year"] == "2nd Year"
-    assert profile["institution"] == "Demo Engineering College"
+    assert profile["institution"] == "Loyola College (Autonomous), Chennai"
     assert profile["cgpa"] == 8.4
     assert profile["twelfth_percentage"] == 89.2
-    assert profile["category"] == "OBC"
-    assert profile["state"] == "Karnataka"
+    assert profile["category"] == "BC"
+    assert profile["state"] == "Tamil Nadu"
 
     # Funding profile
     funding = data["funding_profile"]
     assert funding is not None
-    assert funding["annual_education_cost"] == 120000.0
-    assert funding["existing_support"] == 60000.0
-    assert funding["annual_family_income"] == 240000.0
-    # Funding gap dynamically calculated: 120000 - 60000 = 60000
-    assert funding["funding_gap"] == 60000.0
-    assert funding["funding_progress_percentage"] == 50.0
+    assert funding["annual_education_cost"] == 65000.0
+    assert funding["existing_support"] == 0.0
+    assert funding["annual_family_income"] == 210000.0
+    # Funding gap dynamically calculated: 65000 - 0 = 65000
+    assert funding["funding_gap"] == 65000.0
+    assert funding["funding_progress_percentage"] == 0.0
 
 
 def test_get_student_funding(auth_client):
     response = auth_client.get("/api/v1/student/funding")
     assert response.status_code == 200
     data = response.json()
-    assert data["annual_education_cost"] == 120000.0
-    assert data["existing_support"] == 60000.0
-    assert data["funding_gap"] == 60000.0
-    assert data["funding_progress_percentage"] == 50.0
-    assert data["annual_family_income"] == 240000.0
+    assert data["annual_education_cost"] == 65000.0
+    assert data["existing_support"] == 0.0
+    assert data["funding_gap"] == 65000.0
+    assert data["funding_progress_percentage"] == 0.0
+    assert data["annual_family_income"] == 210000.0
 
 
 def test_update_student_profile_and_funding(auth_client):

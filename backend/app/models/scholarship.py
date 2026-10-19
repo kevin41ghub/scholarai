@@ -22,6 +22,26 @@ class Scholarship(Base):
     application_effort = Column(String(50), default="Medium (3-5 hrs)", nullable=True)
     status = Column(String(50), default="ACTIVE", nullable=False, index=True)
 
+    # Specific Tamil Nadu Higher Education & Autonomous College Intelligence
+    dossier_index = Column(String(50), nullable=True, index=True)
+    stream = Column(String(50), default="BOTH", nullable=False, index=True)  # ARTS_SCIENCE, ENGINEERING, BOTH
+    study_level = Column(String(50), default="BOTH", nullable=False, index=True)  # UG, PG, BOTH
+    category_tag = Column(String(100), default="GOVERNMENT", nullable=False, index=True)
+    institution_types = Column(String(255), nullable=True)
+    autonomous_compatibility = Column(Text, nullable=True)
+    tn_residency_required = Column(String(20), default="YES", nullable=False)
+    community_category = Column(String(100), default="ALL", nullable=False)
+    income_ceiling = Column(Float, nullable=True)
+    income_criteria_raw = Column(String(255), nullable=True)
+    award_type = Column(String(100), default="VARIABLE_ASSISTANCE", nullable=False)
+    award_display = Column(String(255), nullable=True)
+    official_portal_name = Column(String(255), nullable=True)
+    official_guideline_url = Column(String(500), nullable=True)
+    academic_year = Column(String(50), default="2024-2025 / 2025-2026", nullable=True)
+    source_verification_status = Column(String(50), default="SOURCE_VERIFIED", nullable=False, index=True)  # SOURCE_VERIFIED, PARTIALLY_VERIFIED, ELIGIBILITY_CONFIRMATION_REQUIRED, EXPIRED_OR_CLOSED
+    application_window_status = Column(String(50), default="OPEN", nullable=False, index=True)  # OPEN, CLOSED, ANNOUNCED_TENTATIVE, COLLEGE_OFFICE_COORDINATED
+    unresolved_questions = Column(Text, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

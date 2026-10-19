@@ -94,59 +94,65 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 pb-12">
       {/* Executive Intelligence Briefing Header */}
-      <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 shadow-xs transition-colors">
+      <div className="bg-white dark:bg-[#191c20] rounded-2xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 sm:p-8 shadow-xs transition-colors">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-sky-950/40 text-blue-700 dark:text-sky-300 border border-blue-200/60 dark:border-sky-800/60 text-[10px] font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-sky-400 animate-pulse"></span>
-              <span>Grounded Intelligence Briefing</span>
+            <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] border border-rose-200 dark:border-rose-900/50 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#86192c] dark:bg-[#fb7185] animate-pulse"></span>
+              <span>Tamil Nadu Collegiate Dispatch</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Welcome, {displayName}
             </h1>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Your autonomous scholarship portfolio tracker. Evidence Bank verified, RAG-grounded eligibility scoring, and deadline risk prevention.
+            <p className="text-xs font-serif text-stone-600 dark:text-stone-400 leading-relaxed">
+              {student?.profile?.institution ? (
+                <>
+                  <strong className="text-stone-800 dark:text-stone-200">{student.profile.institution}</strong> &bull; {student.profile.course} &bull; Domicile: {student.profile.state || "Tamil Nadu"}
+                </>
+              ) : (
+                "Verified scholarship intelligence, deterministic eligibility scoring, and dependency risk management for autonomous college scholars."
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <Link
               href="/assistant"
-              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20 transition-all flex items-center space-x-2"
+              className="px-4 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>Ask AI Co-Pilot</span>
+              <span>Consult Assistant</span>
             </Link>
             <Link
               href="/discover"
-              className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="px-3.5 py-2.5 bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 border border-[#e6dfd3] dark:border-[#2f343d] rounded-xl text-xs font-semibold hover:border-stone-400 transition-colors"
             >
-              Discover Grants
+              Browse Intelligence Catalogue
             </Link>
             <Link
               href="/evidence"
-              className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="px-3.5 py-2.5 bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 border border-[#e6dfd3] dark:border-[#2f343d] rounded-xl text-xs font-semibold hover:border-stone-400 transition-colors"
             >
-              Evidence Bank
+              Evidence Repository
             </Link>
           </div>
         </div>
 
         {/* Trust Principle Banner */}
-        <div className="mt-6 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-start space-x-3">
-          <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-sky-950/80 text-blue-700 dark:text-sky-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="mt-6 p-3.5 rounded-xl bg-[#fbf9f5] dark:bg-[#121417] border border-[#e6dfd3] dark:border-[#2f343d] flex items-start space-x-3">
+          <div className="w-6 h-6 rounded-md bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <div className="text-[11px] leading-relaxed">
-            <span className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mr-1.5">
+          <div className="text-[11px] leading-relaxed font-serif">
+            <span className="font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider mr-1.5">
               Operating Principle:
             </span>
-            <span className="text-slate-600 dark:text-slate-400">
-              &ldquo;AI assists. Official sources decide. Student approves.&rdquo; SCHOLARAi organizes deadlines and evidence. Award decisions are determined exclusively by official scholarship providers.
+            <span className="text-stone-600 dark:text-stone-400">
+              &ldquo;AI assists. Official sources decide. Student approves.&rdquo; SCHOLARAi organizes deadlines and evidence. Award decisions are determined exclusively by official statutory bodies.
             </span>
           </div>
         </div>

@@ -91,23 +91,26 @@ export default function MyGoalPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-xs transition-colors">
+      <div className="bg-white dark:bg-[#191c20] rounded-2xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 md:p-8 shadow-xs transition-colors">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-              <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
+            <div className="flex items-center space-x-2 text-xs text-stone-500 dark:text-stone-400 mb-1.5">
+              <Link href="/" className="hover:text-[#86192c] dark:hover:text-[#fb7185] transition-colors">Dashboard</Link>
               <span>/</span>
-              <span className="text-slate-800 dark:text-slate-200 font-medium">Goal & Strategy Planner</span>
+              <span className="text-stone-800 dark:text-stone-200 font-medium">Goal & Strategy Planner</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] border border-rose-200 dark:border-rose-900/50 text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5">
+              <span>Funding Architecture</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Goal & Funding Strategy Planner
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm font-serif text-stone-600 dark:text-stone-400 max-w-2xl mt-1.5 leading-relaxed">
               Target educational coverage goals, allocate weekly preparation hours, and pursue multi-scholarship portfolios compliantly.
             </p>
           </div>
-          <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-800 dark:text-blue-300 max-w-sm">
-            <span className="font-bold block mb-1">Trust Principle</span>
+          <div className="p-3.5 bg-[#fbf9f5] dark:bg-[#121417] border border-[#e6dfd3] dark:border-[#2f343d] rounded-xl text-xs text-stone-700 dark:text-stone-300 max-w-sm font-serif">
+            <span className="font-bold block mb-1 text-stone-900 dark:text-stone-100 uppercase text-[10px] tracking-wider">Trust Principle</span>
             &ldquo;AI assists. Official sources decide. Student approves.&rdquo; All final award decisions depend strictly on official portal requirements.
           </div>
         </div>

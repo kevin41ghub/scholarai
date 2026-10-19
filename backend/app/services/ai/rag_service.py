@@ -81,7 +81,8 @@ def search_knowledge_base(
     scored_chunks = []
 
     for chunk in chunks:
-        text_lower = chunk.chunk_text.lower()
+        doc_title = chunk.document.title if chunk.document else ""
+        text_lower = f"{chunk.chunk_text} {chunk.section} {doc_title}".lower()
         score = sum(text_lower.count(w) * 2 for w in query_words)
         if score > 0:
             scored_chunks.append((score, chunk))

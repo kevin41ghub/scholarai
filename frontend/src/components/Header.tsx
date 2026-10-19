@@ -129,10 +129,10 @@ export default function Header() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">SCHOLARAi</span>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
-            <span className="capitalize font-medium text-slate-700 dark:text-slate-300">
+          <div className="hidden md:flex items-center space-x-2 text-xs text-stone-500 dark:text-stone-400">
+            <span className="font-serif font-bold text-stone-900 dark:text-stone-100">SCHOLARAi</span>
+            <span className="text-stone-300 dark:text-stone-700">/</span>
+            <span className="capitalize font-medium text-stone-700 dark:text-stone-300">
               {getPageTitle()}
             </span>
           </div>
@@ -141,9 +141,9 @@ export default function Header() {
         {/* Right side items */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Intelligence Connected status pill */}
-          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800/80 rounded-full text-[11px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Grounded Engine Active</span>
+          <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 bg-stone-100 dark:bg-stone-800/80 rounded-full text-[11px] font-medium text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="font-serif italic">Tamil Nadu Autonomous Colleges Edition</span>
           </div>
 
           {/* Theme Selector Popover */}

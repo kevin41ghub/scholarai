@@ -30,6 +30,9 @@ dist/
 .vscode/
 .idea/
 .DS_Store
-Thumbs.db
 *.pem
 *.key
+
+# Local storage / uploaded binary documents
+storage/
+backend/storage/

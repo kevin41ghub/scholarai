@@ -130,4 +130,53 @@ cd backend
 python scripts/bootstrap_db.py
 ```
 
-This creates all required tables and seeds the primary baseline student (Arjun Kumar), demo credentials (`demo@scholarai.local` / `DemoStudent@2026`), 8 catalog scholarships, 2 RAG knowledge sources, and starter notifications without duplicating existing records.
+This creates all required tables and seeds the primary baseline student (Arjun Kumar), demo credentials (`demo@scholarai.local` / `DemoStudent@2026`), 11 verified Tamil Nadu scholarship dossiers, 2 RAG knowledge sources, and starter notifications without duplicating existing records.
+
+---
+
+## 7. Rollback Plan & Emergency Recovery Procedure
+
+### 7.1 Principle of Additive Schema Migrations
+All database migrations in SCHOLARAi are designed to be **backward-compatible and strictly additive**:
+- New columns are added with default values or `nullable=True`.
+- Performance indexes are created using `CREATE INDEX IF NOT EXISTS`.
+- Legacy demo records are retired (`status = 'INACTIVE'`, `verification_status = 'RETIRED_DEMO'`) rather than deleted, preserving historical foreign keys and application links.
+- No existing columns or tables are deleted or renamed.
+
+**Result**: If an application bug is discovered post-deploy, the application code can be rolled back to the previous release commit or Render deployment snapshot immediately **without requiring a destructive database rollback**.
+
+### 7.2 Pre-Release Snapshot Safeguard
+Before initiating any production release or schema bootstrap, always capture a verified database snapshot:
+
+```bash
+# 1. Take a timestamped logical backup of the production database
+pg_dump "$DATABASE_URL" --format=custom --file="scholarai_pre_release_$(date +%Y%m%d_%H%M%S).dump"
+
+# 2. Verify snapshot size and readability
+pg_restore --list "scholarai_pre_release_$(date +%Y%m%d_%H%M%S).dump" | head -n 20
+```
+
+### 7.3 Emergency Application Rollback Procedure
+If a release-blocking regression occurs in production:
+
+1. **Rollback Web Services on Render**:
+   - Navigate to **Render Dashboard** $\rightarrow$ **scholarai-api** $\rightarrow$ **Events**.
+   - Select the previous stable deployment and click **Rollback to this deploy**.
+   - Repeat for **scholarai-web** to ensure client-server protocol parity.
+2. **Verify Service Health**:
+   - Request `GET https://api.scholarai.yourdomain.com/api/health` to confirm `status: "healthy"` and `database: "connected"`.
+   - Verify that all active student applications remain visible and intact.
+
+### 7.4 Safe Data Recovery Guardrails
+> [!CAUTION]
+> **Strictly Prohibited**: Never execute destructive commands such as `DROP DATABASE`, `DROP TABLE`, `TRUNCATE`, or `pg_restore --clean` against the production database without verified offsite snapshots and peer authorization.
+
+If catastrophic data corruption is ever encountered:
+1. **Never restore blindly over production**.
+2. Provision a temporary, isolated staging database.
+3. Restore the pre-release snapshot into the isolated staging database:
+   ```bash
+   pg_restore --dbname="$STAGING_DATABASE_URL" "scholarai_pre_release_<TIMESTAMP>.dump"
+   ```
+4. Verify record integrity (applications, documents, students) on the staging database.
+5. Selectively export and patch only the corrupted records back to production via audited SQL scripts.

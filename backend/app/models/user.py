@@ -12,6 +12,7 @@ class User(Base):
     salt = Column(String(64), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_demo = Column(Boolean, default=False, nullable=False)
+    role = Column(String(50), default="STUDENT", nullable=False)  # STUDENT, REVIEWER, ADMIN
     
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
 

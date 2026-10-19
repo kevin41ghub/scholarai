@@ -31,6 +31,16 @@ class EligibilityService:
                 "verification_notes": ["Complete your profile to determine eligibility."],
             }
 
+        if scholarship.status == "INACTIVE" or scholarship.verification_status == "RETIRED_DEMO":
+            return {
+                "status": "ineligible",
+                "score": 0.0,
+                "reasons": ["This scholarship record has been retired from active funding cycles."],
+                "matched_rules": [],
+                "unmatched_rules": ["Scheme is inactive or retired"],
+                "verification_notes": ["No active applications can be accepted for this scheme."],
+            }
+
         rules: List[EligibilityRule] = scholarship.eligibility_rules
         if not rules:
             return {
@@ -56,6 +66,47 @@ class EligibilityService:
         category = (profile.category or "").lower()
         gender = (getattr(profile, "gender", "Male") or "Male").lower()
 
+        # Tamil Nadu Stream Check
+        is_engineering = any(kw in course for kw in ["b.e", "b.tech", "engineering", "m.tech", "m.e"])
+        is_arts_science = any(kw in course for kw in ["b.sc", "b.a", "b.com", "bca", "bba", "m.sc", "m.a", "arts", "science", "commerce", "humanities"])
+
+        if scholarship.stream == "ARTS_SCIENCE" and is_engineering and not is_arts_science:
+            unmatched.append("Scheme is designated exclusively for Arts & Science programs; student profile indicates Engineering.")
+            is_hard_ineligible = True
+        elif scholarship.stream == "ENGINEERING" and is_arts_science and not is_engineering:
+            unmatched.append("Scheme is designated exclusively for Engineering programs (B.E./B.Tech); student profile indicates Arts & Science.")
+            is_hard_ineligible = True
+        elif scholarship.stream in ["ARTS_SCIENCE", "ENGINEERING", "BOTH"]:
+            matched.append(f"Program matches stream requirement ({scholarship.stream})")
+
+        # Study Level Check (UG vs PG)
+        is_pg = any(kw in course or kw in year for kw in ["pg", "postgraduate", "master", "m.tech", "m.sc", "m.a", "m.e", "ph.d", "phd"])
+        if scholarship.study_level == "PG" and not is_pg:
+            unmatched.append("Scheme is restricted to Postgraduate (PG) students; student profile indicates undergraduate standing.")
+            is_hard_ineligible = True
+        elif scholarship.study_level == "UG" and is_pg:
+            unmatched.append("Scheme is restricted to Undergraduate (UG) students; student profile indicates postgraduate standing.")
+            is_hard_ineligible = True
+        elif scholarship.study_level in ["UG", "PG", "BOTH"]:
+            matched.append(f"Academic level satisfies scheme requirement ({scholarship.study_level})")
+
+        # Tamil Nadu Residency Requirement
+        tn_req_val = getattr(scholarship, "tn_residency_required", False)
+        is_tn_residency_mandatory = tn_req_val in [True, "YES", "yes", "True", "true", "1", 1]
+        if is_tn_residency_mandatory:
+            if state in ["tamil nadu", "tamilnadu", "tn"]:
+                matched.append("Tamil Nadu state domicile verified.")
+            else:
+                unmatched.append(f"Tamil Nadu residency/domicile is strictly required; student profile indicates '{profile.state or 'Not Provided'}'.")
+                is_hard_ineligible = True
+
+        # Autonomous College Compatibility Context & Caveats (Informational)
+        context_notes = []
+        if getattr(scholarship, "autonomous_compatibility", None):
+            context_notes.append(f"Autonomous College Policy: {scholarship.autonomous_compatibility}")
+        if getattr(scholarship, "unresolved_questions", None):
+            context_notes.append(f"Provider Verification Requirement: {scholarship.unresolved_questions}")
+
         for rule in rules:
             rtype = rule.rule_type.upper()
             cval = rule.criteria_value.strip()
@@ -76,9 +127,9 @@ class EligibilityService:
                 try:
                     req_income = float(cval)
                     if income <= req_income:
-                        matched.append(f"Annual family income ₹{int(income):,} is within limit of ₹{int(req_income):,}")
+                        matched.append(f"Annual family income ₹{int(income):,} is within statutory limit of ₹{int(req_income):,}")
                     else:
-                        unmatched.append(f"Annual family income ₹{int(income):,} exceeds limit of ₹{int(req_income):,}")
+                        unmatched.append(f"Annual family income ₹{int(income):,} exceeds statutory ceiling of ₹{int(req_income):,}")
                         is_hard_ineligible = True
                 except ValueError:
                     needs_verif.append(f"Could not parse income limit: {cval}")
@@ -111,7 +162,7 @@ class EligibilityService:
                     is_hard_ineligible = True
 
             elif rtype == "STATE":
-                if cval.lower() == state:
+                if cval.lower() == state or (cval.lower() == "tamil nadu" and state in ["tamil nadu", "tamilnadu", "tn"]):
                     matched.append(f"Domicile state '{profile.state}' matches requirement")
                 else:
                     unmatched.append(f"Domicile state '{profile.state}' does not match requirement ({cval})")
@@ -122,7 +173,19 @@ class EligibilityService:
                     needs_verif.append(desc)
                 else:
                     allowed_cats = [c.strip().lower() for c in cval.split(",")]
-                    if category in allowed_cats:
+                    # Map common category abbreviations
+                    cat_synonyms = {
+                        "bc": ["bc", "obc", "backward classes"],
+                        "mbc": ["mbc", "most backward classes", "dnc"],
+                        "sc": ["sc", "scheduled caste", "sca"],
+                        "st": ["st", "scheduled tribe"],
+                    }
+                    expanded_allowed = set(allowed_cats)
+                    for cat_key in allowed_cats:
+                        if cat_key in cat_synonyms:
+                            expanded_allowed.update(cat_synonyms[cat_key])
+
+                    if category in expanded_allowed:
                         matched.append(f"Reservation category '{profile.category}' satisfies eligibility")
                     else:
                         unmatched.append(f"Reservation category '{profile.category}' not in eligible list ({cval})")
@@ -152,6 +215,7 @@ class EligibilityService:
             status = "possibly_eligible"
             score = 50.0
 
+        all_notes = needs_verif + context_notes
         all_reasons = []
         if status == "eligible":
             all_reasons.append("Likely eligible based on your provided profile attributes.")
@@ -173,7 +237,7 @@ class EligibilityService:
             "reasons": all_reasons,
             "matched_rules": matched,
             "unmatched_rules": unmatched,
-            "verification_notes": needs_verif,
+            "verification_notes": all_notes,
             "disclaimer": "AI assists. Official sources decide. Student approves. Never guaranteed."
         }
 

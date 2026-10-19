@@ -5,12 +5,25 @@ import Link from "next/link";
 import { getScholarships, formatINR } from "@/lib/api";
 import { ScholarshipListItem } from "@/types/student";
 
+const CATEGORY_TABS = [
+  { id: "ALL", label: "All Schemes" },
+  { id: "Tamil Nadu State Schemes", label: "TN State Directives" },
+  { id: "Community/Category-Based", label: "Post-Matric (SC/ST/BC/MBC)" },
+  { id: "Women in Higher Education", label: "Women Scholars (Pudhumai Penn)" },
+  { id: "Tuition and Fee Assistance", label: "Tuition Waivers & First Graduate" },
+  { id: "Central Government Schemes", label: "Central Schemes (NSP / AICTE)" },
+  { id: "Disability Support", label: "Differently-Abled (Saksham)" },
+  { id: "Research and Postgraduate Funding", label: "Postgraduate & Research" },
+];
+
 export default function DiscoverPage() {
   const [scholarships, setScholarships] = useState<ScholarshipListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters & Sorting state
+  const [streamFilter, setStreamFilter] = useState<"ALL" | "ARTS_SCIENCE" | "ENGINEERING">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recommended");
@@ -21,16 +34,18 @@ export default function DiscoverPage() {
       setError(null);
       const data = await getScholarships({
         query: searchQuery,
-        eligibility_filter: eligibilityFilter,
+        stream: streamFilter === "ALL" ? undefined : streamFilter,
+        category_tag: categoryFilter === "ALL" ? undefined : categoryFilter,
+        eligibility_filter: eligibilityFilter === "all" ? undefined : eligibilityFilter,
         sort_by: sortBy,
       });
       setScholarships(data);
     } catch (err: unknown) {
-      setError((err as Error)?.message || "Failed to load scholarship schemes.");
+      setError((err as Error)?.message || "Failed to load scholarship records.");
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, eligibilityFilter, sortBy]);
+  }, [searchQuery, streamFilter, categoryFilter, eligibilityFilter, sortBy]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,254 +59,481 @@ export default function DiscoverPage() {
     loadScholarships();
   };
 
-  const getMatchBadge = (status?: string) => {
+  const resetFilters = () => {
+    setStreamFilter("ALL");
+    setCategoryFilter("ALL");
+    setSearchQuery("");
+    setEligibilityFilter("all");
+    setSortBy("recommended");
+  };
+
+  const getVerificationBadge = (status?: string) => {
     switch (status) {
-      case "eligible":
+      case "SOURCE_VERIFIED":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Likely Eligible
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+            SOURCE VERIFIED
           </span>
         );
-      case "needs_verification":
+      case "PARTIALLY_VERIFIED":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            Needs Verification
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400"></span>
+            PARTIALLY VERIFIED
           </span>
         );
-      case "ineligible":
+      case "ELIGIBILITY_CONFIRMATION_REQUIRED":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-            Ineligible
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700">
+            POLICY UNDER REVIEW
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            Potential Fit
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700">
+            {status || "OFFICIAL SCHEME"}
           </span>
         );
     }
   };
 
-  const getDeadlineRiskBadge = (risk?: string, days?: number) => {
-    if (days !== undefined && days <= 4) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-          Urgent: {days}d left
-        </span>
-      );
+  const getMatchSeal = (status?: string, disqualification_reasons?: string[]) => {
+    switch (status) {
+      case "eligible":
+        return (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 text-xs text-emerald-900 dark:text-emerald-200">
+            <svg className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+              <span className="font-semibold block">Criteria Satisfied</span>
+              <span className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                Your autonomous college profile aligns with statutory eligibility and income rules.
+              </span>
+            </div>
+          </div>
+        );
+      case "ineligible":
+        const primaryReason = disqualification_reasons && disqualification_reasons.length > 0
+          ? disqualification_reasons[0]
+          : "Criteria do not align with current profile.";
+        return (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-900 dark:text-rose-200">
+            <svg className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <div>
+              <span className="font-semibold block">Boundary Restriction</span>
+              <span className="text-[11px] text-rose-800 dark:text-rose-300 leading-relaxed">
+                {primaryReason}
+              </span>
+            </div>
+          </div>
+        );
+      case "needs_verification":
+        return (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200">
+            <svg className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <span className="font-semibold block">Documentation Verification Required</span>
+              <span className="text-[11px] text-amber-800 dark:text-amber-300">
+                Official quota seat allotment, E-Sevai Tahsildar certificate, or institution endorsement must be confirmed.
+              </span>
+            </div>
+          </div>
+        );
+      default:
+        return null;
     }
-    if (days !== undefined && days <= 10) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-          {days}d left
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-        {days ?? 0}d left
-      </span>
-    );
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-xs transition-colors">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-8 pb-16">
+      {/* Editorial Journal Masthead */}
+      <section className="border-b border-[#e6dfd3] dark:border-[#2f343d] pb-8 pt-2">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
           <div>
-            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-              <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
-              <span>/</span>
-              <span className="text-slate-800 dark:text-slate-200 font-medium">Discover Scholarships</span>
+            <div className="flex items-center gap-2 text-[11px] tracking-widest uppercase font-semibold text-[#86192c] dark:text-[#fb7185] mb-1.5">
+              <span>TAMIL NADU SCHOLARSHIP INTELLIGENCE JOURNAL</span>
+              <span>•</span>
+              <span>VOL. 2025–2026</span>
+              <span>•</span>
+              <span className="text-stone-500 dark:text-stone-400">AUTONOMOUS COLLEGES GAZETTE</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Scholarship Discovery & Intelligence
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
+              Collegiate Intelligence & Scheme Catalogue
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mt-1.5 leading-relaxed">
-              Explore educational funding schemes matched deterministically against your academic profile and financial gap.
-            </p>
           </div>
-
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-600 dark:text-slate-300 max-w-sm">
-            <div className="flex items-center space-x-1.5 font-semibold text-slate-900 dark:text-white mb-1">
-              <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <span>Trust Principle</span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              &ldquo;AI assists. Official sources decide. Student approves.&rdquo; Rules are computed against official guidelines without guaranteeing award allocation.
+          <div className="text-right hidden sm:block">
+            <p className="text-[11px] font-mono text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+              Primary Sources Verified
+            </p>
+            <p className="text-xs font-serif italic text-stone-700 dark:text-stone-300">
+              TNDCE • TN SSP • BCMBCMW • NSP • DOTE
             </p>
           </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-4">
-          <form onSubmit={handleSearchSubmit} className="flex-1 flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search scholarships by name, awarding body, or field..."
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 transition-colors"
-              />
-              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-2xs"
-            >
-              Search
-            </button>
-          </form>
+        <p className="text-base text-stone-700 dark:text-stone-300 font-serif leading-relaxed max-w-4xl">
+          An editorial research index of authenticated higher education scholarships for students studying{" "}
+          <strong className="font-semibold text-stone-900 dark:text-stone-100">Arts & Science</strong> and{" "}
+          <strong className="font-semibold text-stone-900 dark:text-stone-100">Engineering</strong> in recognized autonomous colleges across Tamil Nadu.
+          Every record cites statutory authorities, autonomous institution coverage rules, and verified income ceilings.
+        </p>
 
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
+        {/* Editorial Trust Principle Banner */}
+        <div className="mt-5 p-3.5 rounded-lg bg-[#f5f1e8] dark:bg-[#191c20] border border-[#e6dfd3] dark:border-[#2f343d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-serif italic font-bold text-[#86192c] dark:text-[#fb7185] text-sm">
+              Editorial Rule:
+            </span>
+            <span className="text-stone-800 dark:text-stone-200 font-medium">
+              &ldquo;AI assists. Official sources decide. Student approves.&rdquo;
+            </span>
+          </div>
+          <p className="text-stone-600 dark:text-stone-400 text-[11px]">
+            No fabricated awards. Autonomous status alone does not establish eligibility; department quotas apply.
+          </p>
+        </div>
+      </section>
+
+      {/* Prominent Stream Selector Toggle */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+            Select Academic Discipline Stream
+          </span>
+          <span className="text-xs font-mono text-stone-500 dark:text-stone-400">
+            Targeting Tamil Nadu Autonomous Colleges
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setStreamFilter("ALL")}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              streamFilter === "ALL"
+                ? "bg-[#86192c] text-white border-[#86192c] shadow-sm"
+                : "bg-white dark:bg-[#191c20] text-stone-800 dark:text-stone-200 border-[#e6dfd3] dark:border-[#2f343d] hover:border-stone-400"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-serif font-bold text-base">All Higher Education</span>
+              <span className={`text-[11px] font-mono px-2 py-0.5 rounded ${streamFilter === "ALL" ? "bg-white/20 text-white" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"}`}>
+                11 Schemes
+              </span>
+            </div>
+            <p className={`text-xs leading-relaxed ${streamFilter === "ALL" ? "text-rose-100" : "text-stone-500 dark:text-stone-400"}`}>
+              Unified gazette covering common state welfare, central sector merit grants, and women assistance.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStreamFilter("ARTS_SCIENCE")}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              streamFilter === "ARTS_SCIENCE"
+                ? "bg-[#86192c] text-white border-[#86192c] shadow-sm"
+                : "bg-white dark:bg-[#191c20] text-stone-800 dark:text-stone-200 border-[#e6dfd3] dark:border-[#2f343d] hover:border-stone-400"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-serif font-bold text-base">Arts & Science</span>
+              <span className={`text-[11px] font-mono px-2 py-0.5 rounded ${streamFilter === "ARTS_SCIENCE" ? "bg-white/20 text-white" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"}`}>
+                DCE / TANSCHE
+              </span>
+            </div>
+            <p className={`text-xs leading-relaxed ${streamFilter === "ARTS_SCIENCE" ? "text-rose-100" : "text-stone-500 dark:text-stone-400"}`}>
+              B.A., B.Sc., B.Com., BCA, BBA & M.Sc. in Autonomous collegiate institutions (e.g. Loyola, Madras Christian College).
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStreamFilter("ENGINEERING")}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+              streamFilter === "ENGINEERING"
+                ? "bg-[#86192c] text-white border-[#86192c] shadow-sm"
+                : "bg-white dark:bg-[#191c20] text-stone-800 dark:text-stone-200 border-[#e6dfd3] dark:border-[#2f343d] hover:border-stone-400"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-serif font-bold text-base">Engineering & Tech</span>
+              <span className={`text-[11px] font-mono px-2 py-0.5 rounded ${streamFilter === "ENGINEERING" ? "bg-white/20 text-white" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"}`}>
+                DOTE / AICTE
+              </span>
+            </div>
+            <p className={`text-xs leading-relaxed ${streamFilter === "ENGINEERING" ? "text-rose-100" : "text-stone-500 dark:text-stone-400"}`}>
+              B.E. & B.Tech. in AICTE-approved Autonomous Engineering institutions (e.g. PSG Tech, CIT) under TNEA counselling.
+            </p>
+          </button>
+        </div>
+      </section>
+
+      {/* Category Index Navigation Pills */}
+      <section className="space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 block">
+          Editorial Subject Index
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORY_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCategoryFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                categoryFilter === tab.id
+                  ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 font-semibold"
+                  : "bg-white dark:bg-[#191c20] text-stone-700 dark:text-stone-300 border border-[#e6dfd3] dark:border-[#2f343d] hover:bg-stone-100 dark:hover:bg-stone-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Search & Intelligence Filters */}
+      <section className="bg-white dark:bg-[#191c20] p-4 sm:p-5 rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] shadow-xs">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by scheme title, authority, or dossier number (e.g., 'BC/MBC', 'First Graduate', '№ TN-DCE')..."
+              className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-sm bg-[#fbf9f5] dark:bg-[#121417] text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#86192c] dark:focus:ring-[#fb7185]"
+            />
+            <svg className="w-4 h-4 text-stone-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={eligibilityFilter}
               onChange={(e) => setEligibilityFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              className="px-3 py-2.5 rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-xs font-semibold bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-[#86192c]"
             >
-              <option value="all">All Eligibility Levels</option>
-              <option value="eligible">Likely Eligible Only</option>
-              <option value="needs_verification">Needs Verification</option>
-              <option value="ineligible">Ineligible</option>
+              <option value="all">All Eligibility Standings</option>
+              <option value="eligible">Profile Match (Likely Eligible)</option>
+              <option value="needs_verification">Requires Quota / Doc Verification</option>
+              <option value="ineligible">Boundary Ineligible</option>
             </select>
 
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              className="px-3 py-2.5 rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-xs font-semibold bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-[#86192c]"
             >
-              <option value="recommended">Sort by: Recommended</option>
-              <option value="deadline">Sort by: Deadline</option>
-              <option value="amount_high">Sort by: Highest Amount</option>
-              <option value="amount_low">Sort by: Lowest Amount</option>
+              <option value="recommended">Sort: Recommended Priority</option>
+              <option value="amount_high">Sort: Maximum Assistance</option>
+              <option value="deadline">Sort: Application Window</option>
             </select>
-          </div>
-        </div>
-      </div>
 
-      {/* Scholarships Grid */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[35vh] space-y-3">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Evaluating scholarship opportunities against your profile...</p>
-        </div>
-      ) : error ? (
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-6 text-center text-rose-700 dark:text-rose-400 text-sm">
-          <p className="font-semibold">{error}</p>
-          <button onClick={() => loadScholarships()} className="mt-3 px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-semibold">
-            Retry
-          </button>
-        </div>
-      ) : scholarships.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 dark:text-slate-400">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </div>
-          <p className="font-semibold text-slate-900 dark:text-white">No scholarships match the current criteria.</p>
-          <p className="text-xs mt-1">Try broadening your search term or clearing the eligibility filter.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {scholarships.map((s) => (
-            <div
-              key={s.id}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
+            <button
+              type="submit"
+              className="px-4 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             >
-              <div>
-                {/* Top Row: Provider & Badges */}
-                <div className="flex items-start justify-between gap-2 mb-2.5">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    {s.provider}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                      {s.verification_status}
-                    </span>
-                    {getMatchBadge(s.match_status)}
-                  </div>
-                </div>
+              Search
+            </button>
+          </div>
+        </form>
+      </section>
 
-                {/* Title */}
-                <h3 className="text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  <Link href={`/discover/${s.id}`}>{s.name}</Link>
-                </h3>
-
-                {/* Amount & Deadline */}
-                <div className="flex items-baseline space-x-3 mt-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-xl font-bold font-mono text-blue-700 dark:text-blue-400">{formatINR(s.amount)}</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">/ academic award</span>
-                  <div className="ml-auto">
-                    {getDeadlineRiskBadge(s.deadline_risk, s.days_remaining)}
-                  </div>
-                </div>
-
-                {/* Description & Eligibility Summary */}
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 line-clamp-2 leading-relaxed">
-                  {s.description}
-                </p>
-
-                {s.eligibility_summary && (
-                  <div className="mt-3 text-xs bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
-                    <span className="font-semibold text-slate-900 dark:text-white">Criteria: </span>
-                    {s.eligibility_summary}
-                  </div>
-                )}
-
-                {/* Why this may fit */}
-                {s.fit_reasons && s.fit_reasons.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                      Profile Fit Factors
-                    </span>
-                    {s.fit_reasons.map((reason, idx) => (
-                      <p key={idx} className="text-xs text-slate-600 dark:text-slate-400 flex items-start space-x-2">
-                        <span className="text-blue-600 dark:text-blue-400 font-bold">&bull;</span>
-                        <span>{reason}</span>
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Card Footer */}
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  <span>Effort: </span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{s.application_effort || "Medium"}</span>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  {s.application_status && s.application_status !== "NOT_STARTED" ? (
-                    <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
-                      Applied ({s.application_status})
-                    </span>
-                  ) : (
-                    <Link
-                      href={`/discover/${s.id}`}
-                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs"
-                    >
-                      View & Apply &rarr;
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* Main Intelligence Results List */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b border-[#e6dfd3] dark:border-[#2f343d] pb-2 text-xs font-mono text-stone-500 dark:text-stone-400">
+          <span>CATALOGUE DOSSIERS ({scholarships.length} RESULTS)</span>
+          <span>AUTONOMOUS COLLEGES DISPATCH</span>
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[30vh] space-y-3">
+            <div className="w-8 h-8 border-2 border-[#86192c] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs text-stone-500 dark:text-stone-400 font-serif italic">
+              Scanning verified statutory scholarship gazettes against your academic profile...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 p-6 rounded-xl text-center text-rose-800 dark:text-rose-200 text-sm">
+            <p className="font-semibold">{error}</p>
+            <button
+              onClick={() => loadScholarships()}
+              className="mt-3 px-4 py-1.5 bg-[#86192c] text-white rounded text-xs font-semibold cursor-pointer"
+            >
+              Retry Retrieval
+            </button>
+          </div>
+        ) : scholarships.length === 0 ? (
+          <div className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-[#f5f1e8] dark:bg-[#22262c] flex items-center justify-center text-stone-500">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-stone-100">
+                No Verified Records Match Current Query Filters
+              </h3>
+              <p className="text-xs text-stone-600 dark:text-stone-400 font-serif leading-relaxed">
+                In strict compliance with our honesty principles, we do not fabricate fallback scholarship records when specific filters yield zero results.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[#fbf9f5] dark:bg-[#121417] rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-left text-xs space-y-2">
+              <span className="font-semibold text-stone-800 dark:text-stone-200 block text-[11px] uppercase tracking-wider">
+                Official Primary Source Portals for Tamil Nadu:
+              </span>
+              <ul className="space-y-1 text-[11px] text-stone-600 dark:text-stone-400">
+                <li>• <a href="https://tndce.tn.gov.in/Home/scholarship_cms" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Directorate of Collegiate Education (TNDCE)</a></li>
+                <li>• <a href="https://sspdept.tnega.org/" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Tamil Nadu State Scholarship Portal (SSP / UMIS)</a></li>
+                <li>• <a href="https://bcmbcmw.tn.gov.in/welfschemes.htm" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">BC, MBC & Minorities Welfare Department</a></li>
+                <li>• <a href="https://scholarships.gov.in/All-Scholarships" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">National Scholarship Portal (Central Schemes)</a></li>
+              </ul>
+            </div>
+
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 bg-[#86192c] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Reset All Filters
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {scholarships.map((s, index) => (
+              <article
+                key={s.id}
+                className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 sm:p-7 shadow-xs hover:border-stone-400 dark:hover:border-stone-600 transition-all"
+              >
+                {/* Dossier Header Strip */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#f0eae0] dark:border-[#242830] text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-[#86192c] dark:text-[#fb7185] bg-[#fff1f2] dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/50">
+                      {s.dossier_index || `№ TN-${index + 1}`}
+                    </span>
+                    <span className="text-stone-400">•</span>
+                    <span className="font-serif italic text-stone-600 dark:text-stone-300">
+                      {s.academic_year || "Academic Year 2024–2026"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {getVerificationBadge(s.source_verification_status || s.verification_status)}
+                    <span className="text-[11px] font-mono text-stone-500 dark:text-stone-400">
+                      Cycle: {s.application_window_status || "Annual Cycle"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Scheme Title & Details (8 Cols) */}
+                  <div className="lg:col-span-8 space-y-3">
+                    <div>
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1">
+                        Awarding Authority: <strong className="font-semibold text-stone-800 dark:text-stone-200">{s.provider}</strong>
+                      </p>
+                      <h2 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 hover:text-[#86192c] dark:hover:text-[#fb7185] transition-colors">
+                        <Link href={`/discover/${s.id}`}>{s.name}</Link>
+                      </h2>
+                    </div>
+
+                    {/* Stream & Category Badges */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono text-[11px] font-semibold">
+                        Stream: {s.stream === "BOTH" ? "Arts & Science and Engineering" : s.stream}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono text-[11px]">
+                        Level: {s.study_level || "Undergraduate / Postgraduate"}
+                      </span>
+                      {s.tn_residency_required && (
+                        <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40 text-[10px] font-semibold">
+                          TN Domicile Mandatory
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+                      {s.description}
+                    </p>
+
+                    {/* Autonomous College Policy Note */}
+                    {s.autonomous_compatibility && (
+                      <div className="p-3 rounded-lg bg-[#fbf9f5] dark:bg-[#121417] border border-[#e6dfd3] dark:border-[#2f343d] text-xs space-y-1">
+                        <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-stone-500 dark:text-stone-400 block">
+                          Autonomous College Coverage Rule:
+                        </span>
+                        <p className="text-stone-800 dark:text-stone-200 leading-relaxed">
+                          {s.autonomous_compatibility}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Transparent Eligibility Evaluation */}
+                    {getMatchSeal(s.match_status, s.disqualification_reasons)}
+                  </div>
+
+                  {/* Right Column: Financial Support, Official Portal & Action (4 Cols) */}
+                  <div className="lg:col-span-4 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-[#f0eae0] dark:border-[#242830] pt-4 lg:pt-0 lg:pl-6 space-y-4">
+                    <div>
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-stone-500 dark:text-stone-400 block mb-1">
+                        Statutory Assistance
+                      </span>
+                      <div className="font-serif text-2xl font-bold text-[#86192c] dark:text-[#fb7185]">
+                        {formatINR(s.amount)}
+                      </div>
+                      <p className="text-xs font-serif italic text-stone-600 dark:text-stone-400 mt-1">
+                        {s.award_display || `${s.award_type || "Financial Assistance"} per annum`}
+                      </p>
+                    </div>
+
+                    {s.income_criteria_raw && (
+                      <div className="text-xs text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-900/60 p-2.5 rounded border border-stone-200 dark:border-stone-800">
+                        <span className="font-semibold text-stone-800 dark:text-stone-200 block text-[11px]">Income Rule:</span>
+                        <span className="text-[11px] leading-tight block mt-0.5">{s.income_criteria_raw}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 pt-2 border-t border-[#f0eae0] dark:border-[#242830]">
+                      <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between">
+                        <span>Official Portal:</span>
+                        <span className="font-medium text-stone-700 dark:text-stone-300 truncate max-w-[150px]">
+                          {s.official_portal_name || "Official Dept Portal"}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-2">
+                        <Link
+                          href={`/discover/${s.id}`}
+                          className="w-full text-center px-4 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer shadow-xs"
+                        >
+                          Inspect Research Dossier →
+                        </Link>
+                        {s.official_guideline_url && (
+                          <a
+                            href={s.official_guideline_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-center text-[11px] text-stone-600 dark:text-stone-400 hover:text-[#86192c] dark:hover:text-[#fb7185] underline"
+                          >
+                            Read Official Gazette Directive ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

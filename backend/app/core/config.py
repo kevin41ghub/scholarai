@@ -34,6 +34,19 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-flash-latest"
 
+    # Storage Configuration (Cloudflare R2 S3-compatible or local private storage)
+    STORAGE_BACKEND: str = "local"  # "local", "r2", "s3"
+    STORAGE_LOCAL_DIR: str = "storage/documents"
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = "scholarai-documents"
+    R2_ENDPOINT_URL: str = ""
+    R2_REGION: str = "auto"
+    MAX_DOCUMENT_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
+    ALLOWED_DOCUMENT_EXTENSIONS: List[str] = [".pdf", ".jpg", ".jpeg", ".png"]
+    ALLOWED_DOCUMENT_MIMES: List[str] = ["application/pdf", "image/jpeg", "image/png"]
+
     # CORS configuration
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
@@ -43,8 +56,19 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def normalize_database_url(cls, v: str) -> str:
-        if isinstance(v, str) and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                v = v.replace("postgres://", "postgresql://", 1)
+            # Auto-upgrade standard postgresql:// to postgresql+psycopg:// if psycopg v3 is installed without psycopg2
+            if v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                try:
+                    import psycopg2  # noqa: F401
+                except ImportError:
+                    try:
+                        import psycopg  # noqa: F401
+                        v = v.replace("postgresql://", "postgresql+psycopg://", 1)
+                    except ImportError:
+                        pass
         return v
 
     @field_validator("CORS_ORIGINS", mode="before")

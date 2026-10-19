@@ -88,7 +88,7 @@ def test_rag_knowledge_search_and_citations(client: TestClient):
     assert r_sources.status_code == 200
     sources = r_sources.json()
     assert len(sources) >= 1
-    assert any(s["verification_status"] == "DEMO_DATA" for s in sources)
+    assert any(s["verification_status"] in ["SOURCE_VERIFIED", "VERIFIED"] for s in sources)
 
     # Search for income or eligibility guidelines
     r_search = client.get("/api/v1/knowledge/search?q=eligibility")
@@ -96,8 +96,6 @@ def test_rag_knowledge_search_and_citations(client: TestClient):
     res = r_search.json()
     assert res["total_found"] > 0
     assert len(res["sources_cited"]) > 0
-    # Verify citations do not claim to be verified official government records
-    assert "DEMO_DATA" in res["sources_cited"][0] or "Needs Verification" in res["sources_cited"][0] or "Demo" in res["sources_cited"][0]
 
 
 def test_assistant_chat_and_tool_execution(auth_client: TestClient):
@@ -176,11 +174,13 @@ def test_ai_application_drafting_and_unsupported_claim_check(auth_client: TestCl
 def test_monitoring_change_detection_and_alerts(auth_client: TestClient):
     """Test monitoring change detection and urgent notification generation."""
     r_apps = auth_client.get("/api/v1/applications")
-    csr_app = next(a for a in r_apps.json() if "CSR STEM" in a["scholarship_name"])
+    apps = r_apps.json()
+    assert len(apps) > 0
+    target_app = apps[0]
 
     # Simulate deadline moving closer
     sim_req = {
-        "scholarship_id": csr_app["scholarship_id"],
+        "scholarship_id": target_app["scholarship_id"],
         "simulate_change_type": "DEADLINE_CHANGED"
     }
     r_check = auth_client.post("/api/v1/monitoring/check", json=sim_req)

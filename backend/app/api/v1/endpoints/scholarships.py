@@ -23,9 +23,13 @@ router = APIRouter()
 @router.get("", response_model=List[ScholarshipListItemResponse], summary="List & Discover Scholarships")
 def list_scholarships(
     query: Optional[str] = Query(None, description="Search keyword in title, provider, or description"),
+    stream: Optional[str] = Query(None, description="Filter by stream: ARTS_SCIENCE, ENGINEERING, BOTH"),
+    category_tag: Optional[str] = Query(None, description="Filter by scholarship category"),
+    study_level: Optional[str] = Query(None, description="Filter by study level: UG, PG, BOTH"),
     eligibility_filter: Optional[str] = Query(None, description="Filter by: all, eligible, possibly_eligible, ineligible, needs_verification"),
     status_filter: Optional[str] = Query(None, description="Filter by: ACTIVE, CLOSED, etc."),
-    verification_filter: Optional[str] = Query(None, description="Filter by: DEMO_DATA, VERIFIED, NEEDS_VERIFICATION"),
+    source_status: Optional[str] = Query(None, description="Filter by source status: SOURCE_VERIFIED, PARTIALLY_VERIFIED, etc."),
+    verification_filter: Optional[str] = Query(None, description="Filter by verification status"),
     sort_by: Optional[str] = Query("recommended", description="Sort by: recommended, deadline, amount_high, amount_low, best_match"),
     current_student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
@@ -40,14 +44,37 @@ def list_scholarships(
         scholarships_query = scholarships_query.filter(
             (Scholarship.name.ilike(term)) |
             (Scholarship.provider.ilike(term)) |
-            (Scholarship.description.ilike(term))
+            (Scholarship.description.ilike(term)) |
+            (Scholarship.dossier_index.ilike(term))
         )
+
+    if stream and stream.upper() != "ALL":
+        s_val = stream.upper()
+        scholarships_query = scholarships_query.filter(Scholarship.stream.in_([s_val, "BOTH"]))
+
+    if category_tag and category_tag.upper() != "ALL":
+        scholarships_query = scholarships_query.filter(Scholarship.category_tag.ilike(f"%{category_tag.strip()}%"))
+
+    if study_level and study_level.upper() != "ALL":
+        l_val = study_level.upper()
+        scholarships_query = scholarships_query.filter(Scholarship.study_level.in_([l_val, "BOTH"]))
 
     if status_filter:
         scholarships_query = scholarships_query.filter(Scholarship.status == status_filter.upper())
+    else:
+        # Default: exclude inactive scholarships from normal discovery
+        scholarships_query = scholarships_query.filter(Scholarship.status != "INACTIVE")
 
-    if verification_filter:
+    if source_status:
+        scholarships_query = scholarships_query.filter(
+            (Scholarship.source_verification_status == source_status.upper()) |
+            (Scholarship.verification_status == source_status.upper())
+        )
+    elif verification_filter:
         scholarships_query = scholarships_query.filter(Scholarship.verification_status == verification_filter.upper())
+    else:
+        # Default: exclude retired demo scholarships from normal discovery
+        scholarships_query = scholarships_query.filter(Scholarship.verification_status != "RETIRED_DEMO")
 
     all_scholarships = scholarships_query.all()
 
@@ -59,7 +86,7 @@ def list_scholarships(
 
     # Evaluate intelligence for each scholarship
     items = []
-    funding_gap = student.funding_profile.funding_gap if student.funding_profile else 60000.0
+    funding_gap = student.funding_profile.funding_gap if student.funding_profile else 65000.0
 
     for s in all_scholarships:
         eval_res = eligibility_service.evaluate_scholarship(student, s)
@@ -70,18 +97,18 @@ def list_scholarships(
         fit_reasons = []
         coverage_pct = round((s.amount / funding_gap * 100), 0) if funding_gap > 0 else 100
         if coverage_pct > 0:
-            fit_reasons.append(f"Could cover approximately {int(coverage_pct)}% of your current funding gap")
+            fit_reasons.append(f"Could cover approximately {int(coverage_pct)}% of your estimated ₹{int(funding_gap):,} funding gap")
 
         if eval_res["status"] == "eligible":
-            fit_reasons.append("Your current profile meets the demo academic and income criteria")
+            fit_reasons.append("Your current profile meets verified academic, stream, and income criteria")
         elif eval_res["status"] == "needs_verification":
-            fit_reasons.append("Potential match; residency/category documentation needs verification")
+            fit_reasons.append("Potential match; college allotment or category documentation requires verification")
         elif eval_res["status"] == "ineligible":
             if eval_res["unmatched_rules"]:
                 fit_reasons.append(f"Ineligible: {eval_res['unmatched_rules'][0]}")
 
         if risk_info["risk_level"] in ["URGENT", "HIGH"]:
-            fit_reasons.append(f"Deadline approaching ({risk_info['days_remaining']} days left)")
+            fit_reasons.append(f"Application cycle closing soon ({risk_info['days_remaining']} days remaining)")
 
         item = ScholarshipListItemResponse(
             id=s.id,
@@ -102,6 +129,25 @@ def list_scholarships(
             deadline_risk=risk_info["risk_level"],
             application_status=linked_app.status if linked_app else "NOT_STARTED",
             application_id=linked_app.id if linked_app else None,
+            dossier_index=s.dossier_index,
+            stream=s.stream,
+            study_level=s.study_level,
+            category_tag=s.category_tag,
+            institution_types=s.institution_types,
+            autonomous_compatibility=s.autonomous_compatibility,
+            tn_residency_required=s.tn_residency_required,
+            community_category=s.community_category,
+            income_ceiling=s.income_ceiling,
+            income_criteria_raw=s.income_criteria_raw,
+            award_type=s.award_type,
+            award_display=s.award_display,
+            official_portal_name=s.official_portal_name,
+            official_guideline_url=s.official_guideline_url,
+            academic_year=s.academic_year,
+            source_verification_status=s.source_verification_status or s.verification_status,
+            application_window_status=s.application_window_status,
+            unresolved_questions=s.unresolved_questions,
+            disqualification_reasons=eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else [],
         )
         items.append(item)
 
@@ -198,6 +244,25 @@ def get_scholarship_detail(
         funding_impact=funding_impact,
         deadline_risk=risk_info,
         current_application=current_app_data,
+        dossier_index=scholarship.dossier_index,
+        stream=scholarship.stream,
+        study_level=scholarship.study_level,
+        category_tag=scholarship.category_tag,
+        institution_types=scholarship.institution_types,
+        autonomous_compatibility=scholarship.autonomous_compatibility,
+        tn_residency_required=scholarship.tn_residency_required,
+        community_category=scholarship.community_category,
+        income_ceiling=scholarship.income_ceiling,
+        income_criteria_raw=scholarship.income_criteria_raw,
+        award_type=scholarship.award_type,
+        award_display=scholarship.award_display,
+        official_portal_name=scholarship.official_portal_name,
+        official_guideline_url=scholarship.official_guideline_url,
+        academic_year=scholarship.academic_year,
+        source_verification_status=scholarship.source_verification_status or scholarship.verification_status,
+        application_window_status=scholarship.application_window_status,
+        unresolved_questions=scholarship.unresolved_questions,
+        disqualification_reasons=eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else [],
     )
 
 
@@ -229,6 +294,12 @@ def apply_to_scholarship(
     scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()
     if not scholarship:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
+
+    if scholarship.status == "INACTIVE" or scholarship.verification_status == "RETIRED_DEMO":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This scholarship has been retired and is no longer accepting new applications."
+        )
 
     student = current_student
 

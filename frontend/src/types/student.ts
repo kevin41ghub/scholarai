@@ -102,6 +102,26 @@ export interface ScholarshipListItem {
   deadline_risk?: string;
   application_status?: string;
   application_id?: number;
+  // Tamil Nadu Editorial Intelligence Fields
+  dossier_index?: string;
+  stream?: "ARTS_SCIENCE" | "ENGINEERING" | "BOTH";
+  study_level?: "UG" | "PG" | "BOTH";
+  category_tag?: string;
+  institution_types?: string;
+  autonomous_compatibility?: string;
+  tn_residency_required?: boolean;
+  community_category?: string;
+  income_ceiling?: number | null;
+  income_criteria_raw?: string | null;
+  award_type?: string;
+  award_display?: string;
+  official_portal_name?: string;
+  official_guideline_url?: string;
+  academic_year?: string;
+  source_verification_status?: string;
+  application_window_status?: string;
+  unresolved_questions?: string;
+  disqualification_reasons?: string[];
 }
 
 export interface FundingImpact {
@@ -220,6 +240,15 @@ export interface PortfolioSummary {
 }
 
 // Block 2: Documents
+export interface VerificationCheckItem {
+  check_name: string;
+  passed: boolean;
+  outcome: "PASSED" | "WARNING" | "FAILED";
+  reason: string;
+  verification_method: string;
+  timestamp: string;
+}
+
 export interface DocumentItem {
   id: number;
   student_id: number;
@@ -230,6 +259,37 @@ export interface DocumentItem {
   verified_at?: string | null;
   expiry_date?: string | null;
   notes?: string | null;
+
+  // Real storage & security fields
+  storage_backend?: string;
+  storage_key?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  content_hash?: string | null;
+  original_filename?: string | null;
+
+  // Extraction and transparent verification
+  extraction_status?: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "NEEDS_MANUAL_PROCESSING";
+  verification_status?: "UPLOADED" | "PROCESSING" | "AUTOMATED_CHECKS_PASSED" | "NEEDS_HUMAN_REVIEW" | "REJECTED" | "UNABLE_TO_VERIFY" | "OFFICIALLY_VERIFIED";
+  extracted_data?: {
+    extraction_status?: string;
+    raw_text_length?: number;
+    page_count?: number;
+    extracted_fields?: Record<string, unknown>;
+    extraction_notes?: string[];
+  } | null;
+  verification_results?: VerificationCheckItem[] | null;
+  failure_reasons?: string[] | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  audit_history?: Array<{
+    action: string;
+    actor?: string;
+    timestamp: string;
+    reason?: string;
+    [key: string]: unknown;
+  }> | null;
+
   created_at: string;
   updated_at: string;
   affected_applications_count: number;

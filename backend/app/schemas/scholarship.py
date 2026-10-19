@@ -37,10 +37,36 @@ class ScholarshipListItemResponse(BaseModel):
     eligibility_summary: Optional[str] = None
     application_effort: Optional[str] = None
     status: str
+
+    # Tamil Nadu Specific Fields
+    dossier_index: Optional[str] = None
+    stream: Optional[str] = "BOTH"
+    study_level: Optional[str] = "BOTH"
+    category_tag: Optional[str] = "GOVERNMENT"
+    institution_types: Optional[str] = None
+    autonomous_compatibility: Optional[str] = None
+    tn_residency_required: Optional[bool] = True
+    community_category: Optional[str] = "ALL"
+    income_ceiling: Optional[float] = None
+    income_criteria_raw: Optional[str] = None
+    award_type: Optional[str] = "VARIABLE_ASSISTANCE"
+    award_display: Optional[str] = None
+    official_portal_name: Optional[str] = None
+    official_guideline_url: Optional[str] = None
+    academic_year: Optional[str] = "2024-2025 / 2025-2026"
+    source_verification_status: Optional[str] = "SOURCE_VERIFIED"
+    application_window_status: Optional[str] = "OPEN"
+    unresolved_questions: Optional[str] = None
+    source_url: Optional[str] = None
+    source_name: Optional[str] = None
+    application_url: Optional[str] = None
+    last_verified_at: Optional[datetime] = None
+
     # Computed fields for student
     match_status: Optional[str] = None  # eligible, possibly_eligible, ineligible, needs_verification
     match_score: Optional[float] = None
     fit_reasons: Optional[List[str]] = None
+    disqualification_reasons: Optional[List[str]] = None
     days_remaining: Optional[int] = None
     deadline_risk: Optional[str] = None
     application_status: Optional[str] = None  # NOT_STARTED, IN_PROGRESS, etc.
@@ -73,6 +99,27 @@ class ScholarshipDetailResponse(BaseModel):
     eligibility_summary: Optional[str] = None
     application_effort: Optional[str] = None
     status: str
+
+    # Tamil Nadu Specific Fields
+    dossier_index: Optional[str] = None
+    stream: Optional[str] = "BOTH"
+    study_level: Optional[str] = "BOTH"
+    category_tag: Optional[str] = "GOVERNMENT"
+    institution_types: Optional[str] = None
+    autonomous_compatibility: Optional[str] = None
+    tn_residency_required: Optional[bool] = True
+    community_category: Optional[str] = "ALL"
+    income_ceiling: Optional[float] = None
+    income_criteria_raw: Optional[str] = None
+    award_type: Optional[str] = "VARIABLE_ASSISTANCE"
+    award_display: Optional[str] = None
+    official_portal_name: Optional[str] = None
+    official_guideline_url: Optional[str] = None
+    academic_year: Optional[str] = "2024-2025 / 2025-2026"
+    source_verification_status: Optional[str] = "SOURCE_VERIFIED"
+    application_window_status: Optional[str] = "OPEN"
+    unresolved_questions: Optional[str] = None
+
     eligibility_rules: List[EligibilityRuleResponse] = []
     requirements: List[ScholarshipRequirementResponse] = []
 

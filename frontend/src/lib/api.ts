@@ -42,11 +42,16 @@ class ApiError extends Error {
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const isFormData = typeof FormData !== "undefined" && options?.body instanceof FormData;
+  const defaultHeaders: Record<string, string> = isFormData
+    ? {}
+    : { "Content-Type": "application/json" };
+
   const response = await fetch(url, {
     credentials: "include",
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...defaultHeaders,
       ...(options?.headers || {}),
     },
   });
@@ -92,15 +97,23 @@ export async function updateStudent(payload: StudentUpdatePayload): Promise<Stud
 // Block 2: Scholarships
 export async function getScholarships(params?: {
   query?: string;
+  stream?: string;
+  category_tag?: string;
+  study_level?: string;
   eligibility_filter?: string;
   status_filter?: string;
+  source_status?: string;
   verification_filter?: string;
   sort_by?: string;
 }): Promise<ScholarshipListItem[]> {
   const queryParams = new URLSearchParams();
   if (params?.query) queryParams.set("query", params.query);
+  if (params?.stream) queryParams.set("stream", params.stream);
+  if (params?.category_tag) queryParams.set("category_tag", params.category_tag);
+  if (params?.study_level) queryParams.set("study_level", params.study_level);
   if (params?.eligibility_filter) queryParams.set("eligibility_filter", params.eligibility_filter);
   if (params?.status_filter) queryParams.set("status_filter", params.status_filter);
+  if (params?.source_status) queryParams.set("source_status", params.source_status);
   if (params?.verification_filter) queryParams.set("verification_filter", params.verification_filter);
   if (params?.sort_by) queryParams.set("sort_by", params.sort_by);
 
@@ -165,11 +178,59 @@ export async function getDocuments(): Promise<DocumentItem[]> {
   return request<DocumentItem[]>("/api/v1/documents", { cache: "no-store" });
 }
 
+export async function getDocument(id: number): Promise<DocumentItem> {
+  return request<DocumentItem>(`/api/v1/documents/${id}`, { cache: "no-store" });
+}
+
+export async function uploadDocumentFile(
+  file: File,
+  documentType: string,
+  notes?: string
+): Promise<DocumentItem> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("document_type", documentType);
+  if (notes) {
+    formData.append("notes", notes);
+  }
+  return request<DocumentItem>("/api/v1/documents/upload", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function reExtractDocument(id: number): Promise<DocumentItem> {
+  return request<DocumentItem>(`/api/v1/documents/${id}/re-extract`, {
+    method: "POST",
+  });
+}
+
 export async function updateDocument(id: number, payload: { status?: string; notes?: string }): Promise<DocumentItem> {
   return request<DocumentItem>(`/api/v1/documents/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function deleteDocument(id: number): Promise<{ message: string; id: number }> {
+  return request<{ message: string; id: number }>(`/api/v1/documents/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function reviewDocument(
+  id: number,
+  action: "APPROVE" | "REJECT" | "REQUEST_CHANGES",
+  reason: string
+): Promise<DocumentItem> {
+  return request<DocumentItem>(`/api/v1/documents/${id}/review`, {
+    method: "POST",
+    body: JSON.stringify({ action, reason }),
+  });
+}
+
+export function getDocumentDownloadUrl(id: number, inline: boolean = false): string {
+  return `${API_BASE_URL}/api/v1/documents/${id}/download?inline=${inline}`;
 }
 
 // Block 2: Actions

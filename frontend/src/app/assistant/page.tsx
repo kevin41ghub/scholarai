@@ -163,15 +163,15 @@ export default function AssistantPage() {
   return (
     <div className="max-w-5xl mx-auto flex flex-col h-[calc(100vh-8rem)] pb-4 space-y-4">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex-shrink-0 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-[#191c20] p-4 rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] shadow-xs flex-shrink-0 transition-colors">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SCHOLARAi Assistant</h1>
+            <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">SCHOLARAi Assistant</h1>
             <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
               Controlled Tools Active
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs font-serif text-stone-600 dark:text-stone-400 mt-0.5">
             Conversational decision support grounded strictly in verified profile facts and official documentation.
           </p>
         </div>
@@ -179,9 +179,9 @@ export default function AssistantPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setVoiceModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-500/20 transition-colors"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#fff1f2] dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-[#86192c] dark:text-[#fb7185] text-xs font-semibold border border-rose-200 dark:border-rose-900/50 transition-colors cursor-pointer"
           >
-            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-[#86192c] dark:text-[#fb7185]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
             <span>Voice Decoder</span>
@@ -190,9 +190,9 @@ export default function AssistantPage() {
       </div>
 
       {/* Trust Principle Banner */}
-      <div className="px-4 py-2 bg-slate-900 dark:bg-slate-800 text-slate-300 rounded-lg text-xs flex items-center justify-between flex-shrink-0 border border-slate-800 dark:border-slate-700">
+      <div className="px-4 py-2 bg-[#fbf9f5] dark:bg-[#121417] text-stone-700 dark:text-stone-300 rounded-lg text-xs flex items-center justify-between flex-shrink-0 border border-[#e6dfd3] dark:border-[#2f343d] font-serif">
         <span>Trust Principle: <strong>&ldquo;AI assists. Official sources decide. Student approves.&rdquo;</strong></span>
-        <span className="text-[11px] text-slate-400">Strictly bounds AI to stored facts</span>
+        <span className="text-[11px] text-stone-500 dark:text-stone-400">Strictly bounds AI to verified catalog facts</span>
       </div>
 
       {/* Chat Messages Area */}

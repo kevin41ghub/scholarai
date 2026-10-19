@@ -147,27 +147,35 @@ export default function ApplicationsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-xs transition-colors">
+      <div className="bg-white dark:bg-[#191c20] rounded-2xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 md:p-8 shadow-xs transition-colors">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-              <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
+            <div className="flex items-center space-x-2 text-xs text-stone-500 dark:text-stone-400 mb-1.5">
+              <Link href="/" className="hover:text-[#86192c] dark:hover:text-[#fb7185] transition-colors">Dashboard</Link>
               <span>/</span>
-              <span className="text-slate-800 dark:text-slate-200 font-medium">Application Tracker</span>
+              <span className="text-stone-800 dark:text-stone-200 font-medium">Application Tracker</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] border border-rose-200 dark:border-rose-900/50 text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5">
+              <span>Candidate Applications Portfolio</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Application Portfolio Tracker
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm font-serif text-stone-600 dark:text-stone-400 max-w-2xl mt-1.5 leading-relaxed">
               Monitor readiness, unblock document prerequisites, and refine motivation statements with grounded AI evidence checks.
             </p>
           </div>
           <Link
             href="/discover"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs self-start md:self-auto"
+            className="px-4 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-xl text-xs font-semibold transition-all shadow-xs self-start md:self-auto cursor-pointer"
           >
-            + Discover Scholarships
+            + Browse Intelligence Catalogue
           </Link>
+        </div>
+
+        {/* Trust Principle Banner */}
+        <div className="mt-5 pt-4 border-t border-[#e6dfd3] dark:border-[#2f343d] flex items-center justify-between text-[11px] font-serif text-stone-600 dark:text-stone-400">
+          <span>Operating Principle: <strong>&ldquo;AI assists. Official sources decide. Student approves.&rdquo;</strong> Application tracking is local; formal submission happens exclusively on official government portals.</span>
         </div>
       </div>
 

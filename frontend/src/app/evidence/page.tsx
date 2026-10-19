@@ -122,27 +122,27 @@ export default function EvidenceBankPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#e6dfd3] dark:border-[#2f343d] pb-5">
         <div>
-          <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
+          <div className="flex items-center space-x-2 text-xs text-stone-500 dark:text-stone-400 mb-1.5">
+            <Link href="/" className="hover:text-[#86192c] dark:hover:text-[#fb7185] transition-colors">Dashboard</Link>
             <span>/</span>
-            <span className="text-slate-800 dark:text-slate-200 font-medium">Evidence Bank</span>
+            <span className="text-stone-800 dark:text-stone-200 font-medium">Evidence Bank</span>
           </div>
           <div className="flex items-center space-x-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Verified Evidence Bank</h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">Verified Evidence Bank</h1>
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] border border-rose-200 dark:border-rose-900/50">
               Reusable Student Assets
             </span>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm font-serif text-stone-600 dark:text-stone-400 mt-1">
             Grounded factual repository of your academic projects, achievements, and leadership credentials used to substantiate scholarship applications.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-2xs transition-colors self-start md:self-auto"
+          className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-[#86192c] hover:bg-[#9f1239] text-white text-xs font-semibold shadow-xs transition-all self-start md:self-auto cursor-pointer"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

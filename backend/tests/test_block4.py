@@ -61,7 +61,7 @@ def test_database_url_normalization():
         DATABASE_URL="postgres://user:password@localhost:5432/scholarai",
         ENVIRONMENT="development"
     )
-    assert s.DATABASE_URL.startswith("postgresql://")
+    assert s.DATABASE_URL.startswith("postgresql://") or s.DATABASE_URL.startswith("postgresql+psycopg://")
 
 
 def test_openai_compatible_provider_validation():

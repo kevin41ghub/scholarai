@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -11,10 +11,16 @@ const inter = Inter({
   display: "swap",
 });
 
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "SCHOLARAi — Student Funding & Application Intelligence",
+  title: "SCHOLARAi — Tamil Nadu Scholarship Intelligence Journal",
   description:
-    "Student Funding & Application Intelligence platform. AI assists. Official sources decide. Student approves.",
+    "Verified scholarship intelligence for Arts & Science and Engineering scholars in autonomous colleges across Tamil Nadu. AI assists. Official sources decide. Student approves.",
 };
 
 export default function RootLayout({
@@ -23,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

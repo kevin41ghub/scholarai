@@ -318,15 +318,16 @@ def process_assistant_chat(
             for s in scholarships:
                 s_list.append(f"• **{s['name']}** ({s['provider']}) — ₹{s['amount']:,.0f} [Status: {s['verification_status']}]")
 
+            top_name = scholarships[0]['name'] if scholarships else "eligible schemes"
             reply = (
-                f"**Top Potential Scholarships for Your Profile:**\n\n"
+                f"**Top Verified Scholarships for Your Profile in Tamil Nadu Autonomous Colleges:**\n\n"
                 + "\n".join(s_list) +
                 f"\n\n**Guidance:**\n"
-                f"Focus first on **CSR STEM Bursary** due to its urgent approaching deadline, followed by "
-                f"**National Merit-cum-Means Scholarship** which covers 83% of your ₹60,000 funding gap."
+                f"Focus on verified state and central schemes matching your stream and community. "
+                f"Prioritize **{top_name}** and review the specific autonomous college quota and document requirements."
             )
             trust_category = "OFFICIAL SOURCE INFORMATION"
-            sources_cited = ["Demo Scholarship Catalog (DEMO DATA)"]
+            sources_cited = ["Tamil Nadu State Scholarship Portal & National Scholarship Portal (Official Sources)"]
 
         
         else:

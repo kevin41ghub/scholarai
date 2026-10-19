@@ -94,23 +94,23 @@ export default function Navigation() {
   const { displayName, displayEmail, initials } = useAuth();
 
   return (
-    <aside className="w-64 bg-slate-900 dark:bg-[#0D131F] text-slate-100 flex-shrink-0 flex flex-col justify-between border-r border-slate-800 dark:border-slate-800/80 hidden md:flex transition-colors">
+    <aside className="w-64 bg-[#141619] dark:bg-[#0f1114] text-stone-100 flex-shrink-0 flex flex-col justify-between border-r border-[#262a30] hidden md:flex transition-colors">
       <div>
         {/* Brand Header */}
-        <div className="h-16 flex items-center px-5 border-b border-slate-800 dark:border-slate-800/80">
+        <div className="h-18 flex items-center px-5 border-b border-[#262a30]">
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white shadow-md shadow-blue-900/30 ring-1 ring-white/20 group-hover:from-blue-500 group-hover:to-indigo-600 transition-all">
+            <div className="w-9 h-9 rounded-lg bg-[#86192c] flex items-center justify-center font-bold text-white shadow-md shadow-rose-950/40 ring-1 ring-white/20 transition-all">
               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
               </svg>
             </div>
             <div>
-              <span className="font-bold tracking-tight text-base text-white">
-                SCHOLAR<span className="text-sky-400">Ai</span>
+              <span className="font-serif font-bold tracking-tight text-base text-white block">
+                SCHOLAR<span className="text-[#fb7185]">Ai</span>
               </span>
-              <span className="block text-[10px] text-slate-400 tracking-wider uppercase font-medium">
-                Funding Intelligence
+              <span className="block text-[9px] text-stone-400 font-mono tracking-wider uppercase">
+                Tamil Nadu Journal
               </span>
             </div>
           </Link>
@@ -118,8 +118,8 @@ export default function Navigation() {
 
         {/* Navigation Section */}
         <nav className="p-3 space-y-1">
-          <div className="px-3 pt-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-            Workspace
+          <div className="px-3 pt-2 pb-1 text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest">
+            Dispatch & Intel
           </div>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
@@ -129,22 +129,22 @@ export default function Navigation() {
                 href={item.href}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
-                    : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                    ? "bg-[#86192c] text-white shadow-sm shadow-rose-950/30 font-semibold"
+                    : "text-stone-300 hover:bg-stone-800/60 hover:text-white"
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <span className={isActive ? "text-white" : "text-slate-400 group-hover:text-slate-200"}>
+                  <span className={isActive ? "text-white" : "text-stone-400 group-hover:text-stone-200"}>
                     {item.icon(isActive)}
                   </span>
                   <span>{item.name}</span>
                 </div>
                 {item.badge && (
                   <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
                       isActive
-                        ? "bg-blue-700 text-white"
-                        : "bg-slate-800 text-sky-400 border border-sky-400/20"
+                        ? "bg-rose-900 text-white"
+                        : "bg-stone-800 text-rose-300 border border-rose-500/20"
                     }`}
                   >
                     {item.badge}
@@ -157,31 +157,31 @@ export default function Navigation() {
       </div>
 
       {/* User Profile Card */}
-      <div className="p-3 border-t border-slate-800 dark:border-slate-800/80 space-y-2">
+      <div className="p-3 border-t border-[#262a30] space-y-2">
         <Link
           href="/profile"
           className={`flex items-center space-x-3 p-2 rounded-lg transition-colors ${
             pathname === "/profile"
-              ? "bg-slate-800 text-white"
-              : "hover:bg-slate-800/60 text-slate-300"
+              ? "bg-stone-800 text-white"
+              : "hover:bg-stone-800/60 text-stone-300"
           }`}
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-semibold flex items-center justify-center text-xs shadow-xs ring-1 ring-white/20">
+          <div className="w-8 h-8 rounded-full bg-[#86192c] text-white font-serif font-semibold flex items-center justify-center text-xs shadow-xs ring-1 ring-white/20">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold truncate text-white">{displayName}</p>
-            <p className="text-[11px] text-slate-400 truncate">{displayEmail || "Student Profile"}</p>
+            <p className="text-[11px] text-stone-400 truncate">{displayEmail || "Loyola College Chennai"}</p>
           </div>
         </Link>
 
         {/* Trust badge */}
-        <div className="px-2.5 py-1.5 bg-slate-800/60 dark:bg-slate-900/60 rounded-md text-[10px] text-slate-400 flex items-center justify-between border border-slate-700/50">
-          <span className="flex items-center gap-1.5">
+        <div className="px-2.5 py-1.5 bg-[#1a1d21] rounded-md text-[10px] text-stone-400 flex items-center justify-between border border-[#2b2f36]">
+          <span className="flex items-center gap-1.5 font-serif italic text-stone-300">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Grounded Engine</span>
+            <span>TN Autonomous Edition</span>
           </span>
-          <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400">v1.2</span>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-stone-400">Verified</span>
         </div>
       </div>
     </aside>
