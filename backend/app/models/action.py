@@ -23,7 +23,7 @@ class Action(Base):
     reason = Column(Text, nullable=False)
     urgency = Column(String(50), default="MEDIUM", nullable=False)  # LOW, MEDIUM, HIGH, URGENT
     deadline = Column(DateTime(timezone=True), nullable=True)
-    effort_estimate = Column(String(50), default="1 hour", nullable=False)
+    effort_estimate = Column(String(255), default="1 hour", nullable=False)
     potential_funding_impact = Column(Float, default=0.0, nullable=False)
     blocker_impact = Column(String(255), nullable=True)
     action_type = Column(String(50), default="GENERAL", nullable=False)

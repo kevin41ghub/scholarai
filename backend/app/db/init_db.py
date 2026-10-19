@@ -20,6 +20,7 @@ from app.models.knowledge import KnowledgeSource, KnowledgeDocument, KnowledgeCh
 from app.models.notification import Notification
 from app.core.security import hash_password
 from app.core.config import settings
+from app.db.migrations import run_schema_migrations
 import hashlib
 
 logger = logging.getLogger(__name__)
@@ -103,19 +104,11 @@ def init_db(db: Session) -> None:
     bind = db.get_bind()
     Base.metadata.create_all(bind=bind)
 
-    # Dialect migration helper: ensure 'gender' column exists in student_profiles
+    # Run safe schema migrations (widens columns on PostgreSQL, adds missing columns, indexes)
     try:
-        if bind.dialect.name == "postgresql":
-            db.execute(text("ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS gender VARCHAR(50) DEFAULT 'Male'"))
-            db.commit()
-        else:
-            from sqlalchemy import inspect
-            sp_cols = {col["name"] for col in inspect(bind).get_columns("student_profiles")}
-            if "gender" not in sp_cols:
-                db.execute(text("ALTER TABLE student_profiles ADD COLUMN gender VARCHAR(50) DEFAULT 'Male'"))
-                db.commit()
-    except Exception:
-        db.rollback()
+        run_schema_migrations(bind)
+    except Exception as mig_err:
+        logger.warning(f"Note during schema migration in init_db: {mig_err}")
 
     # Step 0: Clean up any old fictional demo data
     cleanup_legacy_demo_catalog(db)
