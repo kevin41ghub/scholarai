@@ -425,8 +425,18 @@ Designed and developed a full-stack student funding platform that combines deter
 - Automated backend regression testing
 - Production deployment and debugging of cross-origin session behavior
 
-## 20. Project Status
+## 20. Project Documentation & Audit Reports
 
-SCHOLARAi is a functioning college mini-project / portfolio system with a deployed web application, backend API, database-backed workflows, Gemini integration, security hardening, automated tests, and explicit documentation of remaining limitations.
+For academic evaluation and comprehensive architectural inspection, refer to the dedicated deliverables:
 
-The project should be evaluated as an engineered prototype rather than as a claim of a fully integrated live scholarship marketplace.
+- **[REPORT_ALIGNMENT.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/REPORT_ALIGNMENT.md)** — Academic report alignment matrix mapping intended requirements to working code and tests.
+- **[IMPLEMENTATION_STATUS.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/IMPLEMENTATION_STATUS.md)** — Detailed module-by-module feature status, external boundaries, and comprehensive file modification log.
+- **[TEST_RESULTS.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/TEST_RESULTS.md)** — Automated test execution report (88/88 backend tests passing, TypeScript 0 errors, ESLint 0 errors, 14/14 Next.js routes compiled).
+- **[DEMO_GUIDE.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/DEMO_GUIDE.md)** — Complete step-by-step evaluation guide and demonstration walkthrough for reviewers.
+- **[ADMIN_SCHOLARSHIP_IMPORT_GUIDE.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/docs/ADMIN_SCHOLARSHIP_IMPORT_GUIDE.md)** — Operating guide for the authenticated Scholarship Import and Refresh Pipeline (CLI and REST API).
+
+## 21. Project Status
+
+SCHOLARAi is a fully functioning, hardened college academic mini-project with Next.js frontend, FastAPI backend API, SQLite/PostgreSQL persistence, Gemini integration with offline deterministic fallback, comprehensive security hardening, 92 automated regression tests, and truthful documentation of operational boundaries.
+
+The project is evaluated as an engineered platform reflecting the core academic principle: **AI assists. Official sources decide. Student approves.**

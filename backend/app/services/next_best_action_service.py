@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.action import Action
 from app.models.application import Application
 from app.models.document import Document
-from app.models.scholarship import Scholarship
+from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 from app.services.dependency_service import dependency_service
 from app.services.deadline_risk_service import deadline_risk_service
 
@@ -19,9 +19,14 @@ class NextBestActionService:
         dep_data = dependency_service.get_dependency_graph(db, student_id)
         active_apps = (
             db.query(Application)
+            .join(Scholarship)
             .filter(
                 Application.student_id == student_id,
-                Application.status.in_(["IN_PROGRESS", "READY", "NOT_STARTED"])
+                Application.status.in_(["IN_PROGRESS", "READY", "NOT_STARTED"]),
+                Scholarship.status == "ACTIVE",
+                Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+                ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+                ~Scholarship.provider.ilike("%(Demo)%"),
             )
             .all()
         )

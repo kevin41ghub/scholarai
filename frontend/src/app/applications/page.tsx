@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   getApplications,
@@ -10,13 +10,39 @@ import {
   draftApplicationAnswer,
   reviewApplicationAnswer,
   checkEvidenceClaims,
+  uploadDocumentFile,
 } from "@/lib/api";
 import {
   ApplicationItem,
+  ApplicationRequirementItem,
   ApplicationDraftResponse,
   ApplicationReviewResponse,
   EvidenceCheckResponse,
 } from "@/types/student";
+
+const DOCUMENT_CATEGORIES = [
+  { value: "INCOME_CERTIFICATE", label: "Income Certificate (Tahsil / Revenue)", hint: "Max validity 1 year, requires revenue authority" },
+  { value: "COMMUNITY_CERTIFICATE", label: "Permanent Community Certificate", hint: "Tahsildar issued category proof" },
+  { value: "CASTE_CERTIFICATE", label: "Caste / Category Certificate", hint: "Permanent credential" },
+  { value: "BONAFIDE_CERTIFICATE", label: "Institution Bonafide Certificate", hint: "Current enrollment verification" },
+  { value: "MARKSHEET", label: "Academic Marksheet / Transcript", hint: "Semester or qualifying examination mark sheet" },
+  { value: "ACADEMIC_TRANSCRIPT", label: "College / Semester Transcript", hint: "Current CGPA / Grade sheet" },
+  { value: "10TH_MARKSHEET", label: "Class X Marksheet / Certificate", hint: "Permanent proof of date of birth & basic schooling" },
+  { value: "12TH_MARKSHEET", label: "Class XII Marksheet / Higher Secondary", hint: "Permanent qualifying exam record" },
+  { value: "DEGREE_CERTIFICATE", label: "Degree Certificate", hint: "Undergraduate degree or graduation record" },
+  { value: "DOMICILE_CERTIFICATE", label: "Domicile / Residence Certificate", hint: "State residency proof" },
+  { value: "ID_PROOF", label: "Identity Proof (Aadhaar / Passport / Voter ID)", hint: "Government identity credential" },
+  { value: "FEE_RECEIPT", label: "Current Academic Fee Receipt", hint: "Proof of institutional tuition payment" },
+  { value: "STATEMENT_OF_PURPOSE", label: "Statement of Purpose / Declaration", hint: "Personal academic motivation statement" },
+  { value: "SPECIAL_CATEGORY_CERTIFICATE", label: "Special Category Certificate", hint: "First Graduate, Differently-Abled, etc." },
+  { value: "OTHER", label: "Other Supporting Document", hint: "Special category or supplementary proof" },
+];
+
+interface QuickUploadTarget {
+  applicationId: number;
+  scholarshipName: string;
+  requirement: ApplicationRequirementItem;
+}
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
@@ -28,6 +54,17 @@ export default function ApplicationsPage() {
   const [statementDrafts, setStatementDrafts] = useState<Record<number, string>>({});
   const [updatingReqId, setUpdatingReqId] = useState<number | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Quick Document Upload Modal State
+  const [uploadTarget, setUploadTarget] = useState<QuickUploadTarget | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadCategory, setUploadCategory] = useState<string>("");
+  const [uploadNotes, setUploadNotes] = useState<string>("");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const quickFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadApps = useCallback(async () => {
     try {
@@ -87,6 +124,103 @@ export default function ApplicationsPage() {
       setError((err as Error)?.message || "Failed to update requirement status.");
     } finally {
       setUpdatingReqId(null);
+    }
+  };
+
+  // Quick Document Upload Handlers
+  const handleOpenUploadModal = (app: ApplicationItem, req: ApplicationRequirementItem) => {
+    setUploadTarget({
+      applicationId: app.id,
+      scholarshipName: app.scholarship_name,
+      requirement: req,
+    });
+    setUploadCategory(req.document_type || "OTHER");
+    setUploadFile(null);
+    setUploadNotes("");
+    setUploadError(null);
+    setUploadProgress(null);
+  };
+
+  const handleCloseUploadModal = () => {
+    if (isUploading) return;
+    setUploadTarget(null);
+    setUploadFile(null);
+    setUploadNotes("");
+    setUploadError(null);
+    setUploadProgress(null);
+  };
+
+  const handleFileSelected = (file: File) => {
+    setUploadError(null);
+    const validExts = [".pdf", ".jpg", ".jpeg", ".png"];
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+
+    if (!validExts.includes(ext)) {
+      setUploadError(`Invalid file format: ${ext}. Only PDF, JPG, and PNG files are supported.`);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed size is 10 MB.`);
+      return;
+    }
+
+    if (file.size === 0) {
+      setUploadError("The selected file is empty (0 bytes). Please select a valid document.");
+      return;
+    }
+
+    setUploadFile(file);
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setUploadError("Please choose a document file to upload.");
+      return;
+    }
+    if (!uploadCategory) {
+      setUploadError("Please select or confirm a document category.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadProgress("Validating signature, storing in vault, and evaluating verification rules...");
+      setUploadError(null);
+
+      const uploadedDoc = await uploadDocumentFile(uploadFile, uploadCategory, uploadNotes);
+
+      // Refresh applications list to sync updated checklist status and recalculated progress
+      await loadApps();
+
+      setSuccessToast(
+        `Document "${uploadedDoc.original_filename || uploadedDoc.name}" uploaded successfully! Requirement marked as ${uploadedDoc.verification_status || uploadedDoc.status} and application progress updated.`
+      );
+      handleCloseUploadModal();
+    } catch (err: unknown) {
+      setUploadError((err as Error)?.message || "Upload failed. Please check file format, size, and connectivity.");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelected(e.dataTransfer.files[0]);
     }
   };
 
@@ -315,37 +449,68 @@ export default function ApplicationsPage() {
                         Prerequisites & Document Checklist
                       </h4>
                       <div className="space-y-2">
-                        {app.requirements.map((req) => (
-                          <div
-                            key={req.id}
-                            className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs"
-                          >
-                            <div className="flex items-center space-x-2.5">
-                              <span className={`w-2 h-2 rounded-full ${
-                                req.status === "AVAILABLE" || req.status === "VERIFIED" ? "bg-emerald-500" : "bg-amber-500"
-                              }`} />
-                              <div>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200">{req.name}</span>
-                                <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-2 font-mono">({req.document_type})</span>
+                        {app.requirements.map((req) => {
+                          const isAvailable = req.status === "AVAILABLE" || req.status === "VERIFIED";
+                          return (
+                            <div
+                              key={req.id}
+                              className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="flex items-center space-x-2.5 min-w-0">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  isAvailable ? "bg-emerald-500" : "bg-amber-500"
+                                }`} />
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">{req.name}</span>
+                                  <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-2 font-mono">({req.document_type})</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2.5 flex-shrink-0">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  isAvailable ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                                }`}>
+                                  {req.status}
+                                </span>
+
+                                {!isAvailable ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenUploadModal(app, req)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
+                                    title={`Upload file for ${req.name}`}
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    Upload File
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenUploadModal(app, req)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium text-[10px] transition-colors cursor-pointer"
+                                    title={`Replace uploaded file for ${req.name}`}
+                                  >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    Replace
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRequirementStatusToggle(app.id, req.id, req.status)}
+                                  disabled={updatingReqId === req.id}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px] cursor-pointer"
+                                >
+                                  {req.status === "AVAILABLE" ? "Mark Missing" : "Mark Available"}
+                                </button>
                               </div>
                             </div>
-
-                            <div className="flex items-center space-x-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                req.status === "AVAILABLE" || req.status === "VERIFIED" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-                              }`}>
-                                {req.status}
-                              </span>
-                              <button
-                                onClick={() => handleRequirementStatusToggle(app.id, req.id, req.status)}
-                                disabled={updatingReqId === req.id}
-                                className="text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px]"
-                              >
-                                {req.status === "AVAILABLE" ? "Mark Missing" : "Mark Available"}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -524,6 +689,235 @@ export default function ApplicationsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Quick Document Upload Modal */}
+      {uploadTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isUploading) {
+              handleCloseUploadModal();
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-[#191c20] w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Upload Requirement File
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                  Application: <span className="font-semibold text-slate-700 dark:text-slate-300">{uploadTarget.scholarshipName}</span>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCloseUploadModal}
+                disabled={isUploading}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 cursor-pointer text-lg leading-none"
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Target Requirement Callout */}
+            <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Target Requirement
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                  {uploadTarget.requirement.document_type}
+                </span>
+              </div>
+              <p className="font-semibold text-slate-900 dark:text-white text-xs">
+                {uploadTarget.requirement.name}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                Uploading this document validates file signatures and cascades unblocking across all dependent applications.
+              </p>
+            </div>
+
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              {/* Category Selector (Auto-Selected) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Document Category <span className="text-blue-600 dark:text-blue-400 font-normal lowercase">(auto-selected)</span>
+                </label>
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                  disabled={isUploading}
+                  className="w-full p-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 cursor-pointer"
+                >
+                  {!DOCUMENT_CATEGORIES.some((c) => c.value === uploadCategory) && (
+                    <option value={uploadCategory}>
+                      {uploadTarget.requirement.name} ({uploadCategory})
+                    </option>
+                  )}
+                  {DOCUMENT_CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label} ({cat.value})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* File Dropzone */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Select Document File <span className="text-rose-500">*</span>
+                </label>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => quickFileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${
+                    isDragging
+                      ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20"
+                      : "border-slate-300 dark:border-slate-700 hover:border-blue-500 bg-slate-50/50 dark:bg-slate-800/20"
+                  }`}
+                >
+                  <input
+                    ref={quickFileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleFileSelected(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+
+                  {uploadFile ? (
+                    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-left">
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <span className="w-8 h-8 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                          {uploadFile.name.split(".").pop() || "DOC"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">
+                            {uploadFile.name}
+                          </p>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                            {(uploadFile.size / 1024).toFixed(1)} KB &bull; Ready to upload
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadFile(null);
+                          if (quickFileInputRef.current) quickFileInputRef.current.value = "";
+                        }}
+                        disabled={isUploading}
+                        className="text-xs text-rose-600 dark:text-rose-400 hover:underline font-semibold ml-2 flex-shrink-0 cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 pointer-events-none">
+                      <div className="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Click to browse or drag and drop file here
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Supports PDF, JPG, or PNG (up to 10 MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Optional Notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Notes / Source Authority <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={uploadNotes}
+                  onChange={(e) => setUploadNotes(e.target.value)}
+                  disabled={isUploading}
+                  placeholder="e.g. Issued by Tahsildar / e-Sevai certified copy"
+                  className="w-full p-2.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Upload Error Banner */}
+              {uploadError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs rounded-lg flex items-start space-x-2">
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {/* Upload Progress Status */}
+              {isUploading && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs rounded-lg flex items-center space-x-2.5">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                  <span>{uploadProgress || "Uploading and unblocking applications..."}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseUploadModal}
+                  disabled={isUploading}
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading || !uploadFile}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center space-x-1.5"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Uploading & Unblocking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span>Upload & Link Requirement</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

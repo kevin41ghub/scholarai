@@ -23,6 +23,10 @@ export default function ProfilePage() {
     twelfth_percentage: "",
     category: "",
     state: "",
+    gender: "Male",
+    admission_quota: "GOVERNMENT_QUOTA",
+    hosteller_status: "DAY_SCHOLAR",
+    is_first_graduate: false,
     annual_education_cost: "",
     existing_support: "",
     annual_family_income: "",
@@ -43,6 +47,10 @@ export default function ProfilePage() {
         twelfth_percentage: data.profile?.twelfth_percentage?.toString() || "",
         category: data.profile?.category || "",
         state: data.profile?.state || "",
+        gender: data.profile?.gender || "Male",
+        admission_quota: data.profile?.admission_quota || "GOVERNMENT_QUOTA",
+        hosteller_status: data.profile?.hosteller_status || "DAY_SCHOLAR",
+        is_first_graduate: Boolean(data.profile?.is_first_graduate),
         annual_education_cost: data.funding_profile?.annual_education_cost?.toString() || "0",
         existing_support: data.funding_profile?.existing_support?.toString() || "0",
         annual_family_income: data.funding_profile?.annual_family_income?.toString() || "0",
@@ -70,8 +78,13 @@ export default function ProfilePage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     setSuccessMessage(null);
     setErrorMessage(null);
   };
@@ -114,6 +127,10 @@ export default function ProfilePage() {
       twelfth_percentage: twelfthVal,
       category: formData.category,
       state: formData.state,
+      gender: formData.gender,
+      admission_quota: formData.admission_quota,
+      hosteller_status: formData.hosteller_status,
+      is_first_graduate: formData.is_first_graduate,
       annual_education_cost: numCost,
       existing_support: numSupport,
       annual_family_income: parseFloat(formData.annual_family_income) || 0,
@@ -344,6 +361,64 @@ export default function ProfilePage() {
                 className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
                 placeholder="e.g. Tamil Nadu, Karnataka, Maharashtra"
               />
+            </div>
+
+            {/* Admission Quota */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Admission Quota / Seat Allotment <span className="text-rose-500">*</span>
+              </label>
+              <select
+                name="admission_quota"
+                value={formData.admission_quota}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              >
+                <option value="GOVERNMENT_QUOTA">Government Quota (Single-Window TNEA / Collegiate Counselling)</option>
+                <option value="MANAGEMENT_QUOTA">Management Quota (Self-Financing Seat)</option>
+              </select>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Autonomous fee concessions (First Graduate, Free Education) require single-window allotment.
+              </p>
+            </div>
+
+            {/* Hosteller Status */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Residential / Hostel Status <span className="text-rose-500">*</span>
+              </label>
+              <select
+                name="hosteller_status"
+                value={formData.hosteller_status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              >
+                <option value="DAY_SCHOLAR">Day Scholar (Commuting from Home)</option>
+                <option value="HOSTELLER">Hosteller (College/Approved Hostel Resident)</option>
+              </select>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Used to evaluate statutory hostel maintenance allowances.
+              </p>
+            </div>
+
+            {/* First Graduate in Immediate Family */}
+            <div className="sm:col-span-2 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="is_first_graduate"
+                name="is_first_graduate"
+                checked={formData.is_first_graduate}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <div className="space-y-0.5">
+                <label htmlFor="is_first_graduate" className="text-xs font-bold text-slate-900 dark:text-white cursor-pointer block">
+                  First Graduate in Immediate Family (FG Scheme Eligible)
+                </label>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-serif">
+                  Check if neither parent nor any elder sibling has graduated or holds a degree. Tamil Nadu DOTE grants an annual tuition waiver (₹25,000–₹27,500) for eligible engineering candidates admitted under government counselling, backed by a Revenue Tahsildar First Graduate Certificate.
+                </p>
+              </div>
             </div>
           </div>
         </div>

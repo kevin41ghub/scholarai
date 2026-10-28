@@ -37,9 +37,20 @@ export default function DiscoverPage() {
         stream: streamFilter === "ALL" ? undefined : streamFilter,
         category_tag: categoryFilter === "ALL" ? undefined : categoryFilter,
         eligibility_filter: eligibilityFilter === "all" ? undefined : eligibilityFilter,
+        status_filter: "ACTIVE",
         sort_by: sortBy,
       });
-      setScholarships(data);
+
+      // Strict Defense-in-Depth: Filter out any retired demonstration or inactive records
+      const verifiedOnly = data.filter((s) => {
+        const isRetired =
+          s.status === "INACTIVE" ||
+          s.verification_status === "RETIRED_DEMO" ||
+          s.verification_status === "DEMO_DATA" ||
+          (s.provider && s.provider.includes("(Demo)"));
+        return !isRetired;
+      });
+      setScholarships(verifiedOnly);
     } catch (err: unknown) {
       setError((err as Error)?.message || "Failed to load scholarship records.");
     } finally {
@@ -224,7 +235,7 @@ export default function DiscoverPage() {
             <div className="flex items-center justify-between mb-1">
               <span className="font-serif font-bold text-base">All Higher Education</span>
               <span className={`text-[11px] font-mono px-2 py-0.5 rounded ${streamFilter === "ALL" ? "bg-white/20 text-white" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"}`}>
-                11 Schemes
+                {streamFilter === "ALL" && !loading ? `${scholarships.length} Schemes Available` : "All Streams"}
               </span>
             </div>
             <p className={`text-xs leading-relaxed ${streamFilter === "ALL" ? "text-rose-100" : "text-stone-500 dark:text-stone-400"}`}>
@@ -378,10 +389,10 @@ export default function DiscoverPage() {
             </div>
             <div className="space-y-1">
               <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-stone-100">
-                No Verified Records Match Current Query Filters
+                No Verified Scholarships Currently Available
               </h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 font-serif leading-relaxed">
-                In strict compliance with our honesty principles, we do not fabricate fallback scholarship records when specific filters yield zero results.
+                In strict compliance with our platform integrity principles, retired demonstration scholarships are completely excluded from student discovery. Only authoritative, officially verified scholarship schemes are displayed.
               </p>
             </div>
 

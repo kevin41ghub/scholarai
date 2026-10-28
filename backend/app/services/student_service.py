@@ -76,6 +76,14 @@ class StudentService:
             profile.category = update_data.category.strip()
         if update_data.state is not None:
             profile.state = update_data.state.strip()
+        if update_data.gender is not None:
+            profile.gender = update_data.gender.strip()
+        if update_data.admission_quota is not None:
+            profile.admission_quota = update_data.admission_quota.strip()
+        if update_data.hosteller_status is not None:
+            profile.hosteller_status = update_data.hosteller_status.strip()
+        if update_data.is_first_graduate is not None:
+            profile.is_first_graduate = bool(update_data.is_first_graduate)
 
         # Financial updates
         funding = student.funding_profile

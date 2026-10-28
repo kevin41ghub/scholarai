@@ -17,6 +17,8 @@ from app.schemas.scholarship import (
     EligibilityRuleResponse,
     ScholarshipRequirementResponse,
     FundingImpactAnalysis,
+    OfficialDossierChunk,
+    OfficialDossierResponse,
 )
 from app.schemas.application import (
     ApplicationResponse,
@@ -78,6 +80,16 @@ from app.schemas.monitoring import (
     MonitoringCheckRequest,
     MonitoringCheckResponse,
 )
+from app.schemas.scholarship_import import (
+    ScholarshipImportItem,
+    ScholarshipImportRequest,
+    ImportItemResult,
+    ScholarshipImportSummary,
+    ScholarshipRuleImport,
+    ScholarshipRequirementImport,
+    ScholarshipKnowledgeDocImport,
+    ScholarshipKnowledgeChunkImport,
+)
 
 __all__ = [
     "StudentBase",
@@ -94,7 +106,18 @@ __all__ = [
     "EligibilityRuleResponse",
     "ScholarshipRequirementResponse",
     "FundingImpactAnalysis",
+    "OfficialDossierChunk",
+    "OfficialDossierResponse",
+    "ScholarshipImportItem",
+    "ScholarshipImportRequest",
+    "ImportItemResult",
+    "ScholarshipImportSummary",
+    "ScholarshipRuleImport",
+    "ScholarshipRequirementImport",
+    "ScholarshipKnowledgeDocImport",
+    "ScholarshipKnowledgeChunkImport",
     "ApplicationResponse",
+
     "ApplicationCreate",
     "ApplicationUpdate",
     "ApplicationRequirementResponse",

@@ -9,6 +9,9 @@ export interface StudentProfile {
   category: string;
   state: string;
   gender?: string;
+  admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
+  hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
+  is_first_graduate?: boolean | null;
 }
 
 export interface FundingProfile {
@@ -49,6 +52,10 @@ export interface StudentUpdatePayload {
   twelfth_percentage?: number;
   category?: string;
   state?: string;
+  gender?: string;
+  admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
+  hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
+  is_first_graduate?: boolean | null;
   annual_education_cost?: number;
   existing_support?: number;
   annual_family_income?: number;
@@ -142,6 +149,40 @@ export interface EligibilityResult {
   disclaimer: string;
 }
 
+export interface OfficialDossierChunk {
+  id: number;
+  document_id: number;
+  document_title: string;
+  section: string;
+  chunk_text: string;
+  source_name: string;
+  source_url: string;
+  source_type: string;
+  authority_level: string;
+  verification_status: string;
+  last_verified_at?: string | null;
+  retrieved_at?: string | null;
+  content_hash?: string | null;
+  page_number?: number | null;
+}
+
+export interface OfficialDossier {
+  has_official_evidence: boolean;
+  source_name?: string | null;
+  source_url?: string | null;
+  official_portal_name?: string | null;
+  official_guideline_url?: string | null;
+  authority_level?: string | null;
+  verification_status: string;
+  source_verification_status?: string | null;
+  last_verified_at?: string | null;
+  dossier_index?: string | null;
+  chunks_count: number;
+  chunks: OfficialDossierChunk[];
+  unresolved_questions?: string | null;
+  autonomous_compatibility?: string | null;
+}
+
 export interface ScholarshipDetail extends Omit<ScholarshipListItem, "deadline_risk"> {
   application_url?: string;
   source_url?: string;
@@ -164,6 +205,7 @@ export interface ScholarshipDetail extends Omit<ScholarshipListItem, "deadline_r
     progress: number;
     started_at: string;
   };
+  official_dossier?: OfficialDossier | null;
 }
 
 // Block 2: Applications & Requirements

@@ -27,6 +27,7 @@ import {
   NotificationItem,
   VoiceInterpretResponse,
   MonitoringCheckResponse,
+  OfficialDossier,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -112,7 +113,12 @@ export async function getScholarships(params?: {
   if (params?.category_tag) queryParams.set("category_tag", params.category_tag);
   if (params?.study_level) queryParams.set("study_level", params.study_level);
   if (params?.eligibility_filter) queryParams.set("eligibility_filter", params.eligibility_filter);
-  if (params?.status_filter) queryParams.set("status_filter", params.status_filter);
+  if (params?.status_filter) {
+    queryParams.set("status_filter", params.status_filter);
+  } else {
+    // Default to ACTIVE scholarships to exclude retired demo records from student discovery
+    queryParams.set("status_filter", "ACTIVE");
+  }
   if (params?.source_status) queryParams.set("source_status", params.source_status);
   if (params?.verification_filter) queryParams.set("verification_filter", params.verification_filter);
   if (params?.sort_by) queryParams.set("sort_by", params.sort_by);
@@ -123,6 +129,10 @@ export async function getScholarships(params?: {
 
 export async function getScholarshipDetail(id: number): Promise<ScholarshipDetail> {
   return request<ScholarshipDetail>(`/api/v1/scholarships/${id}`, { cache: "no-store" });
+}
+
+export async function getScholarshipDossier(id: number): Promise<OfficialDossier> {
+  return request<OfficialDossier>(`/api/v1/scholarships/${id}/dossier`, { cache: "no-store" });
 }
 
 export async function checkScholarshipEligibility(id: number): Promise<EligibilityResult> {

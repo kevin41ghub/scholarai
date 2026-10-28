@@ -344,3 +344,109 @@ def test_historical_application_retains_understandable_retired_status(
         assert a["scholarship_name"] in KNOWN_FICTIONAL_DEMO_NAMES
         assert a["id"] is not None
         assert a["status"] in ["IN_PROGRESS", "READY", "SUBMITTED", "APPROVED", "REJECTED"]
+
+
+def test_discovery_filters_strictly_exclude_retired_demo_under_all_query_params(
+    db_session: Session,
+    auth_client: TestClient
+):
+    """
+    Ensure student discovery NEVER leaks retired demo records, even when
+    specific search queries, stream filters, or status overrides are passed.
+    """
+    # 1. Search directly for known demo titles
+    res_nmm = auth_client.get("/api/v1/scholarships?query=National+Merit")
+    assert res_nmm.status_code == 200
+    assert len(res_nmm.json()) == 0, "National Merit demo must not be returned via keyword search"
+
+    res_reg = auth_client.get("/api/v1/scholarships?query=Regional+Student+Stipend")
+    assert res_reg.status_code == 200
+    assert len(res_reg.json()) == 0, "Regional Student Stipend demo must not be returned via keyword search"
+
+    # 2. Attempting to override status_filter to INACTIVE must still not leak retired demo records
+    res_inactive = auth_client.get("/api/v1/scholarships?status_filter=INACTIVE")
+    assert res_inactive.status_code == 200
+    for s in res_inactive.json():
+        assert s["name"] not in KNOWN_FICTIONAL_DEMO_NAMES
+        assert s["verification_status"] != "RETIRED_DEMO"
+
+    # 3. Attempting to filter by verification_filter=RETIRED_DEMO must return empty
+    res_ver = auth_client.get("/api/v1/scholarships?verification_filter=RETIRED_DEMO")
+    assert res_ver.status_code == 200
+    assert len(res_ver.json()) == 0, "Student discovery must return 0 items when querying RETIRED_DEMO"
+
+    # 4. Filter by DEMO_DATA must return empty
+    res_demo = auth_client.get("/api/v1/scholarships?verification_filter=DEMO_DATA")
+    assert res_demo.status_code == 200
+    assert len(res_demo.json()) == 0, "Student discovery must return 0 items when querying DEMO_DATA"
+
+
+def test_recommended_endpoint_strictly_excludes_retired_demo(auth_client: TestClient):
+    """
+    Verify GET /api/v1/scholarships/recommended returns only active verified scholarships.
+    """
+    res = auth_client.get("/api/v1/scholarships/recommended")
+    assert res.status_code == 200
+    recommended = res.json()
+    assert len(recommended) == 11
+    for s in recommended:
+        assert s["name"] not in KNOWN_FICTIONAL_DEMO_NAMES
+        assert s["verification_status"] not in ["RETIRED_DEMO", "DEMO_DATA"]
+        assert s["status"] == "ACTIVE"
+
+
+def test_ai_toolkit_excludes_retired_demo_scholarships(db_session: Session):
+    """
+    Verify AIToolkit search_scholarships and get_scholarship_details
+    do not discover or detail retired demo scholarships.
+    """
+    from app.services.ai.tools import AIToolkit
+    student = db_session.query(Student).first()
+    toolkit = AIToolkit(db=db_session, student_id=student.id)
+
+    # Search for "National Merit"
+    search_results = toolkit.search_scholarships(query="National Merit")
+    assert len(search_results) == 0
+
+    # Search for "Regional"
+    search_results_reg = toolkit.search_scholarships(query="Regional")
+    assert len(search_results_reg) == 0
+
+    # Locate demo scholarship ID in DB
+    demo_s = db_session.query(Scholarship).filter(Scholarship.name == "National Merit-cum-Means Scholarship").first()
+    if demo_s:
+        detail = toolkit.get_scholarship_details(demo_s.id)
+        assert detail is None, "AIToolkit must return None for retired demo scholarship ID"
+
+
+def test_import_pipeline_rejects_fictional_demo_names_without_official_source(
+    db_session: Session,
+    auth_client: TestClient
+):
+    """
+    Verify that the scholarship import pipeline rejects importing or reactivating
+    known fictional demo scholarship names without authentic statutory evidence.
+    """
+    from app.services.scholarship_import_service import scholarship_import_service
+    from app.schemas.scholarship_import import ScholarshipImportRequest, ScholarshipImportItem
+    from datetime import datetime, timezone, timedelta
+
+    req = ScholarshipImportRequest(
+        items=[
+            ScholarshipImportItem(
+                name="National Merit-cum-Means Scholarship",
+                provider="Fictional Education Board",
+                description="Attempting to re-import retired demo scholarship",
+                amount=20000.0,
+                deadline=datetime.now(timezone.utc) + timedelta(days=30),
+                source_url="https://unofficial-blog.com/scholarship",
+                verification_status="RETIRED_DEMO",
+            )
+        ],
+        dry_run=False,
+    )
+
+    summary = scholarship_import_service.process_import(db=db_session, request=req)
+    assert summary.rejected == 1
+    assert summary.created == 0
+    assert any("Cannot import or re-activate demonstration scholarship names" in err for err in summary.errors)

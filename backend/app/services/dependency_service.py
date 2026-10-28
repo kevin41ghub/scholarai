@@ -4,6 +4,7 @@ from app.models.student import Student
 from app.models.document import Document
 from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
+from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 
 
 class DependencyService:
@@ -14,12 +15,17 @@ class DependencyService:
         Student -> Documents -> Application Requirements -> Applications -> Scholarships
         Identifies shared blockers and calculates potential funding affected.
         """
-        # Fetch active applications
+        # Fetch active applications linked to active verified scholarships
         applications = (
             db.query(Application)
+            .join(Scholarship)
             .filter(
                 Application.student_id == student_id,
-                Application.status.in_(["IN_PROGRESS", "READY", "NOT_STARTED"])
+                Application.status.in_(["IN_PROGRESS", "READY", "NOT_STARTED"]),
+                Scholarship.status == "ACTIVE",
+                Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+                ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+                ~Scholarship.provider.ilike("%(Demo)%"),
             )
             .all()
         )

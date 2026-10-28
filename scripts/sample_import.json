@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Tamil Nadu Chief Minister Research Fellowship",
+    "provider": "Special Initiatives Department, Government of Tamil Nadu",
+    "description": "Fellowship scheme for meritorious post-graduate research scholars pursuing advanced technical and social studies in state universities.",
+    "amount": 100000.0,
+    "currency": "INR",
+    "deadline": "2026-12-31T23:59:59Z",
+    "dossier_index": "№ TN-CMF-2026-01",
+    "source_url": "https://tn.gov.in/fellowship/guidelines.html",
+    "official_guideline_url": "https://tn.gov.in/fellowship/guidelines.html",
+    "stream": "BOTH",
+    "study_level": "PG",
+    "category_tag": "Government Scholarships, Research Fellowships",
+    "tn_residency_required": true,
+    "community_category": "ALL",
+    "income_ceiling": 500000.0,
+    "source_verification_status": "SOURCE_VERIFIED",
+    "verification_status": "SOURCE_VERIFIED",
+    "eligibility_rules": [
+      {
+        "rule_type": "MIN_CGPA",
+        "criteria_value": "8.0",
+        "operator": "GTE",
+        "description": "Minimum cumulative CGPA of 8.0 in previous degree"
+      }
+    ],
+    "requirements": [
+      {
+        "name": "Research Proposal & Abstract",
+        "document_type": "RESEARCH_PROPOSAL",
+        "type": "DOCUMENT",
+        "is_required": true,
+        "description": "Authenticated synopsis approved by department head"
+      }
+    ],
+    "knowledge_docs": [
+      {
+        "title": "Government Order (Ms) No. 18 / Special Initiatives Department",
+        "source_url": "https://tn.gov.in/fellowship/guidelines.html",
+        "chunks": [
+          {
+            "section": "Eligibility Clause 2.1",
+            "chunk_text": "Candidates must have completed their undergraduate degree with distinction from a recognized university in Tamil Nadu.",
+            "page_number": 2
+          }
+        ]
+      }
+    ]
+  }
+]

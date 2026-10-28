@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -22,6 +22,11 @@ class StudentProfile(Base):
     category = Column(String(50), nullable=False)
     state = Column(String(100), nullable=False)
     gender = Column(String(50), nullable=True, default="Male")
+
+    # Institutional & Quota Attributes (Task 3)
+    admission_quota = Column(String(50), nullable=True)  # GOVERNMENT_QUOTA | MANAGEMENT_QUOTA
+    hosteller_status = Column(String(50), nullable=True)  # DAY_SCHOLAR | HOSTELLER
+    is_first_graduate = Column(Boolean, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

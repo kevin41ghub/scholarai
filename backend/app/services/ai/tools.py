@@ -2,7 +2,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.scholarship import Scholarship
+from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 from app.models.application import Application
 from app.models.document import Document
 from app.models.student import Student
@@ -28,7 +28,12 @@ class AIToolkit:
         self.student_id = student_id
 
     def search_scholarships(self, query: str = "", limit: int = 5) -> List[Dict[str, Any]]:
-        q = self.db.query(Scholarship).filter(Scholarship.status == "ACTIVE")
+        q = self.db.query(Scholarship).filter(
+            Scholarship.status == "ACTIVE",
+            Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+            ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+            ~Scholarship.provider.ilike("%(Demo)%"),
+        )
         if query:
             q = q.filter(
                 or_(
@@ -53,7 +58,13 @@ class AIToolkit:
         ]
 
     def get_scholarship_details(self, scholarship_id: int) -> Optional[Dict[str, Any]]:
-        s = self.db.query(Scholarship).filter(Scholarship.id == scholarship_id).first()
+        s = self.db.query(Scholarship).filter(
+            Scholarship.id == scholarship_id,
+            Scholarship.status == "ACTIVE",
+            Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+            ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+            ~Scholarship.provider.ilike("%(Demo)%"),
+        ).first()
         if not s:
             return None
         return {

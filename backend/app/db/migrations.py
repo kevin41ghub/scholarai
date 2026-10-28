@@ -131,15 +131,22 @@ def run_schema_migrations(db_engine_or_conn):
         # 5. Update student_profiles table if it exists
         if "student_profiles" in existing_tables:
             sp_columns = {col["name"] for col in inspector.get_columns("student_profiles")}
-            if "gender" not in sp_columns:
-                logger.info("Adding column 'gender' to 'student_profiles' table...")
-                try:
-                    if dialect_name == "postgresql":
-                        conn.execute(text("ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS gender VARCHAR(50) DEFAULT 'Male'"))
-                    else:
-                        conn.execute(text("ALTER TABLE student_profiles ADD COLUMN gender VARCHAR(50) DEFAULT 'Male'"))
-                except Exception as sp_err:
-                    logger.warning(f"Could not add column gender to student_profiles: {sp_err}")
+            new_sp_columns = [
+                ("gender", "VARCHAR(50) DEFAULT 'Male'", "VARCHAR(50) DEFAULT 'Male'"),
+                ("admission_quota", "VARCHAR(50) DEFAULT 'GOVERNMENT_QUOTA'", "VARCHAR(50) DEFAULT 'GOVERNMENT_QUOTA'"),
+                ("hosteller_status", "VARCHAR(50) DEFAULT 'DAY_SCHOLAR'", "VARCHAR(50) DEFAULT 'DAY_SCHOLAR'"),
+                ("is_first_graduate", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+            ]
+            for col_name, sqlite_type, pg_type in new_sp_columns:
+                if col_name not in sp_columns:
+                    logger.info(f"Adding column '{col_name}' to 'student_profiles' table...")
+                    try:
+                        if dialect_name == "postgresql":
+                            conn.execute(text(f"ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                        else:
+                            conn.execute(text(f"ALTER TABLE student_profiles ADD COLUMN {col_name} {sqlite_type}"))
+                    except Exception as sp_err:
+                        logger.warning(f"Could not add column {col_name} to student_profiles: {sp_err}")
 
         # 6. Ensure performance and constraint indexes exist
         index_definitions = [
@@ -150,6 +157,8 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "ix_scholarships_category_tag", "scholarships(category_tag)"),
             ("scholarships", "ix_scholarships_source_verification_status", "scholarships(source_verification_status)"),
             ("scholarships", "ix_scholarships_application_window_status", "scholarships(application_window_status)"),
+            ("student_profiles", "ix_student_profiles_admission_quota", "student_profiles(admission_quota)"),
+            ("student_profiles", "ix_student_profiles_hosteller_status", "student_profiles(hosteller_status)"),
         ]
         for tbl, idx_name, cols in index_definitions:
             if tbl in existing_tables:
@@ -159,6 +168,7 @@ def run_schema_migrations(db_engine_or_conn):
                     logger.warning(f"Note creating index {idx_name}: {idx_err}")
 
         # 7. Idempotent default backfill for legacy rows with NULLs
+        first_grad_backfill = "is_first_graduate = FALSE WHERE is_first_graduate IS NULL" if dialect_name == "postgresql" else "is_first_graduate = 0 WHERE is_first_graduate IS NULL"
         backfill_updates = [
             ("users", "role = 'STUDENT' WHERE role IS NULL"),
             ("documents", "storage_backend = 'local' WHERE storage_backend IS NULL"),
@@ -173,6 +183,9 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "source_verification_status = 'SOURCE_VERIFIED' WHERE source_verification_status IS NULL"),
             ("scholarships", "application_window_status = 'OPEN' WHERE application_window_status IS NULL"),
             ("student_profiles", "gender = 'Male' WHERE gender IS NULL"),
+            ("student_profiles", "admission_quota = 'GOVERNMENT_QUOTA' WHERE admission_quota IS NULL"),
+            ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
+            ("student_profiles", first_grad_backfill),
         ]
         for tbl, set_clause in backfill_updates:
             if tbl in existing_tables:

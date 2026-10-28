@@ -83,6 +83,44 @@ class FundingImpactAnalysis(BaseModel):
     disclaimer: str
 
 
+class OfficialDossierChunk(BaseModel):
+    id: int
+    document_id: int
+    document_title: str
+    section: str
+    chunk_text: str
+    source_name: str
+    source_url: str
+    source_type: str
+    authority_level: str
+    verification_status: str
+    last_verified_at: Optional[datetime] = None
+    retrieved_at: Optional[datetime] = None
+    content_hash: Optional[str] = None
+    page_number: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OfficialDossierResponse(BaseModel):
+    has_official_evidence: bool
+    source_name: Optional[str] = None
+    source_url: Optional[str] = None
+    official_portal_name: Optional[str] = None
+    official_guideline_url: Optional[str] = None
+    authority_level: Optional[str] = None
+    verification_status: str
+    source_verification_status: Optional[str] = None
+    last_verified_at: Optional[datetime] = None
+    dossier_index: Optional[str] = None
+    chunks_count: int = 0
+    chunks: List[OfficialDossierChunk] = []
+    unresolved_questions: Optional[str] = None
+    autonomous_compatibility: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ScholarshipDetailResponse(BaseModel):
     id: int
     name: str
@@ -128,5 +166,8 @@ class ScholarshipDetailResponse(BaseModel):
     funding_impact: Optional[FundingImpactAnalysis] = None
     deadline_risk: Optional[Dict[str, Any]] = None
     current_application: Optional[Dict[str, Any]] = None
+
+    # Official Verification & Source Dossier
+    official_dossier: Optional[OfficialDossierResponse] = None
 
     model_config = ConfigDict(from_attributes=True)

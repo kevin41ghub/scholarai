@@ -198,6 +198,47 @@ class EligibilityService:
                     unmatched.append(f"Scheme restricted to {cval} applicants only; student profile indicates {profile.gender or 'Male'}")
                     is_hard_ineligible = True
 
+            elif rtype in ["ADMISSION_QUOTA", "QUOTA"]:
+                req_quota = cval.strip().upper()
+                admission_quota = getattr(profile, "admission_quota", None)
+                if not admission_quota:
+                    needs_verif.append(f"Admission quota ({req_quota}) requires verification — please declare your quota in student profile")
+                else:
+                    norm_quota = str(admission_quota).strip().upper()
+                    if norm_quota == req_quota:
+                        matched.append(f"Admission quota '{admission_quota}' satisfies statutory requirement ({req_quota})")
+                    else:
+                        unmatched.append(f"Scheme restricted to {req_quota} admissions; student profile indicates {admission_quota}")
+                        is_hard_ineligible = True
+
+            elif rtype in ["FIRST_GRADUATE", "IS_FIRST_GRADUATE"]:
+                req_first_grad = cval.strip().upper() in ["TRUE", "YES", "1"]
+                is_first_graduate = getattr(profile, "is_first_graduate", None)
+                if is_first_graduate is None:
+                    needs_verif.append("First Graduate status needs verification against Revenue Tahsildar FG Certificate")
+                elif is_first_graduate is True and req_first_grad:
+                    matched.append("First graduate in immediate family verified")
+                elif is_first_graduate is False and req_first_grad:
+                    unmatched.append("Scheme is restricted to first-generation graduates; student profile indicates non-first-graduate")
+                    is_hard_ineligible = True
+                elif is_first_graduate is False and not req_first_grad:
+                    matched.append("Non-first graduate profile matches general criteria")
+                elif is_first_graduate is True and not req_first_grad:
+                    matched.append("First graduate student eligible for general criteria")
+
+            elif rtype in ["HOSTELLER_STATUS", "HOSTELLER"]:
+                req_hostel = cval.strip().upper()
+                hosteller_status = getattr(profile, "hosteller_status", None)
+                if not hosteller_status:
+                    needs_verif.append(f"Hosteller/residential status ({req_hostel}) requires institutional verification")
+                else:
+                    norm_hostel = str(hosteller_status).strip().upper()
+                    if norm_hostel == req_hostel:
+                        matched.append(f"Residential status '{hosteller_status}' satisfies scheme requirement ({req_hostel})")
+                    else:
+                        unmatched.append(f"Scheme restricted to {req_hostel}; student profile indicates {hosteller_status}")
+                        is_hard_ineligible = True
+
             else:
                 needs_verif.append(f"Special criteria: {desc}")
 

@@ -3,21 +3,31 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.core.auth import get_current_student
+from app.core.auth import get_current_student, get_current_admin_user
 from app.models.student import Student
+from app.models.user import User
 from app.services.eligibility_service import eligibility_service
 from app.services.deadline_risk_service import deadline_risk_service
-from app.models.scholarship import Scholarship
+from app.services.scholarship_import_service import scholarship_import_service
+from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
+from app.models.knowledge import KnowledgeDocument
 from app.schemas.scholarship import (
     ScholarshipListItemResponse,
     ScholarshipDetailResponse,
     FundingImpactAnalysis,
+    OfficialDossierChunk,
+    OfficialDossierResponse,
+)
+from app.schemas.scholarship_import import (
+    ScholarshipImportRequest,
+    ScholarshipImportSummary,
 )
 from app.schemas.application import ApplicationResponse
 
 router = APIRouter()
+
 
 
 @router.get("", response_model=List[ScholarshipListItemResponse], summary="List & Discover Scholarships")
@@ -36,11 +46,25 @@ def list_scholarships(
 ):
     student = current_student
 
-    # Base query
-    scholarships_query = db.query(Scholarship)
+    # Base query: Exclude retired/demo/test records unconditionally from student discovery
+    scholarships_query = db.query(Scholarship).filter(
+        Scholarship.status != "INACTIVE",
+        Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+        ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+        ~Scholarship.provider.ilike("%(Demo)%"),
+    )
 
-    if query:
-        term = f"%{query.strip()}%"
+    # Unwrap string query params in case called directly as a Python function
+    q_str = query if isinstance(query, str) else None
+    stream_str = stream if isinstance(stream, str) else None
+    cat_str = category_tag if isinstance(category_tag, str) else None
+    level_str = study_level if isinstance(study_level, str) else None
+    status_str = status_filter if isinstance(status_filter, str) else None
+    source_str = source_status if isinstance(source_status, str) else None
+    verif_str = verification_filter if isinstance(verification_filter, str) else None
+
+    if q_str and q_str.strip():
+        term = f"%{q_str.strip()}%"
         scholarships_query = scholarships_query.filter(
             (Scholarship.name.ilike(term)) |
             (Scholarship.provider.ilike(term)) |
@@ -48,33 +72,30 @@ def list_scholarships(
             (Scholarship.dossier_index.ilike(term))
         )
 
-    if stream and stream.upper() != "ALL":
-        s_val = stream.upper()
+    if stream_str and stream_str.upper() != "ALL":
+        s_val = stream_str.upper()
         scholarships_query = scholarships_query.filter(Scholarship.stream.in_([s_val, "BOTH"]))
 
-    if category_tag and category_tag.upper() != "ALL":
-        scholarships_query = scholarships_query.filter(Scholarship.category_tag.ilike(f"%{category_tag.strip()}%"))
+    if cat_str and cat_str.upper() != "ALL":
+        scholarships_query = scholarships_query.filter(Scholarship.category_tag.ilike(f"%{cat_str.strip()}%"))
 
-    if study_level and study_level.upper() != "ALL":
-        l_val = study_level.upper()
+    if level_str and level_str.upper() != "ALL":
+        l_val = level_str.upper()
         scholarships_query = scholarships_query.filter(Scholarship.study_level.in_([l_val, "BOTH"]))
 
-    if status_filter:
-        scholarships_query = scholarships_query.filter(Scholarship.status == status_filter.upper())
+    if status_str and status_str.upper() != "ALL":
+        scholarships_query = scholarships_query.filter(Scholarship.status == status_str.upper())
     else:
-        # Default: exclude inactive scholarships from normal discovery
-        scholarships_query = scholarships_query.filter(Scholarship.status != "INACTIVE")
+        # Default: only active scholarships
+        scholarships_query = scholarships_query.filter(Scholarship.status == "ACTIVE")
 
-    if source_status:
+    if source_str and source_str.upper() != "ALL":
         scholarships_query = scholarships_query.filter(
-            (Scholarship.source_verification_status == source_status.upper()) |
-            (Scholarship.verification_status == source_status.upper())
+            (Scholarship.source_verification_status == source_str.upper()) |
+            (Scholarship.verification_status == source_str.upper())
         )
-    elif verification_filter:
-        scholarships_query = scholarships_query.filter(Scholarship.verification_status == verification_filter.upper())
-    else:
-        # Default: exclude retired demo scholarships from normal discovery
-        scholarships_query = scholarships_query.filter(Scholarship.verification_status != "RETIRED_DEMO")
+    elif verif_str and verif_str.upper() != "ALL":
+        scholarships_query = scholarships_query.filter(Scholarship.verification_status == verif_str.upper())
 
     all_scholarships = scholarships_query.all()
 
@@ -152,17 +173,20 @@ def list_scholarships(
         items.append(item)
 
     # Filter by eligibility if requested
-    if eligibility_filter and eligibility_filter != "all":
-        items = [i for i in items if i.match_status == eligibility_filter.lower()]
+    elig_str = eligibility_filter if isinstance(eligibility_filter, str) else None
+    sort_str = sort_by if isinstance(sort_by, str) else "recommended"
+
+    if elig_str and elig_str != "all":
+        items = [i for i in items if i.match_status == elig_str.lower()]
 
     # Sort items
-    if sort_by == "deadline":
+    if sort_str == "deadline":
         items.sort(key=lambda x: x.deadline)
-    elif sort_by == "amount_high":
+    elif sort_str == "amount_high":
         items.sort(key=lambda x: x.amount, reverse=True)
-    elif sort_by == "amount_low":
+    elif sort_str == "amount_low":
         items.sort(key=lambda x: x.amount)
-    elif sort_by in ["recommended", "best_match"]:
+    elif sort_str in ["recommended", "best_match"]:
         # Sort by match_score descending, then deadline ascending
         items.sort(key=lambda x: (x.match_score or 0.0, -x.amount), reverse=True)
 
@@ -177,7 +201,76 @@ def get_recommended_scholarships(
     """
     Returns scholarships sorted by transparent deterministic recommendation score.
     """
-    return list_scholarships(sort_by="recommended", current_student=current_student, db=db)
+    return list_scholarships(
+        query=None,
+        stream=None,
+        category_tag=None,
+        study_level=None,
+        eligibility_filter=None,
+        status_filter="ACTIVE",
+        source_status=None,
+        verification_filter=None,
+        sort_by="recommended",
+        current_student=current_student,
+        db=db,
+    )
+
+
+def _build_official_dossier(db: Session, scholarship: Scholarship) -> OfficialDossierResponse:
+    kdocs = (
+        db.query(KnowledgeDocument)
+        .filter(KnowledgeDocument.scholarship_id == scholarship.id)
+        .all()
+    )
+
+    dossier_chunks: List[OfficialDossierChunk] = []
+    primary_source = None
+    primary_doc = None
+
+    for doc in kdocs:
+        if not primary_doc:
+            primary_doc = doc
+        source = doc.source
+        if source and not primary_source:
+            primary_source = source
+        for c in doc.chunks:
+            dossier_chunks.append(
+                OfficialDossierChunk(
+                    id=c.id,
+                    document_id=doc.id,
+                    document_title=doc.title,
+                    section=c.section,
+                    chunk_text=c.chunk_text,
+                    source_name=source.name if source else (scholarship.source_name or "Official Statutory Source"),
+                    source_url=c.source_url or (source.source_url if source else scholarship.source_url or ""),
+                    source_type=source.source_type if source else "OFFICIAL_PORTAL",
+                    authority_level=source.authority_level if source else ("STATUTORY_STATE" if scholarship.tn_residency_required else "STATUTORY_CENTRAL"),
+                    verification_status=doc.verification_status or (source.verification_status if source else scholarship.verification_status),
+                    last_verified_at=doc.last_verified_at or (source.last_verified_at if source else scholarship.last_verified_at),
+                    retrieved_at=doc.retrieved_at,
+                    content_hash=doc.content_hash,
+                    page_number=c.page_number,
+                )
+            )
+
+    has_evidence = len(dossier_chunks) > 0
+
+    return OfficialDossierResponse(
+        has_official_evidence=has_evidence,
+        source_name=(primary_source.name if primary_source else scholarship.source_name) or scholarship.provider,
+        source_url=(primary_source.source_url if primary_source else scholarship.source_url),
+        official_portal_name=scholarship.official_portal_name or (primary_source.name if primary_source else None),
+        official_guideline_url=scholarship.official_guideline_url or (primary_source.source_url if primary_source else None),
+        authority_level=primary_source.authority_level if primary_source else ("STATUTORY_STATE" if scholarship.tn_residency_required else "STATUTORY_CENTRAL"),
+        verification_status=scholarship.verification_status,
+        source_verification_status=scholarship.source_verification_status or scholarship.verification_status,
+        last_verified_at=(primary_doc.last_verified_at if primary_doc else (primary_source.last_verified_at if primary_source else scholarship.last_verified_at)),
+        dossier_index=scholarship.dossier_index,
+        chunks_count=len(dossier_chunks),
+        chunks=dossier_chunks,
+        unresolved_questions=scholarship.unresolved_questions,
+        autonomous_compatibility=scholarship.autonomous_compatibility,
+    )
 
 
 @router.get("/{id}", response_model=ScholarshipDetailResponse, summary="Get Scholarship Detail")
@@ -191,6 +284,13 @@ def get_scholarship_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
     student = current_student
+    linked_app = (
+        db.query(Application)
+        .filter(Application.student_id == student.id, Application.scholarship_id == scholarship.id)
+        .first()
+    )
+
+    # Evaluate deterministic eligibility (retired/inactive schemes return ineligible with score 0)
     eval_res = eligibility_service.evaluate_scholarship(student, scholarship)
     risk_info = deadline_risk_service.calculate_risk(scholarship.deadline)
 
@@ -207,12 +307,6 @@ def get_scholarship_detail(
         disclaimer="Potential funding impact only. Does not assume receipt of award. Awards are determined exclusively by official providers."
     )
 
-    linked_app = (
-        db.query(Application)
-        .filter(Application.student_id == student.id, Application.scholarship_id == scholarship.id)
-        .first()
-    )
-
     current_app_data = None
     if linked_app:
         current_app_data = {
@@ -221,6 +315,8 @@ def get_scholarship_detail(
             "progress": linked_app.progress,
             "started_at": linked_app.started_at,
         }
+
+    official_dossier = _build_official_dossier(db, scholarship)
 
     return ScholarshipDetailResponse(
         id=scholarship.id,
@@ -244,6 +340,7 @@ def get_scholarship_detail(
         funding_impact=funding_impact,
         deadline_risk=risk_info,
         current_application=current_app_data,
+        official_dossier=official_dossier,
         dossier_index=scholarship.dossier_index,
         stream=scholarship.stream,
         study_level=scholarship.study_level,
@@ -264,6 +361,19 @@ def get_scholarship_detail(
         unresolved_questions=scholarship.unresolved_questions,
         disqualification_reasons=eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else [],
     )
+
+
+@router.get("/{id}/dossier", response_model=OfficialDossierResponse, summary="Get Official Verification Dossier")
+def get_scholarship_dossier(
+    id: int,
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()
+    if not scholarship:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
+    return _build_official_dossier(db, scholarship)
+
 
 
 @router.get("/{id}/eligibility", summary="Evaluate Scholarship Eligibility")
@@ -377,3 +487,35 @@ def apply_to_scholarship(
         "progress": new_app.progress,
         "is_new": True,
     }
+
+
+@router.post(
+    "/import",
+    response_model=ScholarshipImportSummary,
+    summary="Import or Refresh Verified Scholarships (Admin Only)",
+    status_code=status.HTTP_200_OK,
+)
+def import_scholarships(
+    request: ScholarshipImportRequest,
+    current_admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Administrative endpoint to import, update, and refresh scholarships from official sources.
+
+    Access Control:
+    - Strictly restricted to authenticated users with role == 'ADMIN'.
+    - Ordinary students (role == 'STUDENT') are rejected with HTTP 403 Forbidden.
+
+    Guarantees:
+    - Safe idempotent matching by dossier_index or official scheme name.
+    - Preserves existing student applications and document attachments intact.
+    - Official government domain validation (.gov.in, .nic.in, .ac.in).
+    - Source verification safeguard: non-government sources cannot claim SOURCE_VERIFIED.
+    - Dry-run mode previews additions/updates without persisting database changes.
+    """
+    return scholarship_import_service.process_import(
+        db=db,
+        request=request,
+        admin_user=current_admin,
+    )

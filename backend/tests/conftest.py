@@ -68,7 +68,7 @@ def auth_client(client, db_session):
 @pytest.fixture(scope="function")
 def create_authenticated_client(client, db_session):
     """Factory fixture to create an authenticated client for an arbitrary user."""
-    def _create(email: str, name: str = "Test User"):
+    def _create(email: str, name: str = "Test User", role: str = "STUDENT"):
         from app.core.security import create_session_token, hash_password
         from app.core.config import settings
         from app.models.student import Student
@@ -109,6 +109,7 @@ def create_authenticated_client(client, db_session):
             student_id=student.id,
             is_active=True,
             is_demo=False,
+            role=role,
         )
         db_session.add(user)
         db_session.commit()
@@ -123,6 +124,18 @@ def create_authenticated_client(client, db_session):
         return user_client, user, student
 
     return _create
+
+
+@pytest.fixture(scope="function")
+def admin_client(create_authenticated_client):
+    """TestClient with an authenticated administrator session (role == 'ADMIN')."""
+    client, user, student = create_authenticated_client(
+        email="admin.officer@scholarai.gov.in",
+        name="State Scholarship Administrator",
+        role="ADMIN",
+    )
+    return client
+
 
 
 @pytest.fixture(autouse=True)

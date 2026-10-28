@@ -161,3 +161,77 @@ def test_application_records_remain_intact_during_catalog_query(auth_client: Tes
         assert b["id"] == a["id"]
         assert b["status"] == a["status"]
         assert b["progress"] == a["progress"]
+
+
+def test_official_dossier_detail_with_verified_evidence(auth_client: TestClient):
+    """
+    Acceptance Criteria (Task 2):
+    Verify that schemes with indexed official knowledge (e.g., Post-Matric BC/MBC)
+    return an Official Verification Dossier with has_official_evidence=True,
+    statutory excerpts, authority level, last-verified dates, and official URLs.
+    """
+    res_list = auth_client.get("/api/v1/scholarships")
+    assert res_list.status_code == 200
+    schemes = {s["name"]: s for s in res_list.json()}
+
+    bc_scheme = schemes.get("Post-Matric Scholarship for BC, MBC & DNC Students")
+    assert bc_scheme is not None, "Post-Matric BC/MBC scheme should exist"
+
+    # 1. Detail endpoint includes official_dossier
+    res_detail = auth_client.get(f"/api/v1/scholarships/{bc_scheme['id']}")
+    assert res_detail.status_code == 200
+    detail = res_detail.json()
+
+    assert "official_dossier" in detail
+    dossier = detail["official_dossier"]
+    assert dossier is not None
+    assert dossier["has_official_evidence"] is True
+    assert dossier["chunks_count"] > 0
+    assert len(dossier["chunks"]) > 0
+
+    first_chunk = dossier["chunks"][0]
+    assert first_chunk["document_title"]
+    assert first_chunk["section"]
+    assert len(first_chunk["chunk_text"]) > 20
+    assert first_chunk["source_name"]
+    assert first_chunk["source_url"].startswith("http")
+    assert first_chunk["authority_level"] == "STATUTORY_STATE"
+    assert first_chunk["verification_status"] == "SOURCE_VERIFIED"
+    assert first_chunk["content_hash"] is not None
+
+    # 2. Sub-endpoint /dossier returns consistent dossier payload
+    res_dossier = auth_client.get(f"/api/v1/scholarships/{bc_scheme['id']}/dossier")
+    assert res_dossier.status_code == 200
+    dossier_payload = res_dossier.json()
+    assert dossier_payload["has_official_evidence"] is True
+    assert dossier_payload["chunks_count"] == dossier["chunks_count"]
+
+
+def test_official_dossier_without_indexed_chunks_truthful_transparency(auth_client: TestClient):
+    """
+    Acceptance Criteria (Task 2):
+    Verify that schemes without indexed knowledge chunks transparently return
+    has_official_evidence=False with chunks=[], rather than fabricating or hallucinating text.
+    Official portal and guideline metadata must remain intact.
+    """
+    res_list = auth_client.get("/api/v1/scholarships")
+    assert res_list.status_code == 200
+    schemes = {s["name"]: s for s in res_list.json()}
+
+    fg_scheme = schemes.get("First Graduate (FG) Tuition Fee Concession")
+    assert fg_scheme is not None
+
+    res_detail = auth_client.get(f"/api/v1/scholarships/{fg_scheme['id']}")
+    assert res_detail.status_code == 200
+    detail = res_detail.json()
+
+    dossier = detail.get("official_dossier")
+    assert dossier is not None
+    assert dossier["has_official_evidence"] is False
+    assert dossier["chunks"] == []
+    assert dossier["chunks_count"] == 0
+    # Genuine baseline official metadata must be preserved
+    assert dossier["source_url"].startswith("http")
+    assert dossier["official_guideline_url"].startswith("http")
+    assert dossier["verification_status"] in ["SOURCE_VERIFIED", "PARTIALLY_VERIFIED"]
+    assert dossier["autonomous_compatibility"] is not None

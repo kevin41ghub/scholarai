@@ -6,6 +6,52 @@ import Link from "next/link";
 import { getScholarshipDetail, applyToScholarship, formatINR } from "@/lib/api";
 import { ScholarshipDetail } from "@/types/student";
 
+function formatDossierDate(dateStr?: string | null): string {
+  if (!dateStr) return "Current Academic Cycle";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatAuthorityLevel(auth?: string | null): string {
+  if (!auth) return "Statutory Government Authority";
+  if (auth === "STATUTORY_STATE") return "Tamil Nadu State Authority (Statutory)";
+  if (auth === "STATUTORY_CENTRAL") return "Union Government of India (Central Scheme)";
+  if (auth === "OFFICIAL_PORTAL") return "Official Statutory Portal";
+  return auth;
+}
+
+function getVerificationBadge(status?: string | null) {
+  const norm = (status || "").toUpperCase();
+  if (norm === "SOURCE_VERIFIED" || norm === "VERIFIED" || norm === "RECENTLY_VERIFIED") {
+    return {
+      label: "Official Source Verified",
+      bgClass: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+      dotClass: "bg-emerald-600",
+    };
+  }
+  if (norm === "PARTIALLY_VERIFIED" || norm === "NEEDS_VERIFICATION") {
+    return {
+      label: "Partially Verified — Institutional Review Required",
+      bgClass: "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
+      dotClass: "bg-amber-600",
+    };
+  }
+  return {
+    label: norm || "Verification Pending",
+    bgClass: "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700",
+    dotClass: "bg-stone-400",
+  };
+}
+
 export default function ScholarshipDetailPage() {
   const params = useParams();
   const id = Number(params.id);
@@ -80,6 +126,7 @@ export default function ScholarshipDetailPage() {
 
   const impact = scholarship.funding_impact;
   const elig = scholarship.eligibility;
+  const dossier = scholarship.official_dossier;
   const isApplied = scholarship.current_application !== null && scholarship.current_application !== undefined;
 
   return (
@@ -262,6 +309,245 @@ export default function ScholarshipDetailPage() {
           </div>
         </section>
       )}
+
+      {/* Official Verification & Source Dossier */}
+      <section className="bg-white dark:bg-[#191c20] rounded-2xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 sm:p-8 shadow-xs space-y-6">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f0eae0] dark:border-[#242830] pb-5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#86192c] dark:bg-[#fb7185]"></span>
+              <span className="text-[11px] font-mono uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                Authoritative Provenance & Gazette Archive
+              </span>
+            </div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
+              Official Verification & Source Dossier
+            </h2>
+            <p className="text-xs font-serif text-stone-600 dark:text-stone-400 max-w-2xl leading-relaxed">
+              Verbatim regulatory excerpts, statutory citations, and official verification records retrieved directly from the state and central government scholarship repositories.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap sm:flex-col sm:items-end gap-2 shrink-0">
+            {/* Verification Status Badge */}
+            {(() => {
+              const badge = getVerificationBadge(dossier?.source_verification_status || scholarship.source_verification_status || scholarship.verification_status);
+              return (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badge.bgClass}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`}></span>
+                  {badge.label}
+                </span>
+              );
+            })()}
+
+            {/* Authority Level */}
+            <span className="text-[11px] font-mono text-stone-500 dark:text-stone-400">
+              Authority: <strong className="text-stone-700 dark:text-stone-300 font-semibold">{formatAuthorityLevel(dossier?.authority_level)}</strong>
+            </span>
+
+            {/* Last Verified Timestamp */}
+            <span className="text-[11px] font-mono text-stone-500 dark:text-stone-400">
+              Last Verified: <span className="text-stone-700 dark:text-stone-300 font-semibold">{formatDossierDate(dossier?.last_verified_at || scholarship.last_verified_at)}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* State A: Authoritative Text Excerpts Present */}
+        {dossier?.has_official_evidence && dossier.chunks && dossier.chunks.length > 0 ? (
+          <div className="space-y-5">
+            {/* Provenance Strip */}
+            <div className="p-4 rounded-xl bg-[#fbf9f5] dark:bg-[#121417] border border-[#e6dfd3] dark:border-[#2f343d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200">
+                    Active Gazette Record
+                  </span>
+                  <span className="font-semibold text-stone-900 dark:text-stone-100">
+                    {dossier.chunks[0].document_title}
+                  </span>
+                </div>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 font-serif">
+                  Repository: {dossier.source_name || scholarship.provider} &bull; {dossier.chunks.length} statutory text excerpt{dossier.chunks.length > 1 ? "s" : ""} on file
+                </p>
+              </div>
+
+              {dossier.source_url && (
+                <a
+                  href={dossier.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#1e2228] text-[#86192c] dark:text-[#fb7185] border border-[#e6dfd3] dark:border-[#2f343d] hover:bg-stone-50 transition-colors shrink-0"
+                >
+                  <span>Official Gazette Link</span>
+                  <span className="text-xs">↗</span>
+                </a>
+              )}
+            </div>
+
+            {/* List of Verbatim Excerpts */}
+            <div className="space-y-4">
+              {dossier.chunks.map((chunk, idx) => (
+                <article
+                  key={chunk.id || idx}
+                  className="rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] bg-white dark:bg-[#16181c] p-5 shadow-2xs space-y-3.5 transition-all hover:border-[#cfc6b6] dark:hover:border-[#3d434f]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs border-b border-[#f0eae0] dark:border-[#242830] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-[#86192c] dark:text-[#fb7185]">
+                        § {chunk.section}
+                      </span>
+                      {chunk.page_number && (
+                        <span className="text-stone-400 font-mono text-[11px]">
+                          p. {chunk.page_number}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        {chunk.authority_level}
+                      </span>
+                      {chunk.last_verified_at && (
+                        <span className="text-[11px] font-mono text-stone-500 dark:text-stone-400">
+                          Verified: {formatDossierDate(chunk.last_verified_at)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Verbatim Excerpt Quote */}
+                  <blockquote className="pl-4 border-l-2 border-[#86192c] dark:border-[#fb7185] italic font-serif text-xs sm:text-sm text-stone-800 dark:text-stone-200 leading-relaxed bg-[#fbf9f5]/50 dark:bg-[#121417]/30 py-2.5 pr-3 rounded-r-lg">
+                    &ldquo;{chunk.chunk_text}&rdquo;
+                  </blockquote>
+
+                  {/* Cryptographic Provenance & Source Citation Strip */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] font-mono text-stone-500 dark:text-stone-400">
+                    <div className="flex items-center gap-2">
+                      <span className="text-stone-400">Source:</span>
+                      <span className="text-stone-700 dark:text-stone-300 font-medium">
+                        {chunk.source_name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {chunk.content_hash && (
+                        <span
+                          title={`SHA-256 Checksum: ${chunk.content_hash}`}
+                          className="text-[10px] text-stone-400 dark:text-stone-500 hover:text-stone-600 cursor-help"
+                        >
+                          SHA-256: {chunk.content_hash.slice(0, 10)}...
+                        </span>
+                      )}
+
+                      {chunk.source_url && (
+                        <a
+                          href={chunk.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#86192c] dark:text-[#fb7185] font-semibold hover:underline inline-flex items-center gap-0.5"
+                        >
+                          <span>Official Citation</span>
+                          <span>↗</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* State B: No Text Excerpts Indexed in Local Knowledge Base */
+          <div className="p-5 sm:p-6 rounded-xl bg-stone-50 dark:bg-[#14161a] border border-stone-200 dark:border-[#2f343d] space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 font-bold text-sm">
+                !
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif text-sm sm:text-base font-bold text-stone-900 dark:text-stone-100">
+                  No Verbatim Text Excerpts Indexed in Local Knowledge Store
+                </h3>
+                <p className="text-xs font-serif text-stone-600 dark:text-stone-400 leading-relaxed">
+                  While this scheme&apos;s baseline parameters have been catalogued and linked to official government portals, verbatim statutory text excerpts have not yet been ingested into our local knowledge store.
+                </p>
+                <p className="text-[11px] font-mono text-amber-800 dark:text-amber-300/90 italic pt-1">
+                  Principle: AI assists. Official sources decide. We never simulate or hallucinate official excerpts.
+                </p>
+              </div>
+            </div>
+
+            {/* Grounded Metadata Summary */}
+            <div className="p-4 rounded-lg bg-white dark:bg-[#1a1d22] border border-stone-200 dark:border-stone-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-stone-400 text-[11px] font-mono uppercase block">Awarding Authority</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200 font-serif">
+                  {scholarship.provider}
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-400 text-[11px] font-mono uppercase block">Statutory Portal</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200 font-serif">
+                  {scholarship.official_portal_name || scholarship.source_name || "Official Department Portal"}
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-400 text-[11px] font-mono uppercase block">Verification Status</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200 font-mono">
+                  {scholarship.source_verification_status || scholarship.verification_status}
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-400 text-[11px] font-mono uppercase block">Last Metadata Check</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200 font-mono">
+                  {formatDossierDate(scholarship.last_verified_at)}
+                </span>
+              </div>
+            </div>
+
+            {/* Direct Official Link */}
+            {(scholarship.official_guideline_url || scholarship.source_url) && (
+              <div className="pt-1">
+                <a
+                  href={scholarship.official_guideline_url || scholarship.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-[#86192c] hover:bg-[#9f1239] text-white transition-colors"
+                >
+                  <span>Review Official Guidelines on Statutory Portal</span>
+                  <span>↗</span>
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Unresolved Questions & Department Inquiries */}
+        {scholarship.unresolved_questions && (
+          <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+              <span className="font-semibold text-amber-900 dark:text-amber-200 font-serif">
+                Department Clarification & Policy Caveats:
+              </span>
+            </div>
+            <p className="text-amber-950 dark:text-amber-200/90 font-serif leading-relaxed pl-4">
+              {scholarship.unresolved_questions}
+            </p>
+            <p className="text-[11px] text-amber-800 dark:text-amber-300/80 font-mono pl-4">
+              Note: Consult with your college scholarship nodal officer to verify this item during the current academic cycle.
+            </p>
+          </div>
+        )}
+
+        {/* Core Principle Footer */}
+        <div className="pt-2 border-t border-[#f0eae0] dark:border-[#242830] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-stone-400">
+          <span>Official Verification & Source Dossier</span>
+          <span className="text-[#86192c] dark:text-[#fb7185] font-semibold">
+            AI assists. Official sources decide. Student approves.
+          </span>
+        </div>
+      </section>
 
       {/* Transparent Profile Eligibility Evaluation */}
       {elig && (

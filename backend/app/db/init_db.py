@@ -6,7 +6,7 @@ from app.db.base import Base
 from app.models.student import Student
 from app.models.student_profile import StudentProfile
 from app.models.funding_profile import FundingProfile
-from app.models.scholarship import Scholarship
+from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 from app.models.eligibility_rule import EligibilityRule
 from app.models.scholarship_requirement import ScholarshipRequirement
 from app.models.document import Document
@@ -135,6 +135,9 @@ def init_db(db: Session) -> None:
             category="BC",
             state="Tamil Nadu",
             gender="Male",
+            admission_quota="GOVERNMENT_QUOTA",
+            hosteller_status="DAY_SCHOLAR",
+            is_first_graduate=False,
         )
         db.add(profile)
 
@@ -380,6 +383,8 @@ def init_db(db: Session) -> None:
                 "rules": [
                     {"rule_type": "STATE", "criteria_value": "Tamil Nadu", "operator": "EQUALS", "description": "Domicile of Tamil Nadu"},
                     {"rule_type": "COURSE", "criteria_value": "Engineering,B.E.,B.Tech", "operator": "CONTAINS", "description": "Enrolled in B.E. / B.Tech engineering degree"},
+                    {"rule_type": "FIRST_GRADUATE", "criteria_value": "TRUE", "operator": "EQUALS", "description": "Applicant must be first graduate in immediate family"},
+                    {"rule_type": "ADMISSION_QUOTA", "criteria_value": "GOVERNMENT_QUOTA", "operator": "EQUALS", "description": "Single-window TNEA government counselling quota admission only"},
                 ],
                 "requirements": [
                     {"name": "First Graduate Certificate (Tahsildar Issued)", "document_type": "SPECIAL_CATEGORY_CERTIFICATE", "type": "DOCUMENT", "is_required": True},

@@ -2,6 +2,19 @@ from sqlalchemy import Column, Integer, String, Float, Text, DateTime, func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
+KNOWN_FICTIONAL_DEMO_NAMES = {
+    "Empower Future Scholarship",
+    "NextGen Technology Grant",
+    "National Merit-cum-Means Scholarship",
+    "CSR STEM Bursary",
+    "Regional Student Stipend",
+    "State Welfare Fellowship",
+    "Women in Technology Scholarship",
+    "PG Excellence Fellowship",
+}
+
+RETIRED_DEMO_STATUSES = {"RETIRED_DEMO", "DEMO_DATA"}
+
 
 class Scholarship(Base):
     __tablename__ = "scholarships"

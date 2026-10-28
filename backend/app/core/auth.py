@@ -126,3 +126,19 @@ def verify_student_access(current_user: User, student_id: int) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden: You do not have permission to access another student's data.",
         )
+
+
+def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Authorization policy: Strict administrative role check (role == 'ADMIN').
+    Ordinary students (role == 'STUDENT') and unprivileged users are rejected with HTTP 403 Forbidden.
+    """
+    role = (current_user.role or "").strip().upper()
+    if role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Administrative privileges required to manage scholarship catalogue.",
+        )
+    return current_user
