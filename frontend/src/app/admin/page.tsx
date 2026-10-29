@@ -13,6 +13,8 @@ import {
   getAIDiagnostic,
   getAdminAuditLogs,
   importScholarships,
+  getAdminUsers,
+  getAdminDocuments,
 } from "@/lib/api";
 import {
   AdminOverview,
@@ -20,16 +22,28 @@ import {
   AdminApplicationItem,
   AIDiagnostic,
   AuditLogItem,
+  AdminUserItem,
+  AdminDocumentItem,
 } from "@/types/student";
 
 export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<"overview" | "scholarships" | "applications" | "ai" | "audit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "scholarships" | "applications" | "documents" | "ai" | "audit">("overview");
   const [refreshing, setRefreshing] = useState(false);
 
   // Overview data
   const [overview, setOverview] = useState<AdminOverview | null>(null);
+
+  // Users data
+  const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userRole, setUserRole] = useState("ALL");
+
+  // Documents data
+  const [adminDocs, setAdminDocs] = useState<AdminDocumentItem[]>([]);
+  const [docSearch, setDocSearch] = useState("");
+  const [docStatus, setDocStatus] = useState("ALL");
 
   // Scholarships data
   const [scholarships, setScholarships] = useState<AdminScholarshipItem[]>([]);
@@ -73,6 +87,32 @@ export default function AdminDashboardPage() {
       console.error("Failed to load admin overview:", e);
     }
   }, []);
+
+  // Load Users
+  const loadUsersData = useCallback(async () => {
+    try {
+      const data = await getAdminUsers({
+        search: userSearch || undefined,
+        role: userRole === "ALL" ? undefined : userRole,
+      });
+      setAdminUsers(data.users || []);
+    } catch (e) {
+      console.error("Failed to load admin users:", e);
+    }
+  }, [userSearch, userRole]);
+
+  // Load Documents
+  const loadDocumentsData = useCallback(async () => {
+    try {
+      const data = await getAdminDocuments({
+        search: docSearch || undefined,
+        status: docStatus === "ALL" ? undefined : docStatus,
+      });
+      setAdminDocs(data.documents || []);
+    } catch (e) {
+      console.error("Failed to load admin documents:", e);
+    }
+  }, [docSearch, docStatus]);
 
   // Load Scholarships
   const loadScholarshipsData = useCallback(async () => {
@@ -129,36 +169,42 @@ export default function AdminDashboardPage() {
       const timer = setTimeout(() => {
         Promise.allSettled([
           loadOverviewData(),
+          loadUsersData(),
           loadScholarshipsData(),
           loadApplicationsData(),
+          loadDocumentsData(),
           loadAiDiagnosticData(),
           loadAuditLogsData(),
         ]);
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [user?.role, loadOverviewData, loadScholarshipsData, loadApplicationsData, loadAiDiagnosticData, loadAuditLogsData]);
+  }, [user?.role, loadOverviewData, loadUsersData, loadScholarshipsData, loadApplicationsData, loadDocumentsData, loadAiDiagnosticData, loadAuditLogsData]);
 
   // Re-fetch tab specific data when switching
   useEffect(() => {
     if (user?.role === "ADMIN") {
       const timer = setTimeout(() => {
+        if (activeTab === "users") loadUsersData();
         if (activeTab === "scholarships") loadScholarshipsData();
         if (activeTab === "applications") loadApplicationsData();
+        if (activeTab === "documents") loadDocumentsData();
         if (activeTab === "ai") loadAiDiagnosticData();
         if (activeTab === "audit") loadAuditLogsData();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, user?.role, loadScholarshipsData, loadApplicationsData, loadAiDiagnosticData, loadAuditLogsData]);
+  }, [activeTab, user?.role, loadUsersData, loadScholarshipsData, loadApplicationsData, loadDocumentsData, loadAiDiagnosticData, loadAuditLogsData]);
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
       await Promise.allSettled([
         loadOverviewData(),
+        loadUsersData(),
         loadScholarshipsData(),
         loadApplicationsData(),
+        loadDocumentsData(),
         loadAiDiagnosticData(),
         loadAuditLogsData(),
       ]);
@@ -428,8 +474,10 @@ export default function AdminDashboardPage() {
       <div className="flex border-b border-zinc-800 space-x-1 sm:space-x-2 overflow-x-auto pb-px">
         {[
           { key: "overview", label: "Overview & Analytics" },
+          { key: "users", label: "User Management" },
           { key: "scholarships", label: "Scholarships Catalogue" },
           { key: "applications", label: "Review Queue & Status" },
+          { key: "documents", label: "Document Monitoring" },
           { key: "ai", label: "AI Diagnostics & Grounding" },
           { key: "audit", label: "System Audit Trail" },
         ].map((tab) => (
@@ -552,6 +600,104 @@ export default function AdminDashboardPage() {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Users Management */}
+      {activeTab === "users" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+            <div className="relative flex-1">
+              <svg className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search users by email or student name..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <select
+                value={userRole}
+                onChange={(e) => setUserRole(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:ring-1 focus:ring-red-600"
+              >
+                <option value="ALL">All Roles</option>
+                <option value="STUDENT">STUDENT</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-950/70 border-b border-zinc-800 text-zinc-400 uppercase font-mono text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">ID / User Email</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Student Name</th>
+                    <th className="px-4 py-3">Institution & Course</th>
+                    <th className="px-4 py-3">CGPA / Category</th>
+                    <th className="px-4 py-3">Applications</th>
+                    <th className="px-4 py-3">Registered</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
+                  {adminUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                        No registered users found matching current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    adminUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-white">{u.email}</p>
+                          <p className="text-[10px] text-zinc-500 font-mono mt-0.5">User #{u.id} {u.is_demo && "• Demo Account"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                            u.role === "ADMIN"
+                              ? "bg-red-950/60 text-red-400 border border-red-800/40"
+                              : "bg-zinc-800 text-zinc-300 border border-zinc-700/40"
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-white">{u.student_name}</td>
+                        <td className="px-4 py-3 text-zinc-400">
+                          {u.institution ? (
+                            <div>
+                              <p className="text-zinc-200 truncate max-w-[200px]">{u.institution}</p>
+                              <p className="text-[10px] text-zinc-500">{u.course || ""}</p>
+                            </div>
+                          ) : (
+                            <span className="text-zinc-600 italic">Not completed</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-zinc-300">
+                            {u.cgpa != null ? `CGPA ${u.cgpa.toFixed(2)}` : "—"}
+                          </div>
+                          <span className="text-[10px] text-zinc-500">{u.category || "—"}</span>
+                        </td>
+                        <td className="px-4 py-3 font-mono font-semibold text-white">{u.applications_count}</td>
+                        <td className="px-4 py-3 text-zinc-500 font-mono text-[11px]">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -803,6 +949,113 @@ export default function AdminDashboardPage() {
                           >
                             Review & History
                           </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Document & Verification Monitoring */}
+      {activeTab === "documents" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+            <div className="relative flex-1">
+              <svg className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search documents by filename or student..."
+                value={docSearch}
+                onChange={(e) => setDocSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-600"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <select
+                value={docStatus}
+                onChange={(e) => setDocStatus(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 focus:outline-none focus:ring-1 focus:ring-red-600"
+              >
+                <option value="ALL">All Verification States</option>
+                <option value="OFFICIALLY_VERIFIED">OFFICIALLY_VERIFIED</option>
+                <option value="AUTOMATED_CHECKS_PASSED">AUTOMATED_CHECKS_PASSED</option>
+                <option value="NEEDS_HUMAN_REVIEW">NEEDS_HUMAN_REVIEW</option>
+                <option value="UPLOADED">UPLOADED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-950/70 border-b border-zinc-800 text-zinc-400 uppercase font-mono text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">Doc ID / File Name</th>
+                    <th className="px-4 py-3">Student</th>
+                    <th className="px-4 py-3">Document Type</th>
+                    <th className="px-4 py-3">MIME / Size</th>
+                    <th className="px-4 py-3">SHA-256 Hash</th>
+                    <th className="px-4 py-3">Verification Status</th>
+                    <th className="px-4 py-3">Uploaded</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
+                  {adminDocs.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                        No uploaded documents match the current criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    adminDocs.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-white">{doc.filename}</p>
+                          <p className="text-[10px] text-zinc-500 font-mono mt-0.5">Doc #{doc.id} • {doc.status}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-zinc-200 font-medium">{doc.student_name}</p>
+                          <p className="text-[10px] text-zinc-500">{doc.student_email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded font-mono text-[10px] bg-zinc-800 text-zinc-300 border border-zinc-700/40">
+                            {doc.document_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-zinc-400">
+                          {doc.mime_type || "application/octet-stream"}
+                          {doc.file_size_bytes != null && (
+                            <span className="block text-[10px] text-zinc-500">
+                              {(doc.file_size_bytes / 1024).toFixed(1)} KB
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[10px] text-zinc-500 max-w-[140px] truncate" title={doc.sha256_hash || ""}>
+                          {doc.sha256_hash ? `${doc.sha256_hash.slice(0, 12)}...` : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                            doc.verification_status === "OFFICIALLY_VERIFIED" || doc.verification_status === "AUTOMATED_CHECKS_PASSED"
+                              ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40"
+                              : doc.verification_status === "NEEDS_HUMAN_REVIEW"
+                              ? "bg-amber-950/60 text-amber-400 border border-amber-800/40"
+                              : doc.verification_status === "REJECTED"
+                              ? "bg-rose-950/60 text-rose-400 border border-rose-800/40"
+                              : "bg-zinc-800 text-zinc-400 border border-zinc-700/40"
+                          }`}>
+                            {doc.verification_status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-500 font-mono text-[11px]">
+                          {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : "—"}
                         </td>
                       </tr>
                     ))

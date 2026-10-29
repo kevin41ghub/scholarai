@@ -697,3 +697,44 @@ export interface AuditLogItem {
   description: string;
   details?: Record<string, unknown>;
 }
+
+export interface AdminUserItem {
+  id: number;
+  email: string;
+  role: string;
+  is_active: boolean;
+  is_demo: boolean;
+  student_id: number;
+  student_name: string;
+  institution?: string | null;
+  course?: string | null;
+  category?: string | null;
+  cgpa?: number | null;
+  applications_count: number;
+  created_at: string;
+}
+
+export interface AdminUserListResponse {
+  total: number;
+  users: AdminUserItem[];
+}
+
+export interface AdminDocumentItem {
+  id: number;
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  document_type: string;
+  filename: string;
+  mime_type?: string | null;
+  file_size_bytes?: number | null;
+  sha256_hash?: string | null;
+  status: string;
+  verification_status: string;
+  uploaded_at?: string | null;
+}
+
+export interface AdminDocumentListResponse {
+  total: number;
+  documents: AdminDocumentItem[];
+}

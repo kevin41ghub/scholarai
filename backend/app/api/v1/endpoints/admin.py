@@ -25,6 +25,10 @@ from app.schemas.admin import (
     AdminApplicationReviewRequest,
     AIDiagnosticResponse,
     AuditLogItem,
+    AdminUserItem,
+    AdminUserListResponse,
+    AdminDocumentItem,
+    AdminDocumentListResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -383,3 +387,114 @@ def get_audit_logs(
     # Sort descending by timestamp
     events.sort(key=lambda x: x.timestamp, reverse=True)
     return events[:limit]
+
+
+@router.get("/users", response_model=AdminUserListResponse, summary="Admin User Management")
+def list_admin_users(
+    search: Optional[str] = Query(None, description="Search by email or student name"),
+    role: Optional[str] = Query(None, description="Filter by role e.g. STUDENT, ADMIN"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    """
+    List registered users and their linked student profiles with application activity.
+    Strictly restricted to users with role='ADMIN'.
+    """
+    query = db.query(User).join(Student, User.student_id == Student.id)
+
+    if role and role != "ALL":
+        query = query.filter(User.role == role)
+
+    if search:
+        s = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                User.email.ilike(s),
+                Student.name.ilike(s),
+            )
+        )
+
+    total = query.count()
+    users = query.order_by(desc(User.created_at)).offset(offset).limit(limit).all()
+
+    items: List[AdminUserItem] = []
+    for u in users:
+        student = u.student
+        profile = student.profile if student else None
+        apps_count = db.query(Application).filter(Application.student_id == u.student_id).count()
+        items.append(
+            AdminUserItem(
+                id=u.id,
+                email=u.email,
+                role=u.role,
+                is_active=u.is_active,
+                is_demo=u.is_demo,
+                student_id=u.student_id,
+                student_name=student.name if student else "Unknown",
+                institution=profile.institution if profile else None,
+                course=profile.course if profile else None,
+                category=profile.category if profile else None,
+                cgpa=profile.cgpa if profile else None,
+                applications_count=apps_count,
+                created_at=u.created_at or datetime.now(timezone.utc),
+            )
+        )
+
+    return AdminUserListResponse(total=total, users=items)
+
+
+@router.get("/documents", response_model=AdminDocumentListResponse, summary="Admin Document & Verification Monitoring")
+def list_admin_documents(
+    search: Optional[str] = Query(None, description="Search by filename or student name"),
+    status: Optional[str] = Query(None, description="Filter by verification_status e.g. OFFICIALLY_VERIFIED, AUTOMATED_CHECKS_PASSED"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    """
+    List uploaded documents across all students for verification auditing and file monitoring.
+    Strictly restricted to users with role='ADMIN'.
+    """
+    query = db.query(Document).join(Student, Document.student_id == Student.id)
+
+    if status and status != "ALL":
+        query = query.filter(Document.verification_status == status)
+
+    if search:
+        s = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                Document.name.ilike(s),
+                Document.original_filename.ilike(s),
+                Student.name.ilike(s),
+                Student.email.ilike(s),
+            )
+        )
+
+    total = query.count()
+    docs = query.order_by(desc(Document.created_at)).offset(offset).limit(limit).all()
+
+    items: List[AdminDocumentItem] = []
+    for d in docs:
+        st = d.student
+        items.append(
+            AdminDocumentItem(
+                id=d.id,
+                student_id=d.student_id,
+                student_name=st.name if st else f"Student #{d.student_id}",
+                student_email=st.email if st else "",
+                document_type=d.document_type,
+                filename=d.original_filename or d.name,
+                mime_type=d.mime_type,
+                file_size_bytes=d.file_size,
+                sha256_hash=d.content_hash,
+                status=d.status,
+                verification_status=d.verification_status,
+                uploaded_at=d.uploaded_at or d.created_at,
+            )
+        )
+
+    return AdminDocumentListResponse(total=total, documents=items)

@@ -29,7 +29,7 @@ export default function Header() {
     { name: "Discover", href: "/discover" },
     { name: "Applications", href: "/applications" },
     { name: "Documents", href: "/documents" },
-    { name: "Evidence Bank", href: "/evidence" },
+    { name: "Achievements & Credentials", href: "/evidence" },
     { name: "Goal Planner", href: "/goal" },
     { name: "AI Assistant", href: "/assistant" },
     { name: "Settings", href: "/settings" },
@@ -105,7 +105,7 @@ export default function Header() {
     if (pathname === "/discover") return "Scholarship Discovery";
     if (pathname === "/applications") return "Application Tracker";
     if (pathname === "/documents") return "Document Readiness Vault";
-    if (pathname === "/evidence") return "Evidence Bank";
+    if (pathname === "/evidence") return "Achievements & Credentials";
     if (pathname === "/goal") return "Funding Goal Planner";
     if (pathname === "/assistant") return "AI Scholarship Assistant";
     if (pathname === "/settings") return "Settings & Preferences";
@@ -363,7 +363,7 @@ export default function Header() {
                   onClick={() => setUserMenuOpen(false)}
                   className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  Evidence Bank
+                  Achievements & Credentials
                 </Link>
                 {user?.role === "ADMIN" && (
                   <Link

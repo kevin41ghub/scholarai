@@ -98,3 +98,48 @@ class AuditLogItem(BaseModel):
     target_id: Optional[int] = None
     description: str
     details: Optional[Dict[str, Any]] = None
+
+
+class AdminUserItem(BaseModel):
+    id: int
+    email: str
+    role: str
+    is_active: bool
+    is_demo: bool
+    student_id: int
+    student_name: str
+    institution: Optional[str] = None
+    course: Optional[str] = None
+    category: Optional[str] = None
+    cgpa: Optional[float] = None
+    applications_count: int = 0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserListResponse(BaseModel):
+    total: int
+    users: List[AdminUserItem]
+
+
+class AdminDocumentItem(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_email: str
+    document_type: str
+    filename: str
+    mime_type: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    sha256_hash: Optional[str] = None
+    status: str
+    verification_status: str
+    uploaded_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminDocumentListResponse(BaseModel):
+    total: int
+    documents: List[AdminDocumentItem]

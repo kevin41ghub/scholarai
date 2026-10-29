@@ -62,6 +62,8 @@ def test_admin_routes_reject_unauthenticated(client: TestClient):
     """Unauthenticated requests must be rejected with 401 across admin endpoints."""
     endpoints = [
         "/api/v1/admin/overview",
+        "/api/v1/admin/users",
+        "/api/v1/admin/documents",
         "/api/v1/admin/scholarships",
         "/api/v1/admin/applications",
         "/api/v1/admin/ai/diagnostic",
@@ -79,6 +81,8 @@ def test_admin_routes_reject_student_role(client: TestClient, student_user: User
 
     endpoints = [
         "/api/v1/admin/overview",
+        "/api/v1/admin/users",
+        "/api/v1/admin/documents",
         "/api/v1/admin/scholarships",
         "/api/v1/admin/applications",
         "/api/v1/admin/ai/diagnostic",
@@ -171,3 +175,30 @@ def test_admin_ai_diagnostic_endpoint(client: TestClient, admin_user: User):
     raw_str = resp.text
     assert "AIza" not in raw_str
     assert "sk-" not in raw_str
+
+
+def test_admin_users_list(client: TestClient, admin_user: User):
+    """Admin user can list registered users and their student profile links."""
+    token = create_session_token(admin_user.id, admin_user.email)
+    client.cookies.set(settings.SESSION_COOKIE_NAME, token)
+
+    resp = client.get("/api/v1/admin/users")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "users" in data
+    assert "total" in data
+    assert data["total"] >= 1
+    assert any(u["email"] == admin_user.email for u in data["users"])
+
+
+def test_admin_documents_list(client: TestClient, admin_user: User):
+    """Admin user can monitor all student document records."""
+    token = create_session_token(admin_user.id, admin_user.email)
+    client.cookies.set(settings.SESSION_COOKIE_NAME, token)
+
+    resp = client.get("/api/v1/admin/documents")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "documents" in data
+    assert "total" in data
+    assert isinstance(data["documents"], list)

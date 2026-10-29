@@ -33,6 +33,8 @@ import {
   AdminApplicationListResponse,
   AIDiagnostic,
   AuditLogItem,
+  AdminUserListResponse,
+  AdminDocumentListResponse,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -603,4 +605,34 @@ export async function importScholarships(payload: {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAdminUsers(params?: {
+  search?: string;
+  role?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminUserListResponse> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.role) query.set("role", params.role);
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.offset) query.set("offset", params.offset.toString());
+  const qs = query.toString();
+  return request<AdminUserListResponse>(`/api/v1/admin/users${qs ? `?${qs}` : ""}`);
+}
+
+export async function getAdminDocuments(params?: {
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminDocumentListResponse> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.status) query.set("status", params.status);
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.offset) query.set("offset", params.offset.toString());
+  const qs = query.toString();
+  return request<AdminDocumentListResponse>(`/api/v1/admin/documents${qs ? `?${qs}` : ""}`);
 }

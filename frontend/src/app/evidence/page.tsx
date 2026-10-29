@@ -117,10 +117,10 @@ export default function EvidenceBankPage() {
           <div className="flex items-center space-x-2 text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">
             <Link href="/" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Dashboard</Link>
             <span>/</span>
-            <span className="text-zinc-900 dark:text-zinc-100 font-medium">Evidence Bank</span>
+            <span className="text-zinc-900 dark:text-zinc-100 font-medium">Achievements & Credentials</span>
           </div>
           <div className="flex items-center space-x-2.5">
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Grounded Evidence Bank</h1>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Achievements &amp; Credentials</h1>
             <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50">
               Reusable Application Assets
             </span>
@@ -137,7 +137,7 @@ export default function EvidenceBankPage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>Add Evidence Item</span>
+          <span>Add Achievement / Credential</span>
         </button>
       </div>
 
@@ -159,7 +159,7 @@ export default function EvidenceBankPage() {
       {/* Summary Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
-          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Total Evidence Items</p>
+          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Total Achievements &amp; Credentials</p>
           <p className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{evidenceList.length}</p>
         </div>
         <div className="p-4 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
@@ -211,11 +211,11 @@ export default function EvidenceBankPage() {
 
       {/* Evidence Cards Grid */}
       {loading ? (
-        <div className="p-12 text-center text-sm text-zinc-500 dark:text-zinc-400">Loading Grounded Evidence Bank...</div>
+        <div className="p-12 text-center text-sm text-zinc-500 dark:text-zinc-400">Loading Achievements &amp; Credentials...</div>
       ) : filteredEvidence.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-2">
-          <p className="text-sm font-semibold text-zinc-900 dark:text-white">No evidence items found.</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Click &ldquo;Add Evidence Item&rdquo; to register projects, certifications, or leadership roles for AI application drafting.</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-white">No items found.</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Click &ldquo;Add Achievement / Credential&rdquo; to register projects, certifications, or leadership roles for AI application drafting.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,7 +393,7 @@ export default function EvidenceBankPage() {
                   disabled={submitting}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold disabled:opacity-50 shadow-xs transition-colors cursor-pointer"
                 >
-                  {submitting ? "Saving..." : "Save to Evidence Bank"}
+                  {submitting ? "Saving..." : "Save Achievement / Credential"}
                 </button>
               </div>
             </form>
