@@ -35,6 +35,9 @@ import {
   AuditLogItem,
   AdminUserListResponse,
   AdminDocumentListResponse,
+  ApplicationAssistantWorkspace,
+  RecordExternalSubmissionPayload,
+  OfficialApiSubmissionPayload,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -635,4 +638,53 @@ export async function getAdminDocuments(params?: {
   if (params?.offset) query.set("offset", params.offset.toString());
   const qs = query.toString();
   return request<AdminDocumentListResponse>(`/api/v1/admin/documents${qs ? `?${qs}` : ""}`);
+}
+
+// Block: Real Application Assistant
+export async function getApplicationAssistantWorkspace(id: number): Promise<ApplicationAssistantWorkspace> {
+  return request<ApplicationAssistantWorkspace>(`/api/v1/applications/${id}/assistant`, { cache: "no-store" });
+}
+
+export async function updateApplicationFormFields(
+  id: number,
+  fields: Record<string, unknown>
+): Promise<ApplicationAssistantWorkspace> {
+  return request<ApplicationAssistantWorkspace>(`/api/v1/applications/${id}/assistant/fields`, {
+    method: "PUT",
+    body: JSON.stringify({ fields }),
+  });
+}
+
+export async function approveApplicationAssistant(
+  id: number,
+  consent: boolean = true
+): Promise<ApplicationAssistantWorkspace> {
+  return request<ApplicationAssistantWorkspace>(`/api/v1/applications/${id}/assistant/approve`, {
+    method: "POST",
+    body: JSON.stringify({ consent }),
+  });
+}
+
+export async function recordExternalSubmission(
+  id: number,
+  payload: RecordExternalSubmissionPayload
+): Promise<ApplicationItem> {
+  return request<ApplicationItem>(`/api/v1/applications/${id}/assistant/record-external-submission`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitApplicationViaApi(
+  id: number,
+  payload?: OfficialApiSubmissionPayload
+): Promise<ApplicationItem> {
+  return request<ApplicationItem>(`/api/v1/applications/${id}/assistant/submit-api`, {
+    method: "POST",
+    body: JSON.stringify(payload || { confirm_accuracy: true }),
+  });
+}
+
+export async function exportApplicationDossier(id: number): Promise<Record<string, unknown>> {
+  return request<Record<string, unknown>>(`/api/v1/applications/${id}/assistant/export-dossier`, { cache: "no-store" });
 }

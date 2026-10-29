@@ -289,67 +289,79 @@ export default function ApplicationsPage() {
     }
   };
 
-  const renderStatusBadge = (statusStr: string) => {
-    switch (statusStr) {
-      case "IN_PROGRESS":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            IN_PROGRESS
-          </span>
-        );
-      case "READY":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            READY
-          </span>
-        );
-      case "SUBMITTED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30">
-            <svg className="w-3.5 h-3.5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            SUBMITTED
-          </span>
-        );
-      case "UNDER_REVIEW":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            UNDER_REVIEW
-          </span>
-        );
-      case "APPROVED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-            APPROVED
-          </span>
-        );
-      case "REJECTED":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            REJECTED
-          </span>
-        );
-      case "WITHDRAWN":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30">
-            WITHDRAWN
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-            {statusStr}
-          </span>
-        );
+  const renderStatusBadge = (app: ApplicationItem) => {
+    if (app.submission_status === "SUBMITTED_EXTERNALLY") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          SUBMITTED EXTERNALLY
+        </span>
+      );
     }
+    if (app.status === "SUBMITTED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          PREPARATION APPROVED (Pending Official Portal)
+        </span>
+      );
+    }
+    if (app.status === "READY") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          READY FOR REVIEW
+        </span>
+      );
+    }
+    if (app.status === "IN_PROGRESS") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          PREPARATION IN PROGRESS
+        </span>
+      );
+    }
+    if (app.status === "UNDER_REVIEW") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          UNDER_REVIEW
+        </span>
+      );
+    }
+    if (app.status === "APPROVED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          APPROVED
+        </span>
+      );
+    }
+    if (app.status === "REJECTED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30">
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
+          REJECTED
+        </span>
+      );
+    }
+    if (app.status === "WITHDRAWN") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30">
+          WITHDRAWN
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+        {app.status}
+      </span>
+    );
   };
 
   return (
@@ -470,7 +482,17 @@ export default function ApplicationsPage() {
 
                     {/* System-Determined Read-Only Status & Authorized Actions */}
                     <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
-                      {renderStatusBadge(app.status)}
+                      {renderStatusBadge(app)}
+
+                      <Link
+                        href={`/applications/${app.id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs"
+                      >
+                        <span>Open Assistant</span>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </Link>
 
                       {app.status === "READY" && (
                         <button
@@ -482,7 +504,7 @@ export default function ApplicationsPage() {
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                           </svg>
-                          Submit Application
+                          Approve Package
                         </button>
                       )}
 

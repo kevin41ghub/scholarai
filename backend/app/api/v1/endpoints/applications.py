@@ -14,6 +14,8 @@ from app.services.application_status_service import application_status_service
 from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
 from app.models.scholarship import Scholarship
+from app.services.external_submission_service import external_submission_service
+from app.services.application_assistant_service import application_assistant_service
 from app.schemas.application import (
     ApplicationResponse,
     ApplicationCreate,
@@ -23,6 +25,11 @@ from app.schemas.application import (
     PortfolioSummaryResponse,
     ApplicationWithdrawRequest,
     ApplicationReviewActionRequest,
+    ApplicationAssistantWorkspaceResponse,
+    UpdateApplicationFieldsRequest,
+    StudentApproveApplicationRequest,
+    RecordExternalSubmissionRequest,
+    OfficialApiSubmissionRequest,
 )
 from app.schemas.application_ai import (
     ApplicationDraftRequest,
@@ -96,6 +103,13 @@ def _format_application_response(app: Application) -> ApplicationResponse:
         required_documents_total=len(required_reqs),
         required_documents_completed=len(completed_required),
         is_ready_for_submission=(app.status == "READY"),
+        preparation_status=app.preparation_status or ("READY_TO_SUBMIT" if app.status == "SUBMITTED" else ("READY_FOR_REVIEW" if app.status == "READY" else "IN_PROGRESS")),
+        submission_status=app.submission_status or ("SUBMITTED_EXTERNALLY" if app.status == "SUBMITTED" else "NOT_SUBMITTED"),
+        submission_mode=app.submission_mode or external_submission_service.classify_scholarship_integration(app.scholarship),
+        external_application_id=app.external_application_id,
+        external_submission_at=app.external_submission_at,
+        external_receipt_document_id=app.external_receipt_document_id,
+        student_consented_at=app.student_consented_at,
         progress=app.progress,
         personal_statement=app.personal_statement,
         started_at=app.started_at,
@@ -107,6 +121,8 @@ def _format_application_response(app: Application) -> ApplicationResponse:
         scholarship_amount=app.scholarship.amount,
         scholarship_deadline=app.scholarship.deadline,
         verification_status=app.scholarship.verification_status,
+        official_portal_url=app.scholarship.application_url if app.scholarship else None,
+        official_portal_name=app.scholarship.official_portal_name if app.scholarship else None,
         deadline_risk=risk_info,
         missing_requirements_count=len(missing_reqs),
         requirements=req_responses,
@@ -537,3 +553,179 @@ def check_application_claims(
         student_id=current_user.student_id,
         request=req
     )
+
+
+# ==============================================================================
+# Real Application Assistant Workspace & External Submission Endpoints
+# ==============================================================================
+
+@router.get(
+    "/{id}/assistant",
+    response_model=ApplicationAssistantWorkspaceResponse,
+    summary="Get Full Application Assistant Workspace",
+)
+def get_application_assistant_workspace(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieves the complete Application Assistant workspace for preparing,
+    validating, and submitting a scholarship application.
+    Enforces student ownership or admin authorization.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    return application_assistant_service.get_or_build_workspace(db, app)
+
+
+@router.put(
+    "/{id}/assistant/fields",
+    response_model=ApplicationAssistantWorkspaceResponse,
+    summary="Update Application Preparation Form Fields",
+)
+def update_application_form_fields(
+    id: int,
+    payload: UpdateApplicationFieldsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Updates student-confirmed answers in the application form checklist.
+    Enforces ownership and recalculates preparation readiness.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    return application_assistant_service.update_form_fields(
+        db=db,
+        application=app,
+        payload=payload,
+        actor_email=current_user.email,
+    )
+
+
+@router.post(
+    "/{id}/assistant/approve",
+    response_model=ApplicationAssistantWorkspaceResponse,
+    summary="Student Review and Approval of Application",
+)
+def student_approve_application(
+    id: int,
+    payload: StudentApproveApplicationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Explicit student consent step authorizing the prepared application package.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    return application_assistant_service.approve_and_consent(
+        db=db,
+        application=app,
+        payload=payload,
+        actor_email=current_user.email,
+    )
+
+
+@router.post(
+    "/{id}/assistant/record-external-submission",
+    response_model=ApplicationResponse,
+    summary="Record Verified External Application Submission",
+)
+def record_external_submission(
+    id: int,
+    payload: RecordExternalSubmissionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Records student-submitted proof of external statutory portal application
+    (e.g., National Scholarship Portal, TN SSP, Pudhumai Penn).
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    updated_app = external_submission_service.record_student_external_submission(
+        db=db,
+        application=app,
+        payload=payload,
+        actor_email=current_user.email,
+    )
+    return _format_application_response(updated_app)
+
+
+@router.post(
+    "/{id}/assistant/submit-api",
+    response_model=ApplicationResponse,
+    summary="Execute Official Direct API Submission",
+)
+def submit_via_official_api(
+    id: int,
+    payload: OfficialApiSubmissionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Executes a direct API submission to an authorized scholarship provider API.
+    Enforces idempotency, timeout protection, and explicit student consent.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    updated_app = external_submission_service.execute_official_api_submission(
+        db=db,
+        application=app,
+        payload=payload,
+        actor_email=current_user.email,
+    )
+    return _format_application_response(updated_app)
+
+
+@router.get(
+    "/{id}/assistant/export-dossier",
+    summary="Export Structured Application Dossier for External Portal",
+)
+def export_application_dossier(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Exports a clean, structured JSON dossier containing all verified fields,
+    personal statements, and document references to facilitate error-free
+    copy-paste into statutory government portals.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    workspace = application_assistant_service.get_or_build_workspace(db, app)
+    field_dict = {f.key: {"label": f.label, "value": f.value, "source": f.source} for f in workspace.fields}
+
+    return {
+        "scholarship_name": workspace.scholarship_name,
+        "official_portal": workspace.official_portal_name,
+        "official_url": workspace.official_portal_url,
+        "student_name": app.student.name if app.student else "",
+        "application_id": app.id,
+        "preparation_status": workspace.preparation_status,
+        "fields": field_dict,
+        "personal_statement": app.personal_statement,
+        "export_timestamp": datetime.now(timezone.utc).isoformat(),
+        "disclaimer": "AI assists. Official sources decide. Student approves.",
+    }

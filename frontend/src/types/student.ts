@@ -243,6 +243,15 @@ export interface ApplicationItem {
   required_documents_total?: number;
   required_documents_completed?: number;
   is_ready_for_submission?: boolean;
+  preparation_status?: string;
+  submission_status?: string;
+  submission_mode?: string;
+  external_application_id?: string | null;
+  external_submission_at?: string | null;
+  external_receipt_document_id?: number | null;
+  student_consented_at?: string | null;
+  official_portal_url?: string | null;
+  official_portal_name?: string | null;
   progress: number;
   personal_statement?: string | null;
   started_at: string;
@@ -737,4 +746,72 @@ export interface AdminDocumentItem {
 export interface AdminDocumentListResponse {
   total: number;
   documents: AdminDocumentItem[];
+}
+
+export interface ApplicationFormFieldItem {
+  key: string;
+  label: string;
+  field_group: string;
+  value?: string | number | boolean | null;
+  suggested_value?: string | number | boolean | null;
+  source: string;
+  verification_status: string;
+  is_required: boolean;
+  is_confirmed: boolean;
+  guidance?: string | null;
+  warning?: string | null;
+}
+
+export interface ApplicationAssistantWorkspace {
+  application_id: number;
+  scholarship_id: number;
+  scholarship_name: string;
+  scholarship_provider: string;
+  official_portal_name?: string | null;
+  official_portal_url?: string | null;
+  official_guideline_url?: string | null;
+  scholarship_deadline: string;
+  award_display?: string | null;
+  eligibility_summary?: string | null;
+  submission_mode: "OFFICIAL_API" | "AUTHORIZED_BROWSER_AUTOMATION" | "STUDENT_COMPLETED_EXTERNAL_SUBMISSION" | "NOT_INTEGRATED" | string;
+  preparation_status: "DRAFT" | "IN_PROGRESS" | "ACTION_REQUIRED" | "READY_FOR_REVIEW" | "READY_TO_SUBMIT" | string;
+  submission_status: "NOT_SUBMITTED" | "MANUAL_SUBMISSION_REQUIRED" | "SUBMISSION_IN_PROGRESS" | "SUBMITTED_EXTERNALLY" | "SUBMISSION_FAILED" | "REQUIRES_CONFIRMATION" | string;
+  status: string;
+  progress: number;
+  status_reason?: string | null;
+  student_consented: boolean;
+  student_consented_at?: string | null;
+  external_application_id?: string | null;
+  external_submission_at?: string | null;
+  external_receipt_document_id?: number | null;
+  fields: ApplicationFormFieldItem[];
+  documents: ApplicationRequirementItem[];
+  instructions: string[];
+  missing_mandatory_fields: string[];
+  unconfirmed_fields: string[];
+  discrepancies: string[];
+  is_ready_for_student_approval: boolean;
+  is_ready_for_external_submission: boolean;
+  status_history: Array<{
+    event_type?: string;
+    previous_status?: string;
+    new_status?: string;
+    actor?: string;
+    timestamp: string;
+    reason?: string;
+    confirmation_number?: string;
+    portal?: string;
+  }>;
+}
+
+export interface RecordExternalSubmissionPayload {
+  confirmation_number: string;
+  submitted_at?: string;
+  receipt_document_id?: number | null;
+  submission_notes?: string;
+}
+
+export interface OfficialApiSubmissionPayload {
+  idempotency_key?: string;
+  confirm_accuracy?: boolean;
 }

@@ -156,6 +156,16 @@ def run_schema_migrations(db_engine_or_conn):
                 ("status_history", "JSON", "JSON"),
                 ("reviewed_by", "VARCHAR(100)", "VARCHAR(100)"),
                 ("reviewed_at", "DATETIME", "TIMESTAMP WITH TIME ZONE"),
+                ("preparation_status", "VARCHAR(50) DEFAULT 'IN_PROGRESS'", "VARCHAR(50) DEFAULT 'IN_PROGRESS'"),
+                ("submission_status", "VARCHAR(50) DEFAULT 'NOT_SUBMITTED'", "VARCHAR(50) DEFAULT 'NOT_SUBMITTED'"),
+                ("submission_mode", "VARCHAR(50) DEFAULT 'STUDENT_COMPLETED_EXTERNAL_SUBMISSION'", "VARCHAR(50) DEFAULT 'STUDENT_COMPLETED_EXTERNAL_SUBMISSION'"),
+                ("form_data", "JSON", "JSON"),
+                ("external_application_id", "VARCHAR(255)", "VARCHAR(255)"),
+                ("external_submission_at", "DATETIME", "TIMESTAMP WITH TIME ZONE"),
+                ("external_receipt_document_id", "INTEGER", "INTEGER"),
+                ("external_response_payload", "JSON", "JSON"),
+                ("student_consented_at", "DATETIME", "TIMESTAMP WITH TIME ZONE"),
+                ("submission_notes", "TEXT", "TEXT"),
             ]
             for col_name, sqlite_type, pg_type in new_app_columns:
                 if col_name not in app_columns:
@@ -179,6 +189,10 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "ix_scholarships_application_window_status", "scholarships(application_window_status)"),
             ("student_profiles", "ix_student_profiles_admission_quota", "student_profiles(admission_quota)"),
             ("student_profiles", "ix_student_profiles_hosteller_status", "student_profiles(hosteller_status)"),
+            ("applications", "ix_applications_preparation_status", "applications(preparation_status)"),
+            ("applications", "ix_applications_submission_status", "applications(submission_status)"),
+            ("applications", "ix_applications_submission_mode", "applications(submission_mode)"),
+            ("applications", "ix_applications_external_application_id", "applications(external_application_id)"),
         ]
         for tbl, idx_name, cols in index_definitions:
             if tbl in existing_tables:
@@ -187,7 +201,7 @@ def run_schema_migrations(db_engine_or_conn):
                 except Exception as idx_err:
                     logger.warning(f"Note creating index {idx_name}: {idx_err}")
 
-        # 7. Idempotent default backfill for legacy rows with NULLs
+        # 8. Idempotent default backfill for legacy rows with NULLs
         first_grad_backfill = "is_first_graduate = FALSE WHERE is_first_graduate IS NULL" if dialect_name == "postgresql" else "is_first_graduate = 0 WHERE is_first_graduate IS NULL"
         backfill_updates = [
             ("users", "role = 'STUDENT' WHERE role IS NULL"),
@@ -207,6 +221,12 @@ def run_schema_migrations(db_engine_or_conn):
             ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
             ("student_profiles", first_grad_backfill),
             ("applications", "status_history = '[]' WHERE status_history IS NULL"),
+            ("applications", "preparation_status = 'READY_TO_SUBMIT' WHERE status = 'SUBMITTED' AND preparation_status IS NULL"),
+            ("applications", "preparation_status = 'READY_FOR_REVIEW' WHERE status = 'READY' AND preparation_status IS NULL"),
+            ("applications", "preparation_status = 'IN_PROGRESS' WHERE preparation_status IS NULL"),
+            ("applications", "submission_status = 'SUBMITTED_EXTERNALLY' WHERE status = 'SUBMITTED' AND submission_status IS NULL"),
+            ("applications", "submission_status = 'NOT_SUBMITTED' WHERE submission_status IS NULL"),
+            ("applications", "submission_mode = 'STUDENT_COMPLETED_EXTERNAL_SUBMISSION' WHERE submission_mode IS NULL"),
             ("applications", "status_reason = 'Required documents are still missing.' WHERE status = 'IN_PROGRESS' AND status_reason IS NULL"),
             ("applications", "status_reason = 'All required documents have been uploaded and passed automated checks.' WHERE status = 'READY' AND status_reason IS NULL"),
             ("applications", "status_reason = 'Application submitted and recorded.' WHERE status = 'SUBMITTED' AND status_reason IS NULL"),

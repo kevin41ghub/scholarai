@@ -157,12 +157,14 @@ class ApplicationStatusService:
                     actor="system",
                     reason="All required documents have been uploaded and passed automated checks.",
                 )
+                application.preparation_status = "READY_FOR_REVIEW"
                 application.status_reason = (
                     "All required documents have been uploaded and passed automated checks. "
                     "Application is ready for student review and submission."
                 )
             else:
                 application.status = "IN_PROGRESS"
+                application.preparation_status = "ACTION_REQUIRED" if missing_required_names else "IN_PROGRESS"
                 if missing_required_names:
                     application.status_reason = (
                         f"Required documents are still missing or pending checks: {', '.join(missing_required_names)}."
@@ -178,10 +180,12 @@ class ApplicationStatusService:
                     actor="system",
                     reason=f"Required document removed or invalidated: {', '.join(missing_required_names)}.",
                 )
+                application.preparation_status = "ACTION_REQUIRED"
                 application.status_reason = (
                     f"Required documents are missing or pending checks: {', '.join(missing_required_names)}."
                 )
             else:
+                application.preparation_status = "READY_FOR_REVIEW" if not application.student_consented_at else "READY_TO_SUBMIT"
                 application.status_reason = (
                     "All required documents have been uploaded and passed automated checks. "
                     "Application is ready for student review and submission."
@@ -289,6 +293,9 @@ class ApplicationStatusService:
 
         now = datetime.now(timezone.utc)
         app.submitted_at = now
+        app.preparation_status = "READY_TO_SUBMIT"
+        if not app.submission_status or app.submission_status == "NOT_SUBMITTED":
+            app.submission_status = "MANUAL_SUBMISSION_REQUIRED"
         self._record_status_transition(
             app,
             new_status="SUBMITTED",

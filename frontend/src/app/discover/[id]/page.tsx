@@ -253,13 +253,13 @@ export default function ScholarshipDetailPage() {
             ) : isApplied ? (
               <div className="text-right space-y-1">
                 <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-block">
-                  Tracking Active ({scholarship.current_application?.progress.toFixed(0)}% Documented)
+                  Preparation Active ({scholarship.current_application?.progress.toFixed(0)}% Documented)
                 </span>
                 <Link
-                  href="/applications"
-                  className="block text-xs font-bold text-[#86192c] dark:text-[#fb7185] hover:underline"
+                  href={scholarship.current_application?.id ? `/applications/${scholarship.current_application.id}` : "/applications"}
+                  className="block text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
                 >
-                  Manage Application Dossier &rarr;
+                  Open Application Assistant &rarr;
                 </Link>
               </div>
             ) : (
@@ -267,9 +267,9 @@ export default function ScholarshipDetailPage() {
                 type="button"
                 onClick={handleStartApplication}
                 disabled={applying}
-                className="px-6 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
               >
-                {applying ? "Initiating Application Tracking..." : "Track This Opportunity in Portfolio"}
+                {applying ? "Opening Application Assistant..." : "Prepare Application with Assistant"}
               </button>
             )}
 

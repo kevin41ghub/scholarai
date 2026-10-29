@@ -46,12 +46,23 @@ class ApplicationResponse(BaseModel):
     required_documents_completed: int = 0
     is_ready_for_submission: bool = False
 
+    # Real Application Lifecycle & External Submission Tracking
+    preparation_status: Optional[str] = "IN_PROGRESS"
+    submission_status: Optional[str] = "NOT_SUBMITTED"
+    submission_mode: Optional[str] = "STUDENT_COMPLETED_EXTERNAL_SUBMISSION"
+    external_application_id: Optional[str] = None
+    external_submission_at: Optional[datetime] = None
+    external_receipt_document_id: Optional[int] = None
+    student_consented_at: Optional[datetime] = None
+
     # Linked scholarship data
     scholarship_name: str
     scholarship_provider: str
     scholarship_amount: float
     scholarship_deadline: datetime
     verification_status: str
+    official_portal_url: Optional[str] = None
+    official_portal_name: Optional[str] = None
 
     # Computed intelligence
     deadline_risk: Dict[str, Any]
@@ -89,3 +100,79 @@ class PortfolioSummaryResponse(BaseModel):
     primary_shared_blocker: Optional[Dict[str, Any]] = None
     top_next_best_action: Optional[Dict[str, Any]] = None
     upcoming_deadlines: List[Dict[str, Any]] = []
+
+
+# ==============================================================================
+# Real Application Assistant Workspace Schemas
+# ==============================================================================
+
+class ApplicationFormFieldItem(BaseModel):
+    key: str
+    label: str
+    field_group: str  # personal, academic, financial, eligibility, bank, statement
+    value: Optional[Any] = None
+    suggested_value: Optional[Any] = None
+    source: str  # STUDENT_PROFILE, DOCUMENT_EXTRACTED, ACHIEVEMENTS_VAULT, MANUAL_ENTRY, SCHOLARSHIP_RULE
+    verification_status: str  # OFFICIALLY_VERIFIED, STUDENT_PROVIDED, UNVERIFIED
+    is_required: bool = True
+    is_confirmed: bool = False
+    guidance: Optional[str] = None
+    warning: Optional[str] = None
+
+
+class ApplicationAssistantWorkspaceResponse(BaseModel):
+    application_id: int
+    scholarship_id: int
+    scholarship_name: str
+    scholarship_provider: str
+    official_portal_name: Optional[str] = None
+    official_portal_url: Optional[str] = None
+    official_guideline_url: Optional[str] = None
+    scholarship_deadline: datetime
+    award_display: Optional[str] = None
+    eligibility_summary: Optional[str] = None
+
+    submission_mode: str  # OFFICIAL_API, AUTHORIZED_BROWSER_AUTOMATION, STUDENT_COMPLETED_EXTERNAL_SUBMISSION, NOT_INTEGRATED
+    preparation_status: str  # DRAFT, IN_PROGRESS, ACTION_REQUIRED, READY_FOR_REVIEW, READY_TO_SUBMIT
+    submission_status: str  # NOT_SUBMITTED, MANUAL_SUBMISSION_REQUIRED, SUBMISSION_IN_PROGRESS, SUBMITTED_EXTERNALLY, SUBMISSION_FAILED, REQUIRES_CONFIRMATION
+    status: str  # High-level state
+    progress: float
+    status_reason: Optional[str] = None
+
+    student_consented: bool = False
+    student_consented_at: Optional[datetime] = None
+    external_application_id: Optional[str] = None
+    external_submission_at: Optional[datetime] = None
+    external_receipt_document_id: Optional[int] = None
+
+    fields: List[ApplicationFormFieldItem] = []
+    documents: List[ApplicationRequirementResponse] = []
+    instructions: List[str] = []
+    missing_mandatory_fields: List[str] = []
+    unconfirmed_fields: List[str] = []
+    discrepancies: List[str] = []
+
+    is_ready_for_student_approval: bool = False
+    is_ready_for_external_submission: bool = False
+    status_history: List[Dict[str, Any]] = []
+
+
+class UpdateApplicationFieldsRequest(BaseModel):
+    fields: Dict[str, Any] = Field(..., description="Mapping of field key to either string value or object with value and is_confirmed")
+
+
+class StudentApproveApplicationRequest(BaseModel):
+    consent: bool = Field(True, description="Student confirmation that all information is truthful and verified")
+    statement_confirmation: Optional[str] = None
+
+
+class RecordExternalSubmissionRequest(BaseModel):
+    confirmation_number: str = Field(..., min_length=2, max_length=255, description="Official external confirmation or acknowledgment number")
+    submitted_at: Optional[datetime] = None
+    receipt_document_id: Optional[int] = None
+    submission_notes: Optional[str] = None
+
+
+class OfficialApiSubmissionRequest(BaseModel):
+    idempotency_key: Optional[str] = Field(None, max_length=128)
+    confirm_accuracy: bool = Field(True, description="Explicit student authorization for transmitting payload")

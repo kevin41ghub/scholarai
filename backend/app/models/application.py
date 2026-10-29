@@ -34,6 +34,37 @@ class Application(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     submitted_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Real Application Assistant & External Submission Tracking
+    preparation_status = Column(
+        String(50),
+        default="IN_PROGRESS",
+        nullable=False,
+        index=True,
+    )  # DRAFT, IN_PROGRESS, ACTION_REQUIRED, READY_FOR_REVIEW, READY_TO_SUBMIT
+    submission_status = Column(
+        String(50),
+        default="NOT_SUBMITTED",
+        nullable=False,
+        index=True,
+    )  # NOT_SUBMITTED, MANUAL_SUBMISSION_REQUIRED, SUBMISSION_IN_PROGRESS, SUBMITTED_EXTERNALLY, SUBMISSION_FAILED, REQUIRES_CONFIRMATION
+    submission_mode = Column(
+        String(50),
+        default="STUDENT_COMPLETED_EXTERNAL_SUBMISSION",
+        nullable=False,
+        index=True,
+    )  # OFFICIAL_API, AUTHORIZED_BROWSER_AUTOMATION, STUDENT_COMPLETED_EXTERNAL_SUBMISSION, NOT_INTEGRATED
+    form_data = Column(JSON, nullable=True)
+    external_application_id = Column(String(255), nullable=True, index=True)
+    external_submission_at = Column(DateTime(timezone=True), nullable=True)
+    external_receipt_document_id = Column(
+        Integer,
+        ForeignKey("documents.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    external_response_payload = Column(JSON, nullable=True)
+    student_consented_at = Column(DateTime(timezone=True), nullable=True)
+    submission_notes = Column(Text, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -48,3 +79,4 @@ class Application(Base):
         back_populates="application",
         cascade="all, delete-orphan",
     )
+    external_receipt_document = relationship("Document", foreign_keys=[external_receipt_document_id])
