@@ -118,14 +118,18 @@ def test_shared_blocker_and_cascade_unblocking(auth_client):
     assert summary["primary_shared_blocker"] is not None
     assert summary["primary_shared_blocker"]["document_type"] == "INCOME_CERTIFICATE"
 
-    # 3. Simulate student marking Income Certificate as AVAILABLE
-    res_patch = auth_client.patch(
-        f"/api/v1/documents/{income_doc['id']}",
-        json={"status": "AVAILABLE"}
+    # 3. Upload valid Income Certificate through automated upload workflow
+    import io
+    valid_pdf = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 53 >>\nstream\nBT /F1 12 Tf 100 700 Td (This is to certify that Arjun Kumar) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000204 00000 n \ntrailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n308\n%%EOF"
+    files = {"file": ("income_cert.pdf", io.BytesIO(valid_pdf), "application/pdf")}
+    res_upload = auth_client.post(
+        "/api/v1/documents/upload",
+        files=files,
+        data={"document_type": "INCOME_CERTIFICATE", "notes": "Issued by Tahsildar"}
     )
-    assert res_patch.status_code == 200
-    updated_doc = res_patch.json()
-    assert updated_doc["status"] == "AVAILABLE"
+    assert res_upload.status_code == 201
+    updated_doc = res_upload.json()
+    assert updated_doc["status"] in ["AVAILABLE", "VERIFIED"]
     assert updated_doc["is_shared_blocker"] is False
 
     # 4. Verify CASCADE UNBLOCKING:

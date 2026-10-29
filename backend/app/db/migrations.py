@@ -148,7 +148,27 @@ def run_schema_migrations(db_engine_or_conn):
                     except Exception as sp_err:
                         logger.warning(f"Could not add column {col_name} to student_profiles: {sp_err}")
 
-        # 6. Ensure performance and constraint indexes exist
+        # 6. Update applications table if it exists
+        if "applications" in existing_tables:
+            app_columns = {col["name"] for col in inspector.get_columns("applications")}
+            new_app_columns = [
+                ("status_reason", "TEXT", "TEXT"),
+                ("status_history", "JSON", "JSON"),
+                ("reviewed_by", "VARCHAR(100)", "VARCHAR(100)"),
+                ("reviewed_at", "DATETIME", "TIMESTAMP WITH TIME ZONE"),
+            ]
+            for col_name, sqlite_type, pg_type in new_app_columns:
+                if col_name not in app_columns:
+                    logger.info(f"Adding column '{col_name}' to 'applications' table...")
+                    try:
+                        if dialect_name == "postgresql":
+                            conn.execute(text(f"ALTER TABLE applications ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                        else:
+                            conn.execute(text(f"ALTER TABLE applications ADD COLUMN {col_name} {sqlite_type}"))
+                    except Exception as app_err:
+                        logger.warning(f"Could not add column {col_name} to applications: {app_err}")
+
+        # 7. Ensure performance and constraint indexes exist
         index_definitions = [
             ("documents", "ix_documents_content_hash", "documents(content_hash)"),
             ("scholarships", "ix_scholarships_dossier_index", "scholarships(dossier_index)"),
@@ -186,6 +206,11 @@ def run_schema_migrations(db_engine_or_conn):
             ("student_profiles", "admission_quota = 'GOVERNMENT_QUOTA' WHERE admission_quota IS NULL"),
             ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
             ("student_profiles", first_grad_backfill),
+            ("applications", "status_history = '[]' WHERE status_history IS NULL"),
+            ("applications", "status_reason = 'Required documents are still missing.' WHERE status = 'IN_PROGRESS' AND status_reason IS NULL"),
+            ("applications", "status_reason = 'All required documents have been uploaded and passed automated checks.' WHERE status = 'READY' AND status_reason IS NULL"),
+            ("applications", "status_reason = 'Application submitted and recorded.' WHERE status = 'SUBMITTED' AND status_reason IS NULL"),
+            ("applications", "status_reason = 'Application status: ' || status WHERE status_reason IS NULL"),
         ]
         for tbl, set_clause in backfill_updates:
             if tbl in existing_tables:

@@ -10,8 +10,10 @@ class ApplicationRequirementResponse(BaseModel):
     document_type: str
     type: str
     is_required: bool
-    status: str  # MISSING, AVAILABLE, VERIFIED, NOT_REQUIRED, NEEDS_VERIFICATION
+    status: str  # MISSING, AVAILABLE, VERIFIED, NOT_REQUIRED, NEEDS_VERIFICATION, REJECTED
     document_id: Optional[int] = None
+    verification_status: Optional[str] = None
+    document_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -34,6 +36,15 @@ class ApplicationResponse(BaseModel):
     submitted_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+
+    # Automatic status engine & audit fields
+    status_reason: Optional[str] = None
+    status_history: Optional[List[Dict[str, Any]]] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    required_documents_total: int = 0
+    required_documents_completed: int = 0
+    is_ready_for_submission: bool = False
 
     # Linked scholarship data
     scholarship_name: str
@@ -59,6 +70,15 @@ class ApplicationCreate(BaseModel):
 class ApplicationUpdate(BaseModel):
     status: Optional[str] = Field(None, pattern="^(NOT_STARTED|IN_PROGRESS|READY|SUBMITTED|UNDER_REVIEW|APPROVED|REJECTED|WITHDRAWN)$")
     personal_statement: Optional[str] = None
+
+
+class ApplicationWithdrawRequest(BaseModel):
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for withdrawal")
+
+
+class ApplicationReviewActionRequest(BaseModel):
+    action: str = Field(..., pattern="^(UNDER_REVIEW|APPROVE|REJECT)$", description="Review action")
+    reason: str = Field(..., min_length=3, max_length=1000, description="Audit justification for action")
 
 
 class PortfolioSummaryResponse(BaseModel):

@@ -12,6 +12,7 @@ from app.services.dependency_service import dependency_service
 from app.services.storage_service import storage_service
 from app.services.extraction_service import extraction_service
 from app.services.verification_service import verification_service
+from app.services.application_status_service import application_status_service
 from app.schemas.document import (
     DocumentResponse,
     DocumentCreate,
@@ -210,8 +211,9 @@ async def upload_document(
     db.commit()
     db.refresh(doc)
 
-    # 6. Cascade unblocking
+    # 6. Cascade unblocking & automatic application status reconciliation
     dependency_service.sync_document_to_requirements(db, student.id, doc)
+    application_status_service.reconcile_student_applications(db, student.id)
 
     # Return enriched response
     dep_data = dependency_service.get_dependency_graph(db, student.id)
@@ -225,24 +227,34 @@ async def upload_document(
 def create_document(
     payload: DocumentCreate,
     current_student: Student = Depends(get_current_student),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     student = current_student
+    user_role = getattr(current_user, "role", "STUDENT")
+
+    # Server-side security: Students cannot manually declare documents AVAILABLE or VERIFIED without file upload.
+    # When a student creates a document entry to track an expected requirement, force status to MISSING
+    # until actual validated file upload occurs via POST /api/v1/documents/upload.
+    initial_status = payload.status
+    if user_role not in ["ADMIN", "REVIEWER"]:
+        initial_status = "MISSING"
 
     new_doc = Document(
         student_id=student.id,
         name=payload.name.strip(),
         document_type=payload.document_type.strip().upper(),
-        status=payload.status,
+        status=initial_status,
         notes=payload.notes,
-        uploaded_at=datetime.now(timezone.utc) if payload.status in ["AVAILABLE", "VERIFIED"] else None,
+        uploaded_at=datetime.now(timezone.utc) if initial_status in ["AVAILABLE", "VERIFIED"] else None,
     )
     db.add(new_doc)
     db.commit()
     db.refresh(new_doc)
 
-    # Run cascade update
+    # Run cascade update and application reconciliation
     dependency_service.sync_document_to_requirements(db, student.id, new_doc)
+    application_status_service.reconcile_student_applications(db, student.id)
 
     dep_data = dependency_service.get_dependency_graph(db, student.id)
     blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}
@@ -375,6 +387,7 @@ def re_extract_document(
     db.refresh(doc)
 
     dependency_service.sync_document_to_requirements(db, doc.student_id, doc)
+    application_status_service.reconcile_student_applications(db, doc.student_id)
 
     dep_data = dependency_service.get_dependency_graph(db, doc.student_id)
     blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}
@@ -394,6 +407,16 @@ def update_document(
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     verify_student_access(current_user, doc.student_id)
+
+    user_role = getattr(current_user, "role", "STUDENT")
+    if payload.status is not None and payload.status != doc.status and user_role not in ["ADMIN", "REVIEWER"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Direct manual modification of document availability status is forbidden. "
+                "Document availability is determined automatically by the backend upon file upload."
+            ),
+        )
 
     status_changed = False
     if payload.name is not None:
@@ -415,6 +438,7 @@ def update_document(
 
     if status_changed:
         dependency_service.sync_document_to_requirements(db, doc.student_id, doc)
+        application_status_service.reconcile_student_applications(db, doc.student_id)
 
     dep_data = dependency_service.get_dependency_graph(db, doc.student_id)
     blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}
@@ -463,10 +487,10 @@ def delete_document(
     db.delete(doc)
     db.commit()
 
-    # 4. Trigger cascade update
-    # Create a temporary dummy doc to re-evaluate requirements
+    # 4. Trigger cascade update and recalculate application status
     dummy_doc = Document(student_id=student_id, document_type=document_type, status="MISSING")
     dependency_service.sync_document_to_requirements(db, student_id, dummy_doc)
+    application_status_service.reconcile_student_applications(db, student_id)
 
     return {"message": "Document deleted successfully", "id": id}
 
@@ -525,6 +549,7 @@ def review_document(
     db.refresh(doc)
 
     dependency_service.sync_document_to_requirements(db, doc.student_id, doc)
+    application_status_service.reconcile_student_applications(db, doc.student_id)
 
     dep_data = dependency_service.get_dependency_graph(db, doc.student_id)
     blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}

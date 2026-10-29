@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, func, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey, JSON, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -25,6 +25,10 @@ class Application(Base):
         nullable=False,
         index=True,
     )  # NOT_STARTED, IN_PROGRESS, READY, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WITHDRAWN
+    status_reason = Column(Text, nullable=True)
+    status_history = Column(JSON, nullable=True)
+    reviewed_by = Column(String(100), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
     progress = Column(Float, default=0.0, nullable=False)
     personal_statement = Column(Text, nullable=True)
     started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

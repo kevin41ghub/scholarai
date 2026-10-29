@@ -216,8 +216,10 @@ export interface ApplicationRequirementItem {
   document_type: string;
   type: string;
   is_required: boolean;
-  status: "MISSING" | "AVAILABLE" | "VERIFIED" | "NOT_REQUIRED" | "NEEDS_VERIFICATION";
+  status: "MISSING" | "UPLOADED" | "PROCESSING" | "AVAILABLE" | "VERIFIED" | "NOT_REQUIRED" | "NEEDS_VERIFICATION" | "REJECTED";
   document_id?: number | null;
+  verification_status?: string | null;
+  document_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -227,6 +229,20 @@ export interface ApplicationItem {
   student_id: number;
   scholarship_id: number;
   status: string;
+  status_reason?: string | null;
+  status_history?: Array<{
+    previous_status?: string;
+    new_status?: string;
+    event_type?: string;
+    timestamp: string;
+    actor: string;
+    reason: string;
+  }> | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  required_documents_total?: number;
+  required_documents_completed?: number;
+  is_ready_for_submission?: boolean;
   progress: number;
   personal_statement?: string | null;
   started_at: string;

@@ -338,20 +338,78 @@ The planner adapts dynamically to portfolio events:
 
 ---
 
+---
+
+## 7. Automated Document Verification & Application Status Engine
+
+SCHOLARAi enforces an authoritative backend engine for application status and document availability, eliminating student-side status manipulation and conforming strictly to the core principle: **"AI assists. Official sources decide. Student approves."**
+
+### Core Invariants
+
+1. **Server-Side Status Authority**: Application status and document availability are calculated dynamically by backend services (`application_status_service.py`, `dependency_service.py`, `verification_service.py`, `storage_service.py`). Students cannot declare documents AVAILABLE or manually change an application's status via dropdowns or direct API calls.
+2. **Readiness vs. Verification Separation**:
+   - `MISSING`: No document file uploaded.
+   - `UPLOADED` / `PROCESSING`: Document file successfully stored in local/S3 backend and content hash verified; automated OCR/extraction running.
+   - `AVAILABLE`: Document file stored and passed basic integrity checks (magic byte MIME validation, extension check, size limit, student ownership).
+   - `VERIFIED`: Document has undergone rule-based transparent verification or official authority review.
+   - `REQUIRES_REVIEW`: AI/rule checks encountered ambiguities or unconfirmed official stamps; requires institutional officer action.
+   - `REJECTED`: Document failed integrity checks or was rejected by an authorized reviewer.
+3. **Application State Machine**:
+   - `IN_PROGRESS`: One or more mandatory documents are missing, invalid, or processing.
+   - `READY`: All required documents have been uploaded and passed readiness checks. Missing optional documents do not prevent readiness.
+   - `SUBMITTED`: Explicitly confirmed by the student via `POST /api/v1/applications/{id}/submit` when the application is in `READY` status.
+   - `UNDER_REVIEW`: Institutional authority placed application in review via `POST /api/v1/applications/{id}/review` (Role: `REVIEWER` or `ADMIN`).
+   - `APPROVED`: Institutional authority confirmed approval.
+   - `REJECTED`: Institutional authority confirmed rejection.
+   - `WITHDRAWN`: Student or reviewer explicitly withdrew an active application with an audited reason.
+4. **Tamper-Evident Audit History**: Every state transition is recorded in `applications.status_history` containing `previous_status`, `new_status`, `changed_at`, `actor`, `reason`, and `automatic`.
+5. **Reconciliation Triggers**: Application readiness and checklist requirements are automatically reconciled whenever:
+   - A document is uploaded, replaced, or deleted.
+   - A document is reviewed or re-extracted.
+   - An application is opened or fetched via the API.
+   - A new application is created.
+
+---
+
 ## 8. Quality Assurance & Verification
 
 SCHOLARAi maintains end-to-end automated test and build verification across both backend and frontend layers:
 
-### Backend Test Suite (34 Verified Tests)
-The backend test suite runs via `pytest` and validates all critical security, business logic, intelligence, and integration pathways:
-1. **Deterministic Matching & Cascades (7 tests — `test_block2.py`)**:
+### Backend Test Suite (110 Verified Tests)
+The backend test suite runs via `pytest` and validates all critical security, business logic, intelligence, and integration pathways (110 passed, 0 failed):
+1. **Automated Verification & Status Engine (18 tests — `test_automated_verification_workflow.py`)**:
+   - Application remains `IN_PROGRESS` when required documents are missing.
+   - Document upload automatically transitions requirement from `MISSING` to `AVAILABLE`.
+   - Application automatically transitions to `READY` when all required documents are complete.
+   - Optional document requirements do not block `READY` status.
+   - Magic byte MIME verification and file type validation reject disguised executable binaries.
+   - File size limits (10MB) strictly enforced with clean 413 responses.
+   - Replacement document uploads recalculate readiness and maintain audit history.
+   - Document deletion automatically revokes `AVAILABLE` status and cascades application to `IN_PROGRESS`.
+   - Missing documents correctly calculate requirement completion counts and percentages.
+   - Submitting an incomplete (`IN_PROGRESS`) application is rejected with 400 Bad Request.
+   - Student cannot manipulate status, availability, or checklist items via API tampering (403 Forbidden / forced `MISSING`).
+   - Multi-tenant student isolation ensures students cannot view, modify, or delete other students' applications or documents.
+   - Reviewer role-based access control enforces `REVIEWER`/`ADMIN` role for `UNDER_REVIEW`, `APPROVED`, and `REJECTED` transitions.
+   - Student self-withdrawal transitions active applications to `WITHDRAWN` with audit reasons.
+   - Terminal states (`APPROVED`, `REJECTED`, `WITHDRAWN`) cannot be submitted or transitioned improperly.
+   - Non-destructive schema migrations and backfills support both SQLite and PostgreSQL.
+   - Audit trail records actor, reason, timestamps, and transition metadata.
+   - Concurrent document uploads safely reconcile requirements within database transactions.
+2. **Deterministic Matching & Cascades (7 tests — `test_block2.py`)**:
    - Scholarship discovery, filtering, and deterministic rule evaluation
    - Detailed scheme requirements and dynamic funding impact calculation
    - Duplicate application prevention
    - Shared blocker resolution and multi-application cascade unblocking
    - Deterministic next-best-action priority ranking
    - Weekly effort planning and target allocation
-2. **Intelligence, Evidence & RAG Pipelines (10 tests — `test_block3.py`)**:
+3. **Multi-Tenant Security & Auth Isolation (7 tests — `test_auth_isolation.py`)**:
+   - Unauthenticated access rejection with HTTP 401 across all protected routes
+   - Tampered and expired session token rejection
+   - Multi-tenant data isolation between user accounts
+   - IDOR prevention and cross-account rejection
+   - Cookie security configuration across development and production
+4. **Intelligence, Evidence & RAG Pipelines (10 tests — `test_block3.py`)**:
    - Secure user registration, authentication, and session cookie issuance
    - Verified Evidence Bank CRUD and status transitions
    - RAG knowledge retrieval and verified source citation preservation
@@ -361,7 +419,7 @@ The backend test suite runs via `pytest` and validates all critical security, bu
    - Snapshot diffing, change monitoring, and high-severity alert triggering
    - Multilingual voice decoder (English, Tamil, Tanglish) with confirmation
    - Prompt injection defanging and SSRF safe-URL validation
-3. **Production Hardening & AI Providers (7 tests — `test_block4.py`)**:
+5. **Production Hardening & AI Providers (8 tests — `test_block4.py`)**:
    - Enforcement that production security rejects default session secrets
    - Rejection of wildcard CORS in production environments
    - Production requirement for real AI API keys
@@ -369,7 +427,17 @@ The backend test suite runs via `pytest` and validates all critical security, bu
    - OpenAI-compatible provider schema and timeout validation
    - Official Google Gemini SDK provider validation
    - Provider factory switching and secret redaction in exception logs
-4. **Health & Student Domain Validation (10 tests — `test_health.py` & `test_student.py`)**:
+6. **Document Upload & Secure Storage (11 tests — `test_document_upload.py`)**:
+   - Local and S3 storage adapters
+   - SHA-256 content deduplication and integrity hashing
+   - Multipart file upload validation and directory sandboxing
+7. **PostgreSQL Compatibility & Migrations (6 tests — `test_schema_migration_postgres_compatibility.py`)**:
+   - Safe column addition without table rewrites
+   - SQLite and PostgreSQL dialect compatibility
+8. **Scholarship Import & Tamil Nadu Verified Catalog (20 tests — `test_scholarship_import_pipeline.py` & `test_tn_scholarships.py`)**:
+   - Pipeline schema validations, duplicate prevention, and automated retirements
+   - Verified Tamil Nadu scholarship catalog synchronization
+9. **Health & Student Domain Validation (13 tests — `test_health.py`, `test_student.py`, `test_student_profile_attributes.py`)**:
    - Health check and root ping endpoints
    - Student profile and dynamic funding gap calculations
    - Non-negative funding gap boundary conditions when financial aid exceeds costs
@@ -377,7 +445,7 @@ The backend test suite runs via `pytest` and validates all critical security, bu
 
 ### Frontend Typecheck & Build Validation
 - **TypeScript 5 Type Safety**: Zero-error compilation verified via Next.js compiler / Turbopack (`npm run build`).
-- **Route Generation**: Successfully validates static prerendering and dynamic server-rendering across all 11 client pages (`/`, `/discover`, `/discover/[id]`, `/applications`, `/documents`, `/evidence`, `/assistant`, `/goal`, `/profile`, `/login`, `/register`).
+- **Route Generation**: Successfully validates static prerendering and dynamic server-rendering across all 13 client pages (`/`, `/_not-found`, `/discover`, `/discover/[id]`, `/applications`, `/documents`, `/evidence`, `/assistant`, `/goal`, `/profile`, `/login`, `/register`, `/settings`).
 
 ---
 

@@ -129,24 +129,8 @@ class DependencyService:
                     app_modified = True
 
             if app_modified:
-                # Recalculate progress for this application
-                total_reqs = len(app.requirements)
-                completed_reqs = sum(
-                    1 for r in app.requirements
-                    if r.status in ["AVAILABLE", "VERIFIED"]
-                )
-
-                if total_reqs > 0:
-                    app.progress = round((completed_reqs / total_reqs) * 100.0, 1)
-                else:
-                    app.progress = 100.0
-
-                # Advance status if all required items are available
-                if app.progress >= 99.9 and app.status == "IN_PROGRESS":
-                    app.status = "READY"
-                elif app.progress < 99.9 and app.status == "READY":
-                    app.status = "IN_PROGRESS"
-
+                from app.services.application_status_service import application_status_service
+                application_status_service.reconcile_application_requirements(db, app)
                 affected_apps_count += 1
 
         db.commit()

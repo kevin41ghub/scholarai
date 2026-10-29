@@ -172,6 +172,25 @@ export async function updateApplication(id: number, payload: { status?: string; 
   });
 }
 
+export async function submitApplication(id: number): Promise<ApplicationItem> {
+  return request<ApplicationItem>(`/api/v1/applications/${id}/submit`, {
+    method: "POST",
+  });
+}
+
+export async function withdrawApplication(id: number, reason?: string): Promise<ApplicationItem> {
+  return request<ApplicationItem>(`/api/v1/applications/${id}/withdraw`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function reconcileApplication(id: number): Promise<ApplicationItem> {
+  return request<ApplicationItem>(`/api/v1/applications/${id}/reconcile`, {
+    method: "POST",
+  });
+}
+
 export async function updateApplicationRequirement(
   appId: number,
   reqId: number,

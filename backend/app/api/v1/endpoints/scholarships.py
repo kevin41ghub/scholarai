@@ -9,6 +9,7 @@ from app.models.user import User
 from app.services.eligibility_service import eligibility_service
 from app.services.deadline_risk_service import deadline_risk_service
 from app.services.scholarship_import_service import scholarship_import_service
+from app.services.application_status_service import application_status_service
 from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
 from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
@@ -440,42 +441,8 @@ def apply_to_scholarship(
     db.add(new_app)
     db.flush()
 
-    # Link requirements based on student's existing documents
-    docs_by_type = {
-        doc.document_type: doc
-        for doc in student.documents
-    }
-
-    completed_count = 0
-    total_reqs = len(scholarship.requirements)
-
-    for req in scholarship.requirements:
-        matched_doc = docs_by_type.get(req.document_type)
-        req_status = matched_doc.status if matched_doc else "MISSING"
-        doc_id = matched_doc.id if matched_doc else None
-
-        if req_status in ["AVAILABLE", "VERIFIED"]:
-            completed_count += 1
-
-        app_req = ApplicationRequirement(
-            application_id=new_app.id,
-            name=req.name,
-            document_type=req.document_type,
-            type=req.type,
-            is_required=req.is_required,
-            status=req_status,
-            document_id=doc_id,
-        )
-        db.add(app_req)
-
-    # Compute initial progress
-    if total_reqs > 0:
-        new_app.progress = round((completed_count / total_reqs) * 100.0, 1)
-        if new_app.progress >= 99.9:
-            new_app.status = "READY"
-    else:
-        new_app.progress = 100.0
-        new_app.status = "READY"
+    # Centralized requirement reconciliation and readiness engine
+    application_status_service.reconcile_application_requirements(db, new_app)
 
     db.commit()
     db.refresh(new_app)

@@ -783,6 +783,14 @@ def init_db(db: Session) -> None:
                     student_id=student.id,
                     scholarship_id=scholarship.id,
                     status="IN_PROGRESS",
+                    status_reason="Required documents are still missing or pending checks (Income Certificate).",
+                    status_history=[{
+                        "previous_status": "NOT_STARTED",
+                        "new_status": "IN_PROGRESS",
+                        "timestamp": (datetime.now(timezone.utc) - timedelta(days=6)).isoformat(),
+                        "actor": "system",
+                        "reason": "Application started by student. Missing Income Certificate.",
+                    }],
                     progress=75.0 if s_name != "Free Education Scheme for 3-Year Degree Students (BC/MBC/DNC)" else 66.7,
                     personal_statement="I am a second-year B.Sc Computer Science student at Loyola College (Autonomous), Chennai. I require financial assistance to meet tuition fees and laboratory materials.",
                     started_at=datetime.now(timezone.utc) - timedelta(days=6)

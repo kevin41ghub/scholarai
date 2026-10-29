@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   getApplications,
   updateApplication,
-  updateApplicationRequirement,
+  submitApplication,
+  withdrawApplication,
   formatINR,
   draftApplicationAnswer,
   reviewApplicationAnswer,
@@ -52,8 +53,13 @@ export default function ApplicationsPage() {
   // Expanded application details / drawer state
   const [expandedAppId, setExpandedAppId] = useState<number | null>(null);
   const [statementDrafts, setStatementDrafts] = useState<Record<number, string>>({});
-  const [updatingReqId, setUpdatingReqId] = useState<number | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Authorized Workflow Modals State
+  const [showSubmitModalFor, setShowSubmitModalFor] = useState<ApplicationItem | null>(null);
+  const [showWithdrawModalFor, setShowWithdrawModalFor] = useState<ApplicationItem | null>(null);
+  const [withdrawalReason, setWithdrawalReason] = useState<string>("");
+  const [isWorkflowActionLoading, setIsWorkflowActionLoading] = useState<boolean>(false);
 
   // Quick Document Upload Modal State
   const [uploadTarget, setUploadTarget] = useState<QuickUploadTarget | null>(null);
@@ -92,13 +98,32 @@ export default function ApplicationsPage() {
     return () => clearTimeout(timer);
   }, [loadApps]);
 
-  const handleStatusChange = async (appId: number, newStatus: string) => {
+  const handleConfirmSubmit = async (appId: number) => {
     try {
-      await updateApplication(appId, { status: newStatus });
-      setSuccessToast(`Application status updated to ${newStatus}.`);
+      setIsWorkflowActionLoading(true);
+      const updated = await submitApplication(appId);
+      setShowSubmitModalFor(null);
+      setSuccessToast(`Application for ${updated.scholarship_name} submitted successfully! Status: ${updated.status}.`);
       await loadApps();
     } catch (err: unknown) {
-      setError((err as Error)?.message || "Failed to update application status.");
+      setError((err as Error)?.message || "Failed to submit application.");
+    } finally {
+      setIsWorkflowActionLoading(false);
+    }
+  };
+
+  const handleConfirmWithdraw = async (appId: number) => {
+    try {
+      setIsWorkflowActionLoading(true);
+      const updated = await withdrawApplication(appId, withdrawalReason.trim() || undefined);
+      setShowWithdrawModalFor(null);
+      setWithdrawalReason("");
+      setSuccessToast(`Application for ${updated.scholarship_name} has been withdrawn.`);
+      await loadApps();
+    } catch (err: unknown) {
+      setError((err as Error)?.message || "Failed to withdraw application.");
+    } finally {
+      setIsWorkflowActionLoading(false);
     }
   };
 
@@ -110,20 +135,6 @@ export default function ApplicationsPage() {
       await loadApps();
     } catch (err: unknown) {
       setError((err as Error)?.message || "Failed to save statement.");
-    }
-  };
-
-  const handleRequirementStatusToggle = async (appId: number, reqId: number, currentStatus: string) => {
-    try {
-      setUpdatingReqId(reqId);
-      const nextStatus = currentStatus === "AVAILABLE" ? "MISSING" : "AVAILABLE";
-      await updateApplicationRequirement(appId, reqId, { status: nextStatus });
-      setSuccessToast(`Requirement marked as ${nextStatus}. Progress recalculated.`);
-      await loadApps();
-    } catch (err: unknown) {
-      setError((err as Error)?.message || "Failed to update requirement status.");
-    } finally {
-      setUpdatingReqId(null);
     }
   };
 
@@ -278,6 +289,69 @@ export default function ApplicationsPage() {
     }
   };
 
+  const renderStatusBadge = (statusStr: string) => {
+    switch (statusStr) {
+      case "IN_PROGRESS":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            IN_PROGRESS
+          </span>
+        );
+      case "READY":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            READY
+          </span>
+        );
+      case "SUBMITTED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30">
+            <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            SUBMITTED
+          </span>
+        );
+      case "UNDER_REVIEW":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/30">
+            <span className="w-2 h-2 rounded-full bg-purple-500" />
+            UNDER_REVIEW
+          </span>
+        );
+      case "APPROVED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+            APPROVED
+          </span>
+        );
+      case "REJECTED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            REJECTED
+          </span>
+        );
+      case "WITHDRAWN":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30">
+            WITHDRAWN
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            {statusStr}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -350,8 +424,14 @@ export default function ApplicationsPage() {
         <div className="space-y-4">
           {applications.map((app) => {
             const isExpanded = expandedAppId === app.id;
-            const completedReqs = app.requirements.filter(r => r.status === "AVAILABLE" || r.status === "VERIFIED").length;
-            const totalReqs = app.requirements.length;
+            const requiredReqs = app.requirements.filter((r) => r.is_required);
+            const completedRequired = requiredReqs.filter(
+              (r) => r.status === "AVAILABLE" || r.status === "VERIFIED"
+            );
+            const optionalReqs = app.requirements.filter((r) => !r.is_required);
+            const completedOptional = optionalReqs.filter(
+              (r) => r.status === "AVAILABLE" || r.status === "VERIFIED"
+            );
 
             return (
               <div
@@ -361,7 +441,7 @@ export default function ApplicationsPage() {
                 {/* Main Application Row */}
                 <div className="p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-2xl">
                       <div className="flex items-center space-x-2">
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           {app.scholarship_provider}
@@ -388,44 +468,78 @@ export default function ApplicationsPage() {
                       </div>
                     </div>
 
-                    {/* Status & Action */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <select
-                        value={app.status}
-                        onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
-                      >
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="READY">READY</option>
-                        <option value="SUBMITTED">SUBMITTED</option>
-                        <option value="UNDER_REVIEW">UNDER_REVIEW</option>
-                        <option value="APPROVED">APPROVED</option>
-                        <option value="REJECTED">REJECTED</option>
-                        <option value="WITHDRAWN">WITHDRAWN</option>
-                      </select>
+                    {/* System-Determined Read-Only Status & Authorized Actions */}
+                    <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
+                      {renderStatusBadge(app.status)}
+
+                      {app.status === "READY" && (
+                        <button
+                          type="button"
+                          onClick={() => setShowSubmitModalFor(app)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          title="Confirm and submit your application"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Submit Application
+                        </button>
+                      )}
+
+                      {["IN_PROGRESS", "READY", "SUBMITTED"].includes(app.status) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowWithdrawModalFor(app);
+                            setWithdrawalReason("");
+                          }}
+                          className="px-2.5 py-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                          title="Withdraw application"
+                        >
+                          Withdraw
+                        </button>
+                      )}
 
                       <button
+                        type="button"
                         onClick={() => setExpandedAppId(isExpanded ? null : app.id)}
-                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                       >
                         {isExpanded ? "Hide Requirements ▲" : "Manage Requirements ▼"}
                       </button>
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
+                  {/* System Status Reason Banner */}
+                  {app.status_reason && (
+                    <div className="mt-3 px-3.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs flex items-start gap-2">
+                      <span className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0">
+                        Status Explanation:
+                      </span>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">
+                        {app.status_reason}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Progress Bar & Readiness Calculation */}
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex justify-between items-center text-xs mb-1.5">
+                    <div className="flex justify-between items-center text-xs mb-1.5 flex-wrap gap-2">
                       <span className="font-semibold text-slate-700 dark:text-slate-300">
-                        Readiness: {completedReqs} of {totalReqs} items verified ({app.progress.toFixed(0)}%)
+                        Readiness: {completedRequired.length} of {requiredReqs.length} required documents complete ({app.progress.toFixed(0)}%)
+                        {optionalReqs.length > 0 && (
+                          <span className="font-normal text-slate-500 dark:text-slate-400 ml-1">
+                            (+{completedOptional.length}/{optionalReqs.length} optional)
+                          </span>
+                        )}
                       </span>
                       {app.blockers.length > 0 ? (
                         <span className="text-amber-700 dark:text-amber-400 font-medium">
-                          Blocked by: {app.blockers.join(", ")}
+                          Missing required: {app.blockers.join(", ")}
                         </span>
                       ) : (
                         <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                          All requirements available! Ready for submission.
+                          All required documents available! Ready for submission.
                         </span>
                       )}
                     </div>
@@ -445,9 +559,14 @@ export default function ApplicationsPage() {
                   <div className="bg-slate-50/70 dark:bg-slate-800/40 p-6 border-t border-slate-200 dark:border-slate-800 space-y-6">
                     {/* Requirements Checklist */}
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2.5">
-                        Prerequisites & Document Checklist
-                      </h4>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                          Prerequisites & Document Checklist
+                        </h4>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Availability is determined automatically via file upload & verification
+                        </span>
+                      </div>
                       <div className="space-y-2">
                         {app.requirements.map((req) => {
                           const isAvailable = req.status === "AVAILABLE" || req.status === "VERIFIED";
@@ -458,20 +577,52 @@ export default function ApplicationsPage() {
                             >
                               <div className="flex items-center space-x-2.5 min-w-0">
                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                  isAvailable ? "bg-emerald-500" : "bg-amber-500"
+                                  req.status === "VERIFIED" ? "bg-emerald-500" :
+                                  req.status === "AVAILABLE" ? "bg-emerald-500" :
+                                  req.status === "REJECTED" ? "bg-rose-500" :
+                                  req.status === "NEEDS_VERIFICATION" ? "bg-amber-500" :
+                                  "bg-slate-400"
                                 }`} />
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex items-center gap-2 flex-wrap">
                                   <span className="font-semibold text-slate-800 dark:text-slate-200">{req.name}</span>
-                                  <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-2 font-mono">({req.document_type})</span>
+                                  <span className="text-slate-400 dark:text-slate-500 text-[11px] font-mono">({req.document_type})</span>
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                    req.is_required
+                                      ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                                  }`}>
+                                    {req.is_required ? "Required" : "Optional"}
+                                  </span>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2.5 flex-shrink-0">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  isAvailable ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-                                }`}>
-                                  {req.status}
-                                </span>
+                                {req.status === "VERIFIED" ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    VERIFIED
+                                  </span>
+                                ) : req.status === "AVAILABLE" ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    AVAILABLE
+                                  </span>
+                                ) : req.status === "REJECTED" ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                    REJECTED
+                                  </span>
+                                ) : req.status === "NEEDS_VERIFICATION" ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    REQUIRES REVIEW
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                    MISSING
+                                  </span>
+                                )}
 
                                 {!isAvailable ? (
                                   <button
@@ -486,27 +637,35 @@ export default function ApplicationsPage() {
                                     Upload File
                                   </button>
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenUploadModal(app, req)}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium text-[10px] transition-colors cursor-pointer"
-                                    title={`Replace uploaded file for ${req.name}`}
-                                  >
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                    </svg>
-                                    Replace
-                                  </button>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenUploadModal(app, req)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium text-[10px] transition-colors cursor-pointer"
+                                      title={`Replace uploaded file for ${req.name}`}
+                                    >
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                      </svg>
+                                      Replace
+                                    </button>
+                                    {req.document_id && (
+                                      <a
+                                        href={`/api/v1/documents/${req.document_id}/download?inline=true`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[10px] transition-colors"
+                                        title="Preview uploaded document"
+                                      >
+                                        <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Preview
+                                      </a>
+                                    )}
+                                  </div>
                                 )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleRequirementStatusToggle(app.id, req.id, req.status)}
-                                  disabled={updatingReqId === req.id}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px] cursor-pointer"
-                                >
-                                  {req.status === "AVAILABLE" ? "Mark Missing" : "Mark Available"}
-                                </button>
                               </div>
                             </div>
                           );
@@ -917,6 +1076,154 @@ export default function ApplicationsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Submit Application */}
+      {showSubmitModalFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Confirm Application Submission
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {showSubmitModalFor.scholarship_name}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs space-y-2">
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                <span>Award Amount:</span>
+                <span className="font-bold font-mono text-slate-900 dark:text-white">{formatINR(showSubmitModalFor.scholarship_amount)}</span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                <span>Required Documents:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">All Verified & Uploaded</span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 italic">
+                &ldquo;AI assists. Official sources decide. Student approves.&rdquo;
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              By confirming, you certify that all uploaded documents and submitted details are accurate.
+              Your application status will advance to <strong className="text-blue-600 dark:text-blue-400">SUBMITTED</strong> and be recorded in SCHOLARAi.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSubmitModalFor(null)}
+                disabled={isWorkflowActionLoading}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmSubmit(showSubmitModalFor.id)}
+                disabled={isWorkflowActionLoading}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isWorkflowActionLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Confirm & Submit</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Withdraw Application */}
+      {showWithdrawModalFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Withdraw Application
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {showWithdrawModalFor.scholarship_name}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to withdraw this application? An explicit withdrawal record will be archived.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                Withdrawal Reason <span className="text-slate-400 font-normal lowercase">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={withdrawalReason}
+                onChange={(e) => setWithdrawalReason(e.target.value)}
+                disabled={isWorkflowActionLoading}
+                placeholder="e.g. Awarded another scholarship, course change, etc."
+                className="w-full p-2.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWithdrawModalFor(null);
+                  setWithdrawalReason("");
+                }}
+                disabled={isWorkflowActionLoading}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Keep Active
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmWithdraw(showWithdrawModalFor.id)}
+                disabled={isWorkflowActionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isWorkflowActionLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Withdrawing...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Confirm Withdrawal</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
