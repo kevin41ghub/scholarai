@@ -18,9 +18,9 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "SCHOLARAi — Tamil Nadu Scholarship Intelligence Journal",
+  title: "SCHOLARAi — Student Funding & Application Intelligence Platform",
   description:
-    "Verified scholarship intelligence for Arts & Science and Engineering scholars in autonomous colleges across Tamil Nadu. AI assists. Official sources decide. Student approves.",
+    "Verified scholarship intelligence and application coordination for higher education scholars. AI assists. Official sources decide. Student approves.",
 };
 
 export default function RootLayout({

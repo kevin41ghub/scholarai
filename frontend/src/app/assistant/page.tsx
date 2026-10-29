@@ -215,12 +215,12 @@ export default function AssistantPage() {
                   <span
                     className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
                       msg.trustCategory === "FACTS FROM USER DATA"
-                        ? "bg-red-500/10 text-red-700 dark:text-blue-300 border border-red-500/20"
+                        ? "bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20"
                         : msg.trustCategory === "OFFICIAL SOURCE INFORMATION"
                         ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
                         : msg.trustCategory === "AI SUGGESTIONS"
                         ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
-                        : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+                        : "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border border-zinc-500/20"
                     }`}
                   >
                     {msg.trustCategory}
@@ -403,7 +403,7 @@ export default function AssistantPage() {
               {/* Confirmation Dialog */}
               {voiceConfirmation && (
                 <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 mt-3">
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/20 text-blue-800 dark:text-blue-300">
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/20 text-red-700 dark:text-red-400">
                     Intent: {voiceConfirmation.intent} ({voiceConfirmation.detected_language})
                   </span>
                   <p className="font-semibold text-slate-900 dark:text-white whitespace-pre-line text-xs">

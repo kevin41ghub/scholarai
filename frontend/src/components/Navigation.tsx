@@ -110,7 +110,7 @@ export default function Navigation() {
                 SCHOLAR<span className="text-[#fb7185]">Ai</span>
               </span>
               <span className="block text-[9px] text-stone-400 font-mono tracking-wider uppercase">
-                Tamil Nadu Journal
+                Funding Intelligence
               </span>
             </div>
           </Link>

@@ -168,11 +168,11 @@ export default function DiscoverPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 text-[11px] tracking-widest uppercase font-semibold text-[#86192c] dark:text-[#fb7185] mb-1.5">
-              <span>TAMIL NADU SCHOLARSHIP INTELLIGENCE JOURNAL</span>
+              <span>SCHOLARSHIP INTELLIGENCE PLATFORM</span>
               <span>•</span>
               <span>VOL. 2025–2026</span>
               <span>•</span>
-              <span className="text-stone-500 dark:text-stone-400">AUTONOMOUS COLLEGES GAZETTE</span>
+              <span className="text-stone-500 dark:text-stone-400">INSTITUTIONAL INTELLIGENCE GAZETTE</span>
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Collegiate Intelligence & Scheme Catalogue
@@ -360,7 +360,7 @@ export default function DiscoverPage() {
       <section className="space-y-6">
         <div className="flex items-center justify-between border-b border-[#e6dfd3] dark:border-[#2f343d] pb-2 text-xs font-mono text-stone-500 dark:text-stone-400">
           <span>CATALOGUE DOSSIERS ({scholarships.length} RESULTS)</span>
-          <span>AUTONOMOUS COLLEGES DISPATCH</span>
+          <span>INSTITUTIONAL INTELLIGENCE DISPATCH</span>
         </div>
 
         {loading ? (

@@ -9,12 +9,16 @@ class AdminOverviewResponse(BaseModel):
     total_scholarships: int
     active_scholarships: int
     retired_scholarships: int
+    verified_scholarships: Optional[int] = 0
+    partially_verified_scholarships: Optional[int] = 0
     total_applications: int
     applications_by_status: Dict[str, int]
     pending_review_count: int
     ready_for_submission_count: int
     in_progress_count: int
     ai_status: Dict[str, Any]
+    database_health: Optional[Dict[str, Any]] = None
+    storage_health: Optional[Dict[str, Any]] = None
     recent_activity: List[Dict[str, Any]]
 
     model_config = ConfigDict(from_attributes=True)

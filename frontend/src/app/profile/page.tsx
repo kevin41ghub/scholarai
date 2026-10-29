@@ -499,7 +499,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-                <span className="text-xs font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider">
+                <span className="text-xs font-bold text-red-900 dark:text-red-300 uppercase tracking-wider">
                   Live Funding Gap Preview
                 </span>
               </div>

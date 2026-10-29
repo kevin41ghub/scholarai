@@ -55,15 +55,26 @@ def process_assistant_chat(
             ev_id = action.proposed_payload.get("evidence_id")
             ev = db.query(Evidence).filter(Evidence.id == ev_id, Evidence.student_id == student_id).first()
             if ev:
-                ev.verification_status = "VERIFIED"
-                db.commit()
-                return ChatMessageResponse(
-                    reply=f"Confirmed. Evidence record '{ev.title}' has been marked as VERIFIED upon your explicit approval.",
-                    trust_category="FACTS FROM USER DATA",
-                    sources_cited=["Student Evidence Bank"],
-                    tools_used=["verify_evidence"],
-                    model_provider="demo-rules-confirmed"
-                )
+                if ev.source_document_id:
+                    ev.verification_status = "VERIFIED"
+                    db.commit()
+                    return ChatMessageResponse(
+                        reply=f"Confirmed. Evidence record '{ev.title}' has been officially verified against linked document #{ev.source_document_id}.",
+                        trust_category="FACTS FROM USER DATA",
+                        sources_cited=["Student Evidence Bank", f"Document #{ev.source_document_id}"],
+                        tools_used=["verify_evidence"],
+                        model_provider="demo-rules-confirmed"
+                    )
+                else:
+                    ev.verification_status = "USER_PROVIDED"
+                    db.commit()
+                    return ChatMessageResponse(
+                        reply=f"Evidence item '{ev.title}' has been recorded as 'USER_PROVIDED'. Per institutional trust policy, full 'VERIFIED' status requires uploading and linking a verifiable source document.",
+                        trust_category="FACTS FROM USER DATA",
+                        sources_cited=["Student Evidence Bank"],
+                        tools_used=["verify_evidence"],
+                        model_provider="demo-rules-confirmed"
+                    )
 
     # 2. Check for action mutation requests requiring confirmation
     if "hour" in msg_lower and ("set" in msg_lower or "update" in msg_lower or "change" in msg_lower):

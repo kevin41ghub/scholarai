@@ -144,7 +144,7 @@ export default function Header() {
           {/* Intelligence Connected status pill */}
           <div className="hidden lg:flex items-center space-x-2 px-2.5 py-1 bg-stone-100 dark:bg-stone-800/80 rounded-full text-[11px] font-medium text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="font-serif italic">Tamil Nadu Autonomous Colleges Edition</span>
+            <span className="font-serif italic">Student Funding Intelligence</span>
           </div>
 
           {/* Theme Selector Popover */}
@@ -160,7 +160,7 @@ export default function Header() {
               aria-label="Toggle theme menu"
             >
               {resolvedTheme === "dark" ? (
-                <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               ) : (
@@ -179,7 +179,7 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "light"
-                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -195,11 +195,11 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "dark"
-                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                   <span>Dark</span>
@@ -211,7 +211,7 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "system"
-                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -300,7 +300,7 @@ export default function Header() {
                               {n.type}
                             </span>
                             {!n.read && (
-                              <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-sky-400 flex-shrink-0 mt-1"></span>
+                              <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500 flex-shrink-0 mt-1"></span>
                             )}
                           </div>
                           <p className="font-semibold text-slate-900 dark:text-white mt-1 text-xs">{n.title}</p>
@@ -322,7 +322,7 @@ export default function Header() {
                 setNotifsOpen(false);
                 setThemeMenuOpen(false);
               }}
-              className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-sky-400 py-1 px-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 py-1 px-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="User profile menu"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-700 to-rose-700 text-white font-semibold flex items-center justify-center text-xs shadow-xs ring-1 ring-white/20">

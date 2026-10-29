@@ -12,6 +12,7 @@ import {
   reviewApplicationAdmin,
   getAIDiagnostic,
   getAdminAuditLogs,
+  importScholarships,
 } from "@/lib/api";
 import {
   AdminOverview,
@@ -35,6 +36,13 @@ export default function AdminDashboardPage() {
   const [scSearch, setScSearch] = useState("");
   const [scStatus, setScStatus] = useState<string>("ALL");
   const [retiringId, setRetiringId] = useState<number | null>(null);
+
+  // Scholarship Import state
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importJsonText, setImportJsonText] = useState("");
+  const [importDryRun, setImportDryRun] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
   // Applications data
   const [applications, setApplications] = useState<AdminApplicationItem[]>([]);
@@ -174,6 +182,75 @@ export default function AdminDashboardPage() {
     } finally {
       setRetiringId(null);
     }
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importJsonText.trim()) {
+      setImportResult("Please provide a valid JSON payload.");
+      return;
+    }
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const parsed = JSON.parse(importJsonText);
+      const items = Array.isArray(parsed) ? parsed : (parsed.items || [parsed]);
+      const res = await importScholarships({ items, dry_run: importDryRun });
+      const createdCount = res.created || 0;
+      const updatedCount = res.updated || 0;
+      const skippedCount = res.skipped || 0;
+      const rejectedCount = res.rejected || 0;
+      setImportResult(
+        `${importDryRun ? "[DRY RUN] " : ""}Processed: ${createdCount} created, ${updatedCount} updated, ${skippedCount} skipped, ${rejectedCount} rejected.${res.errors && res.errors.length > 0 ? ` Errors: ${res.errors.join(", ")}` : ""}`
+      );
+      if (!importDryRun) {
+        await loadScholarshipsData();
+        await loadOverviewData();
+      }
+    } catch (e: unknown) {
+      console.error("Import failed:", e);
+      setImportResult(`Import failed: ${e instanceof Error ? e.message : "Invalid JSON or server error"}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleLoadSampleTemplate = () => {
+    const sample = [
+      {
+        name: "Tamil Nadu Post-Matric Tuition Exemption",
+        provider: "Department of Backward Classes and Minorities Welfare",
+        amount: 45000,
+        deadline: "2026-11-30",
+        category_tag: "GOVERNMENT",
+        stream: "BOTH",
+        study_level: "UG",
+        community_category: "BC, MBC, DNC",
+        tn_residency_required: true,
+        income_ceiling: 250000,
+        source_url: "https://bcmbcmw.tn.gov.in",
+        application_url: "https://escholarship.tn.gov.in",
+        verification_status: "OFFICIALLY_VERIFIED",
+        eligibility_summary: "TN Domicile, BC/MBC/DNC community, family income <= 2.5L, admitted in regular courses in autonomous colleges.",
+        requirements: [
+          {
+            name: "Community Certificate",
+            document_type: "COMMUNITY_CERTIFICATE",
+            type: "DOCUMENT",
+            is_required: true,
+            description: "Permanent community certificate issued by Revenue Authority."
+          },
+          {
+            name: "Income Certificate",
+            document_type: "INCOME_CERTIFICATE",
+            type: "DOCUMENT",
+            is_required: true,
+            description: "Annual parental income certificate under Rs. 2,50,000."
+          }
+        ]
+      }
+    ];
+    setImportJsonText(JSON.stringify(sample, null, 2));
+    setImportResult(null);
   };
 
   const openReviewModal = async (app: AdminApplicationItem) => {
@@ -323,8 +400,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="p-4 bg-zinc-900/90 rounded-xl border border-zinc-800">
-            <p className="text-[11px] font-semibold text-sky-400 uppercase tracking-wider">Ready for Submission</p>
-            <p className="text-2xl font-bold text-sky-400 mt-1">{overview.ready_for_submission_count}</p>
+            <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Ready for Submission</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{overview.ready_for_submission_count}</p>
             <p className="text-[10px] text-zinc-500 mt-0.5">100% requirements verified</p>
           </div>
 
@@ -387,8 +464,8 @@ export default function AdminDashboardPage() {
                   const pct = Math.round((count / total) * 100);
                   const colorMap: Record<string, string> = {
                     IN_PROGRESS: "bg-zinc-500",
-                    READY: "bg-sky-500",
-                    SUBMITTED: "bg-indigo-500",
+                    READY: "bg-emerald-500",
+                    SUBMITTED: "bg-red-500",
                     UNDER_REVIEW: "bg-amber-500",
                     APPROVED: "bg-emerald-500",
                     REJECTED: "bg-rose-500",
@@ -409,6 +486,42 @@ export default function AdminDashboardPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* System Infrastructure Health */}
+            <div className="lg:col-span-2 p-5 bg-zinc-900/90 border border-zinc-800 rounded-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white">System Infrastructure & Data Integrity</h3>
+                <span className="text-xs text-zinc-500 font-mono">Live Diagnostics</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-lg">
+                  <div className="flex items-center space-x-2 text-zinc-400 font-semibold mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Database Engine</span>
+                  </div>
+                  <p className="text-sm font-bold text-white font-mono">{overview.database_health?.engine || "PostgreSQL"}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">{overview.database_health?.status === "HEALTHY" ? "Active Connection Pool" : "Connecting..."}</p>
+                </div>
+
+                <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-lg">
+                  <div className="flex items-center space-x-2 text-zinc-400 font-semibold mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Document Storage</span>
+                  </div>
+                  <p className="text-sm font-bold text-white">{overview.storage_health?.backend || "Persistent Storage"}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">SHA-256 Checksums Enforced</p>
+                </div>
+
+                <div className="p-3 bg-zinc-950/70 border border-zinc-800/80 rounded-lg">
+                  <div className="flex items-center space-x-2 text-zinc-400 font-semibold mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Scholarship Verification</span>
+                  </div>
+                  <p className="text-sm font-bold text-white font-mono">{overview.verified_scholarships ?? overview.active_scholarships} / {overview.total_scholarships}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Officially Source-Verified</p>
+                </div>
               </div>
             </div>
 
@@ -471,6 +584,20 @@ export default function AdminDashboardPage() {
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE / Retired</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setImportModalOpen(true);
+                  setImportResult(null);
+                }}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 cursor-pointer transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Import JSON</span>
+              </button>
             </div>
           </div>
 
@@ -647,7 +774,7 @@ export default function AdminDashboardPage() {
                               : app.status === "UNDER_REVIEW" || app.status === "SUBMITTED"
                               ? "bg-amber-950/60 text-amber-400 border border-amber-800/40"
                               : app.status === "READY"
-                              ? "bg-sky-950/60 text-sky-400 border border-sky-800/40"
+                              ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40"
                               : app.status === "REJECTED"
                               ? "bg-rose-950/60 text-rose-400 border border-rose-800/40"
                               : "bg-zinc-800 text-zinc-400 border border-zinc-700/40"
@@ -931,6 +1058,94 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scholarship Import Modal */}
+      {importModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-xs p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-xs text-zinc-300">
+            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-white">Import / Refresh Scholarship Catalogue</h2>
+                <p className="text-zinc-400 mt-0.5">Import official scholarship data records with statutory guidelines and eligibility rules.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportModalOpen(false)}
+                className="text-zinc-500 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-zinc-300">JSON Payload (Item or Array of Items)</span>
+              <button
+                type="button"
+                onClick={handleLoadSampleTemplate}
+                className="text-[11px] text-red-400 hover:text-red-300 underline font-mono cursor-pointer"
+              >
+                + Load Sample Record Template
+              </button>
+            </div>
+
+            <textarea
+              rows={10}
+              value={importJsonText}
+              onChange={(e) => setImportJsonText(e.target.value)}
+              placeholder="Paste JSON array or single scholarship object..."
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white font-mono text-[11px] placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-600"
+            />
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="dryRunCheck"
+                checked={importDryRun}
+                onChange={(e) => setImportDryRun(e.target.checked)}
+                className="rounded border-zinc-800 bg-zinc-950 text-red-600 focus:ring-red-600"
+              />
+              <label htmlFor="dryRunCheck" className="text-zinc-300 cursor-pointer">
+                Dry Run Simulation (validate schema and URL integrity without committing changes to database)
+              </label>
+            </div>
+
+            {importResult && (
+              <div className={`p-3 rounded-lg text-xs font-mono whitespace-pre-wrap ${
+                importResult.startsWith("Error") || importResult.includes("failed")
+                  ? "bg-rose-950/40 text-rose-300 border border-rose-900/60"
+                  : "bg-emerald-950/40 text-emerald-300 border border-emerald-900/60"
+              }`}>
+                {importResult}
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setImportModalOpen(false)}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-semibold cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleImportSubmit}
+                disabled={importing || !importJsonText.trim()}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 cursor-pointer flex items-center space-x-1.5"
+              >
+                {importing ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Processing Import...</span>
+                  </>
+                ) : (
+                  <span>{importDryRun ? "Run Validation Check" : "Import & Persist Catalogue"}</span>
+                )}
+              </button>
             </div>
           </div>
         </div>

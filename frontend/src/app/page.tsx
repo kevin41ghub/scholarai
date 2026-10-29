@@ -261,7 +261,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 dark:bg-sky-400 animate-ping"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 dark:bg-red-500 animate-ping"></span>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Top Recommended Next Action
                 </h3>
@@ -273,7 +273,7 @@ export default function Dashboard() {
                       ? "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
                       : topAction.urgency === "HIGH"
                       ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-                      : "bg-red-100 dark:bg-red-950/40 dark:bg-sky-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 dark:border-sky-800"
+                      : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40"
                   }`}
                 >
                   {topAction.urgency} Urgency

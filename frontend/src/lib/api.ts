@@ -577,3 +577,30 @@ export async function getAIDiagnostic(): Promise<AIDiagnostic> {
 export async function getAdminAuditLogs(limit: number = 50): Promise<AuditLogItem[]> {
   return request<AuditLogItem[]>(`/api/v1/admin/audit-logs?limit=${limit}`);
 }
+
+export async function importScholarships(payload: {
+  items: Array<Record<string, unknown>>;
+  dry_run?: boolean;
+}): Promise<{
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  rejected: number;
+  dry_run: boolean;
+  errors: string[];
+  items: Array<{
+    index: number;
+    name: string;
+    dossier_index?: string;
+    action: string;
+    status: string;
+    details?: string;
+    errors: string[];
+  }>;
+}> {
+  return request("/api/v1/scholarships/import", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

@@ -209,8 +209,8 @@ export default function DocumentsPage() {
     switch (vStatus) {
       case "OFFICIALLY_VERIFIED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
             Officially Verified
           </span>
         );
@@ -237,14 +237,14 @@ export default function DocumentsPage() {
         );
       case "PROCESSING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-blue-800 dark:text-blue-300 border border-red-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-50 dark:bg-red-950/300 animate-spin"></span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-spin"></span>
             Processing
           </span>
         );
       case "AVAILABLE":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-blue-800 dark:text-blue-300 border border-red-500/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30">
             Available
           </span>
         );
@@ -434,7 +434,7 @@ export default function DocumentsPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
               isDragging
-                ? "border-red-500 bg-red-50 dark:bg-red-950/30/50 dark:bg-blue-900/20"
+                ? "border-red-500 bg-red-50 dark:bg-red-950/30"
                 : fileToUpload
                 ? "border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/10"
                 : "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30"
@@ -473,7 +473,7 @@ export default function DocumentsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-950/40 dark:bg-blue-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-xl font-bold">
                   ↑
                 </div>
                 <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -489,12 +489,12 @@ export default function DocumentsPage() {
 
           {/* Progress Indicator */}
           {isUploading && (
-            <div className="space-y-2 p-4 bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/30 border border-red-200 dark:border-red-900/40 dark:border-blue-900 rounded-xl">
-              <div className="flex items-center justify-between text-xs text-blue-800 dark:text-blue-300 font-medium">
+            <div className="space-y-2 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-xl">
+              <div className="flex items-center justify-between text-xs text-red-800 dark:text-red-300 font-medium">
                 <span>{uploadProgress || "Uploading..."}</span>
                 <span className="animate-spin text-sm">⟳</span>
               </div>
-              <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                 <div className="bg-red-600 h-1.5 rounded-full w-3/4 animate-pulse"></div>
               </div>
             </div>
@@ -624,7 +624,7 @@ export default function DocumentsPage() {
                         href={getDocumentDownloadUrl(doc.id, false)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/40 text-red-700 dark:text-blue-300 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-blue-900/60 rounded-lg text-xs font-semibold transition-colors"
+                        className="px-3 py-1.5 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/50 rounded-lg text-xs font-semibold transition-colors"
                       >
                         Download
                       </a>
@@ -723,8 +723,8 @@ export default function DocumentsPage() {
               </div>
 
               {inspectingDoc.extracted_data?.extraction_notes && inspectingDoc.extracted_data.extraction_notes.length > 0 && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30/50 dark:bg-blue-950/20 border border-red-200 dark:border-red-900/40/50 dark:border-blue-900/30 rounded-lg text-xs space-y-1">
-                  <span className="font-bold text-blue-900 dark:text-blue-300 block">Extraction Notes:</span>
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-lg text-xs space-y-1">
+                  <span className="font-bold text-red-900 dark:text-red-300 block">Extraction Notes:</span>
                   <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-0.5">
                     {inspectingDoc.extracted_data.extraction_notes.map((note, idx) => (
                       <li key={idx}>{note}</li>

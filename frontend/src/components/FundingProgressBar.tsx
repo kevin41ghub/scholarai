@@ -22,7 +22,7 @@ export default function FundingProgressBar({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-sky-400"></span>
+            <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500"></span>
             <h3 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">
               Funding Coverage Analysis
             </h3>
@@ -46,7 +46,7 @@ export default function FundingProgressBar({
         <div
           className={`h-full rounded-full transition-all duration-700 ease-out shadow-xs ${
             isHealthy
-              ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
               : isModerate
               ? "bg-gradient-to-r from-red-600 to-rose-600"
               : "bg-gradient-to-r from-amber-500 to-orange-500"

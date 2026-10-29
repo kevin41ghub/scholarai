@@ -594,6 +594,8 @@ export interface AdminOverview {
   total_scholarships: number;
   active_scholarships: number;
   retired_scholarships: number;
+  verified_scholarships?: number;
+  partially_verified_scholarships?: number;
   total_applications: number;
   applications_by_status: Record<string, number>;
   pending_review_count: number;
@@ -608,6 +610,16 @@ export interface AdminOverview {
     latency_ms?: number | null;
     message: string;
     error_details?: string | null;
+  };
+  database_health?: {
+    status: string;
+    engine: string;
+    connection?: string;
+  };
+  storage_health?: {
+    status: string;
+    backend: string;
+    accessible: boolean;
   };
   recent_activity: Array<{
     id: string;

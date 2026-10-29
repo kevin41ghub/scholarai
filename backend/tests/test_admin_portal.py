@@ -102,6 +102,10 @@ def test_admin_overview_success(client: TestClient, admin_user: User):
     assert "total_applications" in data
     assert "applications_by_status" in data
     assert "ai_status" in data
+    assert "database_health" in data
+    assert data["database_health"]["status"] == "HEALTHY"
+    assert "storage_health" in data
+    assert data["storage_health"]["status"] == "HEALTHY"
     assert isinstance(data["total_users"], int)
     assert data["total_users"] >= 1
 

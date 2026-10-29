@@ -2,8 +2,8 @@
 
 > A student-focused decision and coordination platform for discovering scholarships, understanding requirements, managing application readiness, and planning funding pursuit.
 
-**Project type:** College mini-project / resume portfolio project  
-**Current stage:** Deployed, production-hardened prototype with Gemini AI integration  
+**Project type:** Production-Grade Student Funding & Application Intelligence Platform
+**Current stage:** Deployed, production-hardened platform with Gemini AI integration and RBAC Admin Portal
 **Trust principle:** **AI assists. Official sources decide. Student approves.**
 
 ## 1. Problem
@@ -435,8 +435,8 @@ For academic evaluation and comprehensive architectural inspection, refer to the
 - **[DEMO_GUIDE.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/DEMO_GUIDE.md)** — Complete step-by-step evaluation guide and demonstration walkthrough for reviewers.
 - **[ADMIN_SCHOLARSHIP_IMPORT_GUIDE.md](file:///c:/Users/kevin/.gemini/antigravity/scratch/scholarai/docs/ADMIN_SCHOLARSHIP_IMPORT_GUIDE.md)** — Operating guide for the authenticated Scholarship Import and Refresh Pipeline (CLI and REST API).
 
-## 21. Project Status
+## 21. Platform Status
 
-SCHOLARAi is a fully functioning, hardened college academic mini-project with Next.js frontend, FastAPI backend API, SQLite/PostgreSQL persistence, Gemini integration with offline deterministic fallback, comprehensive security hardening, 92 automated regression tests, and truthful documentation of operational boundaries.
+SCHOLARAi is a fully functioning, hardened, production-ready platform with Next.js frontend, FastAPI backend API, PostgreSQL production persistence (with SQLite local fallback), Gemini AI integration with offline deterministic fallback, role-based access control (RBAC), comprehensive security hardening, 119+ automated regression tests, and truthful documentation of operational boundaries.
 
-The project is evaluated as an engineered platform reflecting the core academic principle: **AI assists. Official sources decide. Student approves.**
+The platform is engineered to reflect the core trust principle: **AI assists. Official sources decide. Student approves.**

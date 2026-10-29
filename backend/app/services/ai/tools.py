@@ -191,7 +191,10 @@ class AIToolkit:
         total = 0
         if app_obj and app_obj.requirements:
             total = len(app_obj.requirements)
-            completed = sum(1 for r in app_obj.requirements if r.status in ("AVAILABLE", "VERIFIED"))
+            completed = sum(
+                1 for r in app_obj.requirements
+                if r.status in ("AVAILABLE", "VERIFIED", "SATISFIED", "WAIVED") or r.document_id is not None
+            )
         return calculate_scholarship_deadline_risk(s.deadline, completed, total)
 
     def estimate_application_effort(self, scholarship_id: int) -> Dict[str, Any]:

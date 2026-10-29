@@ -143,7 +143,7 @@ export default function MyGoalPage() {
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-500/30 shadow-xs">
             <span className="text-[10px] text-red-600 dark:text-red-400 block uppercase font-bold tracking-wider">Target Goal</span>
-            <span className="text-base font-bold font-mono text-blue-800 dark:text-blue-300 mt-1 block">{formatINR(funding.target_funding)}</span>
+            <span className="text-base font-bold font-mono text-red-700 dark:text-red-400 mt-1 block">{formatINR(funding.target_funding)}</span>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold tracking-wider">Pipeline Identified</span>

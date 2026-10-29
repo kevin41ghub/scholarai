@@ -316,8 +316,8 @@ export default function ApplicationsPage() {
         );
       case "UNDER_REVIEW":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/30">
-            <span className="w-2 h-2 rounded-full bg-purple-500" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
             UNDER_REVIEW
           </span>
         );
@@ -628,7 +628,7 @@ export default function ApplicationsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenUploadModal(app, req)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 active:bg-blue-800 text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-[11px] shadow-2xs transition-colors cursor-pointer"
                                     title={`Upload file for ${req.name}`}
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -868,7 +868,7 @@ export default function ApplicationsPage() {
             <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/60 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-sm">
+                  <span className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-sm">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
@@ -948,7 +948,7 @@ export default function ApplicationsPage() {
                   onClick={() => quickFileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${
                     isDragging
-                      ? "border-red-600 bg-red-50 dark:bg-red-950/30/50 dark:bg-blue-950/20"
+                      ? "border-red-600 bg-red-50 dark:bg-red-950/30"
                       : "border-slate-300 dark:border-slate-700 hover:border-red-500 bg-slate-50/50 dark:bg-slate-800/20"
                   }`}
                 >
@@ -968,7 +968,7 @@ export default function ApplicationsPage() {
                   {uploadFile ? (
                     <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-left">
                       <div className="flex items-center space-x-2.5 min-w-0">
-                        <span className="w-8 h-8 rounded bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/60 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                        <span className="w-8 h-8 rounded bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
                           {uploadFile.name.split(".").pop() || "DOC"}
                         </span>
                         <div className="min-w-0">
@@ -1039,7 +1039,7 @@ export default function ApplicationsPage() {
 
               {/* Upload Progress Status */}
               {isUploading && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-blue-300 text-xs rounded-lg flex items-center space-x-2.5">
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center space-x-2.5">
                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
                   <span>{uploadProgress || "Uploading and unblocking applications..."}</span>
                 </div>
@@ -1058,7 +1058,7 @@ export default function ApplicationsPage() {
                 <button
                   type="submit"
                   disabled={isUploading || !uploadFile}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center space-x-1.5"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center space-x-1.5"
                 >
                   {isUploading ? (
                     <>
