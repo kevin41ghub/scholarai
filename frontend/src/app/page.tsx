@@ -46,7 +46,7 @@ export default function Dashboard() {
   if (loading && !student) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
           Synchronizing student funding portfolio & intelligence...
         </p>
@@ -73,7 +73,7 @@ export default function Dashboard() {
           </button>
           <Link
             href="/login"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
           >
             Sign In
           </Link>
@@ -209,7 +209,7 @@ export default function Dashboard() {
               Educational Funding & Need Overview
             </h2>
           </div>
-          <Link href="/goal" className="text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline">
+          <Link href="/goal" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline">
             Adjust Strategy &rarr;
           </Link>
         </div>
@@ -261,7 +261,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
               <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-sky-400 animate-ping"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 dark:bg-sky-400 animate-ping"></span>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Top Recommended Next Action
                 </h3>
@@ -273,7 +273,7 @@ export default function Dashboard() {
                       ? "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
                       : topAction.urgency === "HIGH"
                       ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
-                      : "bg-blue-100 dark:bg-sky-950 text-blue-800 dark:text-sky-300 border border-blue-200 dark:border-sky-800"
+                      : "bg-red-100 dark:bg-red-950/40 dark:bg-sky-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 dark:border-sky-800"
                   }`}
                 >
                   {topAction.urgency} Urgency
@@ -299,7 +299,7 @@ export default function Dashboard() {
                     <span className="text-[10px] font-sans text-slate-400 block uppercase tracking-wider">
                       Funding Impact
                     </span>
-                    <span className="font-bold text-blue-600 dark:text-sky-400 mt-0.5 block">
+                    <span className="font-bold text-red-600 dark:text-red-400 mt-0.5 block">
                       {formatINR(topAction.potential_funding_impact)}
                     </span>
                   </div>
@@ -322,7 +322,7 @@ export default function Dashboard() {
             {topAction?.target_type === "document" ? (
               <Link
                 href="/documents"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-1.5 shadow-xs"
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-1.5 shadow-xs"
               >
                 <span>Complete Document in Vault</span>
                 <span>&rarr;</span>
@@ -330,7 +330,7 @@ export default function Dashboard() {
             ) : (
               <Link
                 href="/applications"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-1.5 shadow-xs"
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-1.5 shadow-xs"
               >
                 <span>Advance Application</span>
                 <span>&rarr;</span>
@@ -348,7 +348,7 @@ export default function Dashboard() {
               </h3>
               <Link
                 href="/applications"
-                className="text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
+                className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
               >
                 View Tracker &rarr;
               </Link>
@@ -400,7 +400,7 @@ export default function Dashboard() {
             <span className="text-slate-500 dark:text-slate-400">Weekly allocation plan</span>
             <Link
               href="/goal"
-              className="font-semibold text-blue-600 dark:text-sky-400 hover:underline"
+              className="font-semibold text-red-600 dark:text-red-400 hover:underline"
             >
               Allocate Hours &rarr;
             </Link>

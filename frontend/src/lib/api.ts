@@ -28,6 +28,11 @@ import {
   VoiceInterpretResponse,
   MonitoringCheckResponse,
   OfficialDossier,
+  AdminOverview,
+  AdminScholarshipListResponse,
+  AdminApplicationListResponse,
+  AIDiagnostic,
+  AuditLogItem,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -493,4 +498,82 @@ export async function runMonitoringCheck(
       simulate_change_type: simulateChangeType,
     }),
   });
+}
+
+// ==========================================
+// Administrative Intelligence API Methods
+// ==========================================
+
+export async function getAdminOverview(): Promise<AdminOverview> {
+  return request<AdminOverview>("/api/v1/admin/overview");
+}
+
+export async function getAdminScholarships(params?: {
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminScholarshipListResponse> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.status) query.set("status", params.status);
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.offset) query.set("offset", params.offset.toString());
+  const qs = query.toString();
+  return request<AdminScholarshipListResponse>(`/api/v1/admin/scholarships${qs ? `?${qs}` : ""}`);
+}
+
+export async function retireScholarship(id: number): Promise<{ message: string; id: number; status: string }> {
+  return request<{ message: string; id: number; status: string }>(`/api/v1/admin/scholarships/${id}/retire`, {
+    method: "POST",
+  });
+}
+
+export async function getAdminApplications(params?: {
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminApplicationListResponse> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.offset) query.set("offset", params.offset.toString());
+  const qs = query.toString();
+  return request<AdminApplicationListResponse>(`/api/v1/admin/applications${qs ? `?${qs}` : ""}`);
+}
+
+export async function getApplicationAdminHistory(id: number): Promise<{
+  application_id: number;
+  current_status: string;
+  status_reason?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  history: Array<Record<string, unknown>>;
+}> {
+  return request(`/api/v1/admin/applications/${id}/history`);
+}
+
+export async function reviewApplicationAdmin(
+  id: number,
+  payload: { action: "UNDER_REVIEW" | "APPROVE" | "REJECT" | string; reason: string }
+): Promise<{
+  message: string;
+  application_id: number;
+  status: string;
+  status_reason?: string;
+}> {
+  return request(`/api/v1/admin/applications/${id}/review`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAIDiagnostic(): Promise<AIDiagnostic> {
+  return request<AIDiagnostic>("/api/v1/admin/ai/diagnostic");
+}
+
+export async function getAdminAuditLogs(limit: number = 50): Promise<AuditLogItem[]> {
+  return request<AuditLogItem[]>(`/api/v1/admin/audit-logs?limit=${limit}`);
 }

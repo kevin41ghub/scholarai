@@ -28,6 +28,7 @@ class UserLoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
+    role: str = "STUDENT"
     is_active: bool
     is_demo: bool
     student_id: int

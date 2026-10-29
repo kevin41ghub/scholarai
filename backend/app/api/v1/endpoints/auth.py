@@ -104,10 +104,11 @@ def register(req: UserRegisterRequest, response: Response, db: Session = Depends
     user_resp = UserResponse(
         id=user.id,
         email=user.email,
+        role=user.role or "STUDENT",
         is_active=user.is_active,
         is_demo=user.is_demo,
         student_id=student.id,
-        student_name=student.name
+        student_name=student.name,
     )
 
     return AuthResponse(
@@ -151,10 +152,11 @@ def login(req: UserLoginRequest, response: Response, db: Session = Depends(get_d
     user_resp = UserResponse(
         id=user.id,
         email=user.email,
+        role=user.role or "STUDENT",
         is_active=user.is_active,
         is_demo=user.is_demo,
         student_id=user.student_id,
-        student_name=user.student.name if user.student else "Student"
+        student_name=user.student.name if user.student else "Student",
     )
 
     return AuthResponse(
@@ -188,8 +190,9 @@ def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
+        role=current_user.role or "STUDENT",
         is_active=current_user.is_active,
         is_demo=current_user.is_demo,
         student_id=current_user.student_id,
-        student_name=current_user.student.name if current_user.student else "Student"
+        student_name=current_user.student.name if current_user.student else "Student",
     )

@@ -68,7 +68,7 @@ export default function MyGoalPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
-        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Computing funding strategy and weekly effort allocation...</p>
       </div>
     );
@@ -79,7 +79,7 @@ export default function MyGoalPage() {
       <div className="max-w-xl mx-auto my-12 bg-white dark:bg-slate-900 rounded-xl border border-rose-500/20 p-8 text-center">
         <h2 className="text-base font-bold text-slate-900 dark:text-white">Planner Unavailable</h2>
         <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{error || "Could not retrieve planner data."}</p>
-        <button onClick={() => loadPlanner()} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold">Retry</button>
+        <button onClick={() => loadPlanner()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-semibold">Retry</button>
       </div>
     );
   }
@@ -141,8 +141,8 @@ export default function MyGoalPage() {
             <span className="text-[10px] text-amber-700 dark:text-amber-400 block uppercase font-bold tracking-wider">Funding Gap</span>
             <span className="text-base font-bold font-mono text-amber-700 dark:text-amber-400 mt-1 block">{formatINR(funding.funding_gap)}</span>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-500/30 shadow-xs">
-            <span className="text-[10px] text-blue-700 dark:text-blue-400 block uppercase font-bold tracking-wider">Target Goal</span>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-500/30 shadow-xs">
+            <span className="text-[10px] text-red-600 dark:text-red-400 block uppercase font-bold tracking-wider">Target Goal</span>
             <span className="text-base font-bold font-mono text-blue-800 dark:text-blue-300 mt-1 block">{formatINR(funding.target_funding)}</span>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -163,7 +163,7 @@ export default function MyGoalPage() {
             <h2 className="text-base font-bold text-slate-900 dark:text-white">Suggested Weekly Preparation Plan</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Heuristic effort allocation prioritizing deadline proximity and shared document blockers</p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
             {weeklyPlan.total_hours} Hours Allocated / Week
           </span>
         </div>
@@ -178,7 +178,7 @@ export default function MyGoalPage() {
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">{alloc.category}</span>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="text-base font-extrabold font-mono text-blue-700 dark:text-blue-400 block">{alloc.allocated_hours} hrs</span>
+                <span className="text-base font-extrabold font-mono text-red-600 dark:text-red-400 block">{alloc.allocated_hours} hrs</span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500">allocated time</span>
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function MyGoalPage() {
               max="40"
               value={hoursPerWeek}
               onChange={(e) => setHoursPerWeek(parseFloat(e.target.value) || 1)}
-              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>
           <div>
@@ -215,7 +215,7 @@ export default function MyGoalPage() {
               min="0"
               value={targetFunding}
               onChange={(e) => setTargetFunding(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>
           <div>
@@ -226,13 +226,13 @@ export default function MyGoalPage() {
               type="text"
               value={priorities}
               onChange={(e) => setPriorities(e.target.value)}
-              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+              className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs disabled:opacity-50"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs disabled:opacity-50"
           >
             {saving ? "Re-calculating..." : "Update Weekly Plan"}
           </button>
@@ -263,7 +263,7 @@ export default function MyGoalPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           {strategy.distinctions.map((d, i) => (
             <div key={i} className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
-              <span className="font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide block">{d.concept}</span>
+              <span className="font-bold text-red-600 dark:text-red-400 uppercase tracking-wide block">{d.concept}</span>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{d.meaning}</p>
             </div>
           ))}

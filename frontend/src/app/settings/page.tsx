@@ -136,7 +136,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.id as SettingsTab)}
             className={`px-3.5 py-2 text-xs font-semibold rounded-t-lg transition-colors whitespace-nowrap flex items-center space-x-2 border-b-2 -mb-px ${
               activeTab === tab.id
-                ? "border-blue-600 dark:border-sky-400 text-blue-600 dark:text-sky-400 bg-white dark:bg-[#111827]"
+                ? "border-red-600 dark:border-sky-400 text-red-600 dark:text-red-400 bg-white dark:bg-[#111827]"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
@@ -168,7 +168,7 @@ export default function SettingsPage() {
               onClick={() => setTheme("light")}
               className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                 theme === "light"
-                  ? "border-blue-600 dark:border-sky-400 bg-blue-50/50 dark:bg-sky-950/20 shadow-xs"
+                  ? "border-red-600 dark:border-sky-400 bg-red-50 dark:bg-red-950/30/50 dark:bg-sky-950/20 shadow-xs"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
               }`}
             >
@@ -180,7 +180,7 @@ export default function SettingsPage() {
                   <span>Light Mode</span>
                 </span>
                 <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
-                  theme === "light" ? "border-blue-600 bg-blue-600" : "border-slate-300 dark:border-slate-600"
+                  theme === "light" ? "border-red-600 bg-red-600" : "border-slate-300 dark:border-slate-600"
                 }`}>
                   {theme === "light" && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
                 </span>
@@ -188,7 +188,7 @@ export default function SettingsPage() {
               <div className="h-16 rounded-lg bg-white border border-slate-200 p-2 space-y-1.5 shadow-xs">
                 <div className="h-2 w-12 bg-slate-200 rounded"></div>
                 <div className="h-2 w-full bg-slate-100 rounded"></div>
-                <div className="h-2 w-20 bg-blue-600 rounded"></div>
+                <div className="h-2 w-20 bg-red-600 rounded"></div>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5">
                 Refined scholastic parchment with crisp contrast.
@@ -200,7 +200,7 @@ export default function SettingsPage() {
               onClick={() => setTheme("dark")}
               className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                 theme === "dark"
-                  ? "border-blue-600 dark:border-sky-400 bg-blue-50/50 dark:bg-sky-950/20 shadow-xs"
+                  ? "border-red-600 dark:border-sky-400 bg-red-50 dark:bg-red-950/30/50 dark:bg-sky-950/20 shadow-xs"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
               }`}
             >
@@ -232,7 +232,7 @@ export default function SettingsPage() {
               onClick={() => setTheme("system")}
               className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                 theme === "system"
-                  ? "border-blue-600 dark:border-sky-400 bg-blue-50/50 dark:bg-sky-950/20 shadow-xs"
+                  ? "border-red-600 dark:border-sky-400 bg-red-50 dark:bg-red-950/30/50 dark:bg-sky-950/20 shadow-xs"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
               }`}
             >
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                   <span>System Synced</span>
                 </span>
                 <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
-                  theme === "system" ? "border-blue-600 dark:border-sky-400 bg-blue-600 dark:bg-sky-400" : "border-slate-300 dark:border-slate-600"
+                  theme === "system" ? "border-red-600 dark:border-sky-400 bg-red-600 dark:bg-sky-400" : "border-slate-300 dark:border-slate-600"
                 }`}>
                   {theme === "system" && <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-900"></span>}
                 </span>
@@ -252,7 +252,7 @@ export default function SettingsPage() {
               <div className="h-16 rounded-lg bg-gradient-to-r from-white to-[#090D16] border border-slate-300 dark:border-slate-700 p-2 space-y-1.5 shadow-xs">
                 <div className="h-2 w-12 bg-slate-400 rounded"></div>
                 <div className="h-2 w-full bg-slate-400/50 rounded"></div>
-                <div className="h-2 w-20 bg-blue-500 rounded"></div>
+                <div className="h-2 w-20 bg-red-50 dark:bg-red-950/300 rounded"></div>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5">
                 Automatically synchronizes with your device settings (currently {resolvedTheme}).
@@ -366,7 +366,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={savingProfile}
-              className="py-2 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+              className="py-2 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
             >
               {savingProfile ? "Saving Profile..." : "Save Academic Profile"}
             </button>
@@ -457,7 +457,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={savingFunding}
-              className="py-2 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+              className="py-2 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
             >
               {savingFunding ? "Saving..." : "Save Financial Parameters"}
             </button>

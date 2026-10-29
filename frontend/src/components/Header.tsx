@@ -18,7 +18,7 @@ export default function Header() {
 
   const pathname = usePathname();
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const { displayName, displayEmail, initials, logout } = useAuth();
+  const { user, displayName, displayEmail, initials, logout } = useAuth();
 
   const notifsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -100,6 +100,7 @@ export default function Header() {
 
   const getPageTitle = () => {
     if (pathname === "/") return "Executive Overview";
+    if (pathname === "/admin") return "Administrative Intelligence Portal";
     if (pathname.startsWith("/discover/")) return "Scholarship Dossier";
     if (pathname === "/discover") return "Scholarship Discovery";
     if (pathname === "/applications") return "Application Tracker";
@@ -118,14 +119,14 @@ export default function Header() {
         {/* Left: Mobile Brand & Desktop Breadcrumbs */}
         <div className="flex items-center space-x-3">
           <Link href="/" className="md:hidden flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-bold text-white shadow-xs">
               <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
               </svg>
             </div>
             <span className="font-bold text-base text-slate-900 dark:text-white">
-              SCHOLAR<span className="text-blue-600 dark:text-sky-400">Ai</span>
+              SCHOLAR<span className="text-red-600 dark:text-red-400">Ai</span>
             </span>
           </Link>
 
@@ -178,7 +179,7 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "light"
-                      ? "text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -194,7 +195,7 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "dark"
-                      ? "text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -210,7 +211,7 @@ export default function Header() {
                   }}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left font-medium transition-colors ${
                     theme === "system"
-                      ? "text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-sky-950/40"
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 dark:bg-sky-950/40"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -259,7 +260,7 @@ export default function Header() {
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllRead}
-                      className="text-[11px] text-blue-600 dark:text-sky-400 hover:underline font-medium"
+                      className="text-[11px] text-red-600 dark:text-red-400 hover:underline font-medium"
                     >
                       Mark all as read
                     </button>
@@ -283,7 +284,7 @@ export default function Header() {
                           className={`p-3 transition-colors cursor-pointer ${
                             n.read
                               ? "bg-white dark:bg-[#162032] hover:bg-slate-50 dark:hover:bg-slate-800/40 opacity-75"
-                              : "bg-blue-50/40 dark:bg-slate-800/50 hover:bg-blue-50/80 dark:hover:bg-slate-800/80"
+                              : "bg-red-50 dark:bg-red-950/30/40 dark:bg-slate-800/50 hover:bg-red-50 dark:bg-red-950/30/80 dark:hover:bg-slate-800/80"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -299,7 +300,7 @@ export default function Header() {
                               {n.type}
                             </span>
                             {!n.read && (
-                              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-sky-400 flex-shrink-0 mt-1"></span>
+                              <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-sky-400 flex-shrink-0 mt-1"></span>
                             )}
                           </div>
                           <p className="font-semibold text-slate-900 dark:text-white mt-1 text-xs">{n.title}</p>
@@ -321,10 +322,10 @@ export default function Header() {
                 setNotifsOpen(false);
                 setThemeMenuOpen(false);
               }}
-              className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 py-1 px-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-sky-400 py-1 px-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="User profile menu"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-semibold flex items-center justify-center text-xs shadow-xs ring-1 ring-white/20">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-700 to-rose-700 text-white font-semibold flex items-center justify-center text-xs shadow-xs ring-1 ring-white/20">
                 {initials}
               </div>
               <span className="hidden sm:inline font-medium text-xs max-w-[120px] truncate text-slate-900 dark:text-slate-100">
@@ -364,6 +365,15 @@ export default function Header() {
                 >
                   Evidence Bank
                 </Link>
+                {user?.role === "ADMIN" && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-4 py-2 text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40"
+                  >
+                    Admin Intelligence Portal
+                  </Link>
+                )}
                 <div className="border-t border-slate-100 dark:border-slate-800/80 my-1"></div>
                 <button
                   onClick={() => {
@@ -410,7 +420,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className={`block px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 pathname === link.href
-                  ? "bg-blue-600 text-white"
+                  ? "bg-red-600 text-white"
                   : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >

@@ -237,14 +237,14 @@ export default function DocumentsPage() {
         );
       case "PROCESSING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-800 dark:text-blue-300 border border-blue-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-spin"></span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-blue-800 dark:text-blue-300 border border-red-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-50 dark:bg-red-950/300 animate-spin"></span>
             Processing
           </span>
         );
       case "AVAILABLE":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-800 dark:text-blue-300 border border-blue-500/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-blue-800 dark:text-blue-300 border border-red-500/30">
             Available
           </span>
         );
@@ -355,7 +355,7 @@ export default function DocumentsPage() {
                     </p>
                     <p>
                       <span className="font-semibold text-slate-900 dark:text-white">Potential Funding Affected: </span>
-                      <span className="font-bold font-mono text-blue-700 dark:text-blue-400">{formatINR(blocker.potential_funding_affected)}</span>
+                      <span className="font-bold font-mono text-red-600 dark:text-red-400">{formatINR(blocker.potential_funding_affected)}</span>
                     </p>
                   </div>
                 </div>
@@ -367,7 +367,7 @@ export default function DocumentsPage() {
                       setSelectedCategory(blocker.document_type);
                       window.scrollTo({ top: 350, behavior: "smooth" });
                     }}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs"
+                    className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs"
                   >
                     Upload Proof Now
                   </button>
@@ -396,7 +396,7 @@ export default function DocumentsPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
               >
                 {DOCUMENT_CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -418,7 +418,7 @@ export default function DocumentsPage() {
                 placeholder="e.g. Issued by Tahsildar Office Pune, valid for AY 2025-26"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
               />
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
                 Any specific reference number or authority notes for verification records.
@@ -434,7 +434,7 @@ export default function DocumentsPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
               isDragging
-                ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
+                ? "border-red-500 bg-red-50 dark:bg-red-950/30/50 dark:bg-blue-900/20"
                 : fileToUpload
                 ? "border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/10"
                 : "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30"
@@ -473,7 +473,7 @@ export default function DocumentsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-950/40 dark:bg-blue-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-xl font-bold">
                   ↑
                 </div>
                 <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -489,13 +489,13 @@ export default function DocumentsPage() {
 
           {/* Progress Indicator */}
           {isUploading && (
-            <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl">
+            <div className="space-y-2 p-4 bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/30 border border-red-200 dark:border-red-900/40 dark:border-blue-900 rounded-xl">
               <div className="flex items-center justify-between text-xs text-blue-800 dark:text-blue-300 font-medium">
                 <span>{uploadProgress || "Uploading..."}</span>
                 <span className="animate-spin text-sm">⟳</span>
               </div>
               <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-1.5 overflow-hidden">
-                <div className="bg-blue-600 h-1.5 rounded-full w-3/4 animate-pulse"></div>
+                <div className="bg-red-600 h-1.5 rounded-full w-3/4 animate-pulse"></div>
               </div>
             </div>
           )}
@@ -504,7 +504,7 @@ export default function DocumentsPage() {
             <button
               type="submit"
               disabled={!fileToUpload || isUploading}
-              className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isUploading ? "Uploading & Verifying..." : "Upload & Run Verification Engine"}
             </button>
@@ -529,12 +529,12 @@ export default function DocumentsPage() {
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
             >
               <option value="ALL">All Statuses ({documents.length})</option>
               <option value="AUTOMATED_PASSED">Automated Checks Passed</option>
@@ -624,7 +624,7 @@ export default function DocumentsPage() {
                         href={getDocumentDownloadUrl(doc.id, false)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-xs font-semibold transition-colors"
+                        className="px-3 py-1.5 bg-red-50 dark:bg-red-950/30 dark:bg-blue-950/40 text-red-700 dark:text-blue-300 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-blue-900/60 rounded-lg text-xs font-semibold transition-colors"
                       >
                         Download
                       </a>
@@ -723,7 +723,7 @@ export default function DocumentsPage() {
               </div>
 
               {inspectingDoc.extracted_data?.extraction_notes && inspectingDoc.extracted_data.extraction_notes.length > 0 && (
-                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-lg text-xs space-y-1">
+                <div className="p-3 bg-red-50 dark:bg-red-950/30/50 dark:bg-blue-950/20 border border-red-200 dark:border-red-900/40/50 dark:border-blue-900/30 rounded-lg text-xs space-y-1">
                   <span className="font-bold text-blue-900 dark:text-blue-300 block">Extraction Notes:</span>
                   <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-0.5">
                     {inspectingDoc.extracted_data.extraction_notes.map((note, idx) => (
@@ -819,7 +819,7 @@ export default function DocumentsPage() {
                     href={getDocumentDownloadUrl(inspectingDoc.id, false)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition-colors"
+                    className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition-colors"
                   >
                     Download File
                   </a>

@@ -205,7 +205,7 @@ export default function AssistantPage() {
             <div
               className={`max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                 msg.sender === "user"
-                  ? "bg-blue-600 text-white rounded-br-none"
+                  ? "bg-red-600 text-white rounded-br-none"
                   : "bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-none"
               }`}
             >
@@ -215,7 +215,7 @@ export default function AssistantPage() {
                   <span
                     className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
                       msg.trustCategory === "FACTS FROM USER DATA"
-                        ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
+                        ? "bg-red-500/10 text-red-700 dark:text-blue-300 border border-red-500/20"
                         : msg.trustCategory === "OFFICIAL SOURCE INFORMATION"
                         ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
                         : msg.trustCategory === "AI SUGGESTIONS"
@@ -269,7 +269,7 @@ export default function AssistantPage() {
 
         {loading && (
           <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 p-2">
-            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
             <span>Gathering verified context via domain tools...</span>
           </div>
         )}
@@ -301,7 +301,7 @@ export default function AssistantPage() {
         <button
           type="button"
           onClick={() => setVoiceModalOpen(true)}
-          className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-2.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           title="Voice query"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -321,7 +321,7 @@ export default function AssistantPage() {
         <button
           type="submit"
           disabled={loading || !inputText.trim()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-2xs disabled:opacity-40 transition-colors"
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-2xs disabled:opacity-40 transition-colors"
         >
           Send
         </button>
@@ -333,7 +333,7 @@ export default function AssistantPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
@@ -388,22 +388,22 @@ export default function AssistantPage() {
                 value={voiceQuery}
                 onChange={(e) => setVoiceQuery(e.target.value)}
                 placeholder="Spoken query transcription..."
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 focus:outline-none"
               />
 
               <button
                 type="button"
                 onClick={() => handleVoiceInterpret(voiceQuery)}
                 disabled={voiceInterpreting || !voiceQuery.trim()}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors shadow-2xs"
+                className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors shadow-2xs"
               >
                 {voiceInterpreting ? "Interpreting..." : "Decode Spoken Intent"}
               </button>
 
               {/* Confirmation Dialog */}
               {voiceConfirmation && (
-                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-2 mt-3">
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/20 text-blue-800 dark:text-blue-300">
+                <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2 mt-3">
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/20 text-blue-800 dark:text-blue-300">
                     Intent: {voiceConfirmation.intent} ({voiceConfirmation.detected_language})
                   </span>
                   <p className="font-semibold text-slate-900 dark:text-white whitespace-pre-line text-xs">
@@ -413,7 +413,7 @@ export default function AssistantPage() {
                     <button
                       type="button"
                       onClick={handleApplyVoiceCommand}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold"
                     >
                       Confirm
                     </button>

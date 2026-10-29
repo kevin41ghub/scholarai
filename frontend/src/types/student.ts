@@ -416,6 +416,7 @@ export interface PlannerOverview {
 export interface User {
   id: number;
   email: string;
+  role?: "STUDENT" | "REVIEWER" | "ADMIN";
   is_active: boolean;
   is_demo: boolean;
   student_id: number;
@@ -581,4 +582,106 @@ export interface MonitoringCheckResponse {
   affected_requirements: string[];
   notification_created: boolean;
   recommended_next_action?: string | null;
+}
+
+// ==========================================
+// Administrative Intelligence Interfaces
+// ==========================================
+
+export interface AdminOverview {
+  total_users: number;
+  total_students: number;
+  total_scholarships: number;
+  active_scholarships: number;
+  retired_scholarships: number;
+  total_applications: number;
+  applications_by_status: Record<string, number>;
+  pending_review_count: number;
+  ready_for_submission_count: number;
+  in_progress_count: number;
+  ai_status: {
+    provider: string;
+    model: string;
+    base_url?: string | null;
+    configured: boolean;
+    connectivity: "CONNECTED" | "FAILED" | "DEMO_MODE" | "NOT_CONFIGURED" | string;
+    latency_ms?: number | null;
+    message: string;
+    error_details?: string | null;
+  };
+  recent_activity: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    status?: string;
+    timestamp: string;
+  }>;
+}
+
+export interface AdminScholarshipItem {
+  id: number;
+  name: string;
+  provider: string;
+  amount: number;
+  deadline?: string | null;
+  status: string;
+  verification_status: string;
+  dossier_index?: string | null;
+  official_portal_url?: string | null;
+  official_guideline_source?: string | null;
+  applications_count: number;
+}
+
+export interface AdminScholarshipListResponse {
+  total: number;
+  scholarships: AdminScholarshipItem[];
+}
+
+export interface AdminApplicationItem {
+  id: number;
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  scholarship_id: number;
+  scholarship_name: string;
+  status: string;
+  status_reason?: string | null;
+  readiness_score: number;
+  is_ready_for_submission: boolean;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  started_at: string;
+  submitted_at?: string | null;
+  requirements_met: number;
+  requirements_total: number;
+}
+
+export interface AdminApplicationListResponse {
+  total: number;
+  applications: AdminApplicationItem[];
+}
+
+export interface AIDiagnostic {
+  provider: string;
+  model: string;
+  base_url?: string | null;
+  configured: boolean;
+  connectivity: string;
+  latency_ms?: number | null;
+  message: string;
+  error_details?: string | null;
+  catalog_rag_enabled: boolean;
+  active_sources_count: number;
+}
+
+export interface AuditLogItem {
+  id: string;
+  timestamp: string;
+  event_type: string;
+  actor: string;
+  target_type: string;
+  target_id?: number | null;
+  description: string;
+  details?: Record<string, unknown>;
 }

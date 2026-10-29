@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     notifications,
     voice,
     monitoring,
+    admin,
 )
 
 api_router = APIRouter()
@@ -32,3 +33,4 @@ api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistan
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(voice.router, prefix="/voice", tags=["Voice"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])

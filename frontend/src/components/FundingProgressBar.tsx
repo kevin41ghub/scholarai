@@ -22,7 +22,7 @@ export default function FundingProgressBar({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-sky-400"></span>
+            <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-sky-400"></span>
             <h3 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">
               Funding Coverage Analysis
             </h3>
@@ -32,7 +32,7 @@ export default function FundingProgressBar({
           </p>
         </div>
         <div className="sm:text-right flex sm:flex-col items-baseline sm:items-end justify-between gap-2">
-          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-sky-400 font-mono">
+          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-red-600 dark:text-red-400 font-mono">
             {safePercentage.toFixed(1)}%
           </span>
           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -48,7 +48,7 @@ export default function FundingProgressBar({
             isHealthy
               ? "bg-gradient-to-r from-emerald-500 to-teal-400"
               : isModerate
-              ? "bg-gradient-to-r from-blue-600 to-indigo-500"
+              ? "bg-gradient-to-r from-red-600 to-rose-600"
               : "bg-gradient-to-r from-amber-500 to-orange-500"
           }`}
           style={{ width: `${safePercentage}%` }}

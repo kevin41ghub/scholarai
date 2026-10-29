@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-flash-latest"
 
+    # Administrative Provisioning
+    ADMIN_INITIAL_EMAIL: str = "admin@scholarai.local"
+    ADMIN_INITIAL_PASSWORD: str = "ScholarAdmin@2026"
+
     # Storage Configuration (Cloudflare R2 S3-compatible or local private storage)
     STORAGE_BACKEND: str = "local"  # "local", "r2", "s3"
     STORAGE_LOCAL_DIR: str = "storage/documents"
@@ -109,7 +113,7 @@ class Settings(BaseSettings):
         return self
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env"),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

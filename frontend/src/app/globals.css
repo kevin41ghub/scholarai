@@ -28,25 +28,25 @@
 }
 
 .dark {
-  /* Editorial Journal Color Palette — Dark Mode (Deep Charcoal & Parchment Ink) */
-  --color-canvas: #121417;
-  --color-surface: #191c20;
-  --color-surface-elevated: #22262c;
-  --color-surface-subtle: #2a2e36;
-  --color-border: #2f343d;
-  --color-border-subtle: #242830;
+  /* Black-and-Red Editorial Palette — Dark Canvas (#09090b) & Charcoal Surfaces */
+  --color-canvas: #09090b;
+  --color-surface: #121215;
+  --color-surface-elevated: #18181b;
+  --color-surface-subtle: #27272a;
+  --color-border: #27272a;
+  --color-border-subtle: #1c1c20;
   --color-text-primary: #f5f2eb;
-  --color-text-secondary: #a8a29e;
-  --color-text-muted: #78716c;
-  --color-brand-primary: #fb7185;
-  --color-brand-accent: #f43f5e;
-  --color-brand-light: rgba(244, 63, 94, 0.12);
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-brand-primary: #dc2626;
+  --color-brand-accent: #ef4444;
+  --color-brand-light: rgba(220, 38, 38, 0.15);
   --color-forest-primary: #22c55e;
   --color-forest-light: rgba(34, 197, 94, 0.12);
   --color-gold-primary: #f59e0b;
   --color-gold-light: rgba(245, 158, 11, 0.12);
-  --color-rose-primary: #fb7185;
-  --color-rose-light: rgba(251, 113, 133, 0.12);
+  --color-rose-primary: #ef4444;
+  --color-rose-light: rgba(239, 68, 68, 0.15);
 }
 
 body {
@@ -79,10 +79,10 @@ body {
 
 /* Smooth focus rings */
 :focus-visible {
-  outline: 2px solid #86192c;
+  outline: 2px solid #dc2626;
   outline-offset: 2px;
 }
 .dark :focus-visible {
-  outline: 2px solid #fb7185;
+  outline: 2px solid #ef4444;
   outline-offset: 2px;
 }

@@ -91,7 +91,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Navigation() {
   const pathname = usePathname();
-  const { displayName, displayEmail, initials } = useAuth();
+  const { user, displayName, displayEmail, initials } = useAuth();
 
   return (
     <aside className="w-64 bg-[#141619] dark:bg-[#0f1114] text-stone-100 flex-shrink-0 flex flex-col justify-between border-r border-[#262a30] hidden md:flex transition-colors">
@@ -153,6 +153,27 @@ export default function Navigation() {
               </Link>
             );
           })}
+
+          {user?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-all mt-2 border ${
+                pathname === "/admin"
+                  ? "bg-red-600 text-white border-red-500 shadow-sm shadow-red-950/50"
+                  : "text-red-400 hover:bg-red-950/30 hover:text-red-300 border-red-500/30"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Admin Portal</span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-900/60 text-red-200 border border-red-700/50 uppercase">
+                Admin
+              </span>
+            </Link>
+          )}
         </nav>
       </div>
 

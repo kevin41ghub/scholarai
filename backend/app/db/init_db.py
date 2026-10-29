@@ -879,6 +879,7 @@ def init_db(db: Session) -> None:
             email=settings.DEMO_USER_EMAIL,
             password_hash=pwd_hash,
             salt=salt,
+            role="STUDENT",
             student_id=student.id,
             is_active=True,
             is_demo=True
@@ -886,6 +887,39 @@ def init_db(db: Session) -> None:
         db.add(demo_user)
         db.commit()
         logger.info("Demo user account seeded successfully.")
+
+    # 7b. Seed Initial Administrator Account (admin@scholarai.local)
+    admin_email = getattr(settings, "ADMIN_INITIAL_EMAIL", "admin@scholarai.local").lower()
+    admin_user = db.query(User).filter(User.email == admin_email).first()
+    if not admin_user:
+        logger.info(f"Seeding initial administrator account ({admin_email})...")
+        admin_student = db.query(Student).filter(Student.email == admin_email).first()
+        if not admin_student:
+            admin_student = Student(
+                name="System Administrator",
+                email=admin_email,
+                phone="0000000000",
+            )
+            db.add(admin_student)
+            db.flush()
+
+        pwd_hash, salt = hash_password(getattr(settings, "ADMIN_INITIAL_PASSWORD", "ScholarAdmin@2026"))
+        admin_user = User(
+            email=admin_email,
+            password_hash=pwd_hash,
+            salt=salt,
+            role="ADMIN",
+            student_id=admin_student.id,
+            is_active=True,
+            is_demo=False,
+        )
+        db.add(admin_user)
+        db.commit()
+        logger.info("Initial administrator account seeded successfully.")
+    elif admin_user.role != "ADMIN":
+        admin_user.role = "ADMIN"
+        db.commit()
+        logger.info(f"Updated user '{admin_email}' to role='ADMIN'.")
 
     # 8. Seed Evidence Bank for Arjun Kumar
     if student and db.query(Evidence).filter(Evidence.student_id == student.id).count() == 0:

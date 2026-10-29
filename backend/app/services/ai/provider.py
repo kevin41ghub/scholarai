@@ -439,3 +439,123 @@ def get_ai_provider() -> AIProvider:
 
     logger.warning(f"Unknown AI_PROVIDER '{provider_type}'. Falling back to DemoAIProvider.")
     return DemoAIProvider(model_name=settings.AI_MODEL)
+
+
+def check_ai_connectivity(timeout_seconds: float = 6.0) -> Dict[str, Any]:
+    """
+    Real-time diagnostic health check for configured AI provider.
+    Distinguishes configuration status from connectivity status.
+    Scrubs all secrets and handles sandboxed network timeouts gracefully.
+    """
+    import time
+    provider_type = settings.AI_PROVIDER.lower().strip()
+
+    if provider_type == "demo":
+        return {
+            "provider": "demo",
+            "model": settings.AI_MODEL or "demo-scholar-v1",
+            "base_url": None,
+            "configured": True,
+            "connectivity": "DEMO_MODE",
+            "latency_ms": 0.0,
+            "message": "Demo mode active. Deterministic responses without outbound LLM network requests.",
+            "error_details": None,
+        }
+
+    gemini_key = (settings.GEMINI_API_KEY or settings.AI_API_KEY).strip(" \"'")
+    general_key = settings.AI_API_KEY.strip(" \"'")
+
+    if provider_type == "gemini":
+        model_name = (settings.GEMINI_MODEL or settings.AI_MODEL or "gemini-flash-latest").strip(" \"'")
+        if not gemini_key:
+            return {
+                "provider": "gemini",
+                "model": model_name,
+                "base_url": "https://generativelanguage.googleapis.com",
+                "configured": False,
+                "connectivity": "NOT_CONFIGURED",
+                "latency_ms": None,
+                "message": "GEMINI_API_KEY is not configured.",
+                "error_details": "Provider is set to 'gemini' but no API key was provided.",
+            }
+
+        start_time = time.perf_counter()
+        try:
+            prov = GeminiProvider(
+                api_key=gemini_key,
+                model_name=model_name,
+                timeout=timeout_seconds,
+            )
+            # Minimal health check prompt
+            _ = prov.generate("Reply 'ok'.", max_tokens=10)
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            return {
+                "provider": "gemini",
+                "model": prov.model_name,
+                "base_url": "https://generativelanguage.googleapis.com",
+                "configured": True,
+                "connectivity": "CONNECTED",
+                "latency_ms": elapsed_ms,
+                "message": f"Successfully connected to Gemini API ({prov.model_name}) in {elapsed_ms}ms.",
+                "error_details": None,
+            }
+        except Exception as e:
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            safe_err = GeminiProvider._sanitize_error(None, e) if hasattr(GeminiProvider, "_sanitize_error") else str(e)
+            return {
+                "provider": "gemini",
+                "model": model_name,
+                "base_url": "https://generativelanguage.googleapis.com",
+                "configured": True,
+                "connectivity": "FAILED",
+                "latency_ms": elapsed_ms,
+                "message": "Gemini connection attempt failed or timed out.",
+                "error_details": safe_err,
+            }
+
+    # Generic or OpenAI compatible
+    if not general_key:
+        return {
+            "provider": provider_type,
+            "model": settings.AI_MODEL,
+            "base_url": settings.AI_BASE_URL or "https://api.openai.com/v1",
+            "configured": False,
+            "connectivity": "NOT_CONFIGURED",
+            "latency_ms": None,
+            "message": f"API key is not configured for {provider_type}.",
+            "error_details": f"AI_API_KEY is empty for provider '{provider_type}'.",
+        }
+
+    start_time = time.perf_counter()
+    try:
+        prov = OpenAICompatibleProvider(
+            api_key=general_key,
+            model_name=settings.AI_MODEL,
+            base_url=settings.AI_BASE_URL or "https://api.openai.com/v1",
+            timeout=timeout_seconds,
+        )
+        _ = prov.generate("Reply 'ok'.", max_tokens=10)
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        return {
+            "provider": provider_type,
+            "model": prov.model_name,
+            "base_url": prov.base_url,
+            "configured": True,
+            "connectivity": "CONNECTED",
+            "latency_ms": elapsed_ms,
+            "message": f"Successfully connected to {provider_type} ({prov.model_name}) in {elapsed_ms}ms.",
+            "error_details": None,
+        }
+    except Exception as e:
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        safe_err = prov._sanitize_error(e) if 'prov' in locals() and hasattr(prov, "_sanitize_error") else str(e)
+        return {
+            "provider": provider_type,
+            "model": settings.AI_MODEL,
+            "base_url": settings.AI_BASE_URL or "https://api.openai.com/v1",
+            "configured": True,
+            "connectivity": "FAILED",
+            "latency_ms": elapsed_ms,
+            "message": f"Connection to {provider_type} failed.",
+            "error_details": safe_err,
+        }

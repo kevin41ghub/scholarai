@@ -51,7 +51,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen font-sans antialiased selection:bg-blue-600 selection:text-white">
+      <body className="min-h-screen font-sans antialiased selection:bg-red-600 selection:text-white">
         <ThemeProvider>
           <AuthProvider>
             <AppShell>{children}</AppShell>

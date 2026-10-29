@@ -33,7 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-[#111827]/70 backdrop-blur-md py-4 px-6 text-center text-xs text-slate-500 dark:text-slate-400">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">SCHOLAR<span className="text-blue-600 dark:text-sky-400">Ai</span></span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">SCHOLAR<span className="text-red-600 dark:text-red-400">Ai</span></span>
               <span>&bull;</span>
               <span>Student Funding Intelligence Platform</span>
             </div>
