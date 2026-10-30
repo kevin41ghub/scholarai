@@ -15,7 +15,7 @@ export default function RegisterPage() {
     password: "",
     institution: "",
     course: "",
-    year: "1st Year",
+    year: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,8 +32,7 @@ export default function RegisterPage() {
         password: formData.password,
         institution: formData.institution.trim() || undefined,
         course: formData.course.trim() || undefined,
-        year: formData.year,
-        state: "Tamil Nadu",
+        year: formData.year || undefined,
       };
 
       await registerUser(payload);
@@ -166,6 +165,7 @@ export default function RegisterPage() {
                     onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                     className="w-full px-3 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                   >
+                    <option value="">Select year of study (optional)</option>
                     <option value="1st Year">1st Year</option>
                     <option value="2nd Year">2nd Year</option>
                     <option value="3rd Year">3rd Year</option>

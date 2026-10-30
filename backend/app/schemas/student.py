@@ -9,76 +9,78 @@ class StudentProfileBase(BaseModel):
     year: Optional[str] = Field(None, min_length=1)
     cgpa: Optional[float] = Field(None, ge=0.0, le=10.0, description="Optional CGPA (not mandatory)")
     twelfth_percentage: Optional[float] = Field(None, ge=0.0, le=100.0, description="Optional 12th percentage")
-    category: Optional[str] = Field("BC", min_length=1)
-    state: Optional[str] = Field("Tamil Nadu", min_length=1)
-    gender: Optional[str] = "Male"
+    category: Optional[str] = Field(None, min_length=1)
+    state: Optional[str] = Field(None, min_length=1)
+    gender: Optional[str] = None
 
     # Personal Information Extensions
     dob: Optional[str] = None
     district: Optional[str] = None
-    native_state: Optional[str] = "Tamil Nadu"
-    domicile_status: Optional[str] = "Tamil Nadu Domicile"
+    native_state: Optional[str] = None
+    domicile_status: Optional[str] = None
 
     # Academic Information Extensions
-    education_level: Optional[str] = "Undergraduate"
-    stream: Optional[str] = "Engineering & Technology"
+    education_level: Optional[str] = None
+    stream: Optional[str] = None
     university: Optional[str] = None
     admission_year: Optional[str] = None
     current_semester: Optional[str] = None
     qualifying_exam: Optional[str] = None
     qualifying_marks: Optional[float] = None
-    institution_type: Optional[str] = "Government-aided"
-    admission_quota: Optional[str] = Field("GOVERNMENT_QUOTA", description="Admission Quota: GOVERNMENT_QUOTA or MANAGEMENT_QUOTA")
-    hosteller_status: Optional[str] = Field("DAY_SCHOLAR", description="Residential Status: DAY_SCHOLAR or HOSTELLER")
-    mode_of_study: Optional[str] = "Regular / Full-Time"
+    institution_type: Optional[str] = None
+    admission_quota: Optional[str] = Field(None, description="Admission Quota: GOVERNMENT_QUOTA or MANAGEMENT_QUOTA")
+    hosteller_status: Optional[str] = Field(None, description="Residential Status: DAY_SCHOLAR or HOSTELLER")
+    mode_of_study: Optional[str] = None
     studied_govt_school_6_to_12: Optional[bool] = None
-    board_of_education: Optional[str] = "Tamil Nadu State Board"
-    is_first_graduate: Optional[bool] = Field(False, description="First generation graduate in immediate family")
+    board_of_education: Optional[str] = None
+    is_first_graduate: Optional[bool] = Field(None, description="First generation graduate in immediate family")
     school_type: Optional[str] = None
     school_study_history: Optional[str] = None
 
     # Community & Sensitive Reservation Attributes (Sub-caste deprecated & not collected)
     community_subcategory: Optional[str] = Field(None, description="Deprecated, not collected from students")
-    minority_status: Optional[str] = "None"
-    special_category: Optional[str] = "None"
+    minority_status: Optional[str] = None
+    special_category: Optional[str] = None
 
     # Sports & Athletic Achievements
-    participates_in_sports: Optional[bool] = False
+    participates_in_sports: Optional[bool] = None
     sport_discipline: Optional[str] = None
     sports_competition_level: Optional[str] = None
     sports_achievement_type: Optional[str] = None
-    sports_certificate_status: Optional[str] = "Not Available"
+    sports_certificate_status: Optional[str] = None
     sports_achievement_year: Optional[str] = None
 
     # Disability & Accessibility Accommodations (Privacy-conscious & Optional)
-    has_disability: Optional[bool] = False
-    disability_consent_given: Optional[bool] = False
+    has_disability: Optional[bool] = None
+    disability_consent_given: Optional[bool] = None
     disability_category: Optional[str] = None
     disability_percentage: Optional[float] = None
-    udid_card_status: Optional[str] = "Not Available"
+    udid_card_status: Optional[str] = None
     accessibility_needs: Optional[str] = None
 
     # Bank & Benefit Distribution
     bank_readiness: Optional[str] = "NOT_CONFIGURED"
     account_holder_name: Optional[str] = None
-    dbt_enabled: Optional[bool] = False
-    dbt_seeding_status: Optional[str] = "Don't Know"
-    ration_card_type: Optional[str] = "Not Available / Don't Know"
+    dbt_enabled: Optional[bool] = None
+    dbt_seeding_status: Optional[str] = None
+    ration_card_type: Optional[str] = None
     bank_name: Optional[str] = None
     bank_branch: Optional[str] = None
 
     # Identity & Aadhaar Status
     aadhaar_verification_status: Optional[str] = "NOT_PROVIDED"
     aadhaar_masked: Optional[str] = None
-    aadhaar_consent_given: Optional[bool] = False
+    aadhaar_consent_given: Optional[bool] = None
 
     @field_validator("state", mode="before")
     @classmethod
     def validate_state(cls, v):
         if v is None:
-            return "Tamil Nadu"
+            return None
         v_str = str(v).strip()
-        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+        if not v_str:
+            return None
+        if v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
             raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State of residence must be 'Tamil Nadu'.")
         return "Tamil Nadu"
 
@@ -170,6 +172,7 @@ class StudentUpdate(BaseModel):
 
     # Community & Reservation (Sub-caste deprecated & not collected)
     category: Optional[str] = None
+    community_category: Optional[str] = None
     community_subcategory: Optional[str] = Field(None, description="Deprecated, ignored")
     minority_status: Optional[str] = None
     special_category: Optional[str] = None
@@ -217,9 +220,11 @@ class StudentUpdate(BaseModel):
     @classmethod
     def validate_update_state(cls, v):
         if v is None:
-            return v
+            return None
         v_str = str(v).strip()
-        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+        if not v_str:
+            return None
+        if v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
             raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State of residence must be 'Tamil Nadu'.")
         return "Tamil Nadu"
 

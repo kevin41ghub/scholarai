@@ -11,20 +11,20 @@ class PlannerGoalUpdate(BaseModel):
 
 
 class FundingOverviewInPlanner(BaseModel):
-    annual_education_cost: float
-    existing_support: float
-    funding_gap: float
-    target_funding: float
-    potential_funding_identified: float
-    potential_remaining_gap: float
-    funding_progress: float
+    annual_education_cost: Optional[float] = None
+    existing_support: Optional[float] = None
+    funding_gap: Optional[float] = None
+    target_funding: Optional[float] = None
+    potential_funding_identified: Optional[float] = None
+    potential_remaining_gap: Optional[float] = None
+    funding_progress: Optional[float] = None
 
 
 class GoalPreferencesInPlanner(BaseModel):
-    purpose: str
-    timeline: str
-    available_hours_per_week: float
-    priorities: str
+    purpose: Optional[str] = None
+    timeline: Optional[str] = None
+    available_hours_per_week: Optional[float] = None
+    priorities: Optional[str] = None
 
 
 class WeeklyAllocationItem(BaseModel):

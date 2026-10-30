@@ -230,6 +230,11 @@ def run_schema_migrations(db_engine_or_conn):
             if dialect_name == "postgresql":
                 _exec(text("ALTER TABLE student_profiles ALTER COLUMN cgpa DROP NOT NULL"))
                 _exec(text("ALTER TABLE student_profiles ALTER COLUMN twelfth_percentage DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN institution DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN course DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN year DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN category DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN state DROP NOT NULL"))
 
         # 5b. Update funding_profiles table if it exists
         if "funding_profiles" in existing_tables:
@@ -246,6 +251,19 @@ def run_schema_migrations(db_engine_or_conn):
                         _exec(text(f"ALTER TABLE funding_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
                     else:
                         _exec(text(f"ALTER TABLE funding_profiles ADD COLUMN {col_name} {sqlite_type}"))
+
+            if dialect_name == "postgresql":
+                _exec(text("ALTER TABLE funding_profiles ALTER COLUMN annual_education_cost DROP NOT NULL"))
+                _exec(text("ALTER TABLE funding_profiles ALTER COLUMN existing_support DROP NOT NULL"))
+                _exec(text("ALTER TABLE funding_profiles ALTER COLUMN annual_family_income DROP NOT NULL"))
+
+        # 5c. Update planner_goals table if it exists
+        if "planner_goals" in existing_tables and dialect_name == "postgresql":
+            _exec(text("ALTER TABLE planner_goals ALTER COLUMN target_funding DROP NOT NULL"))
+            _exec(text("ALTER TABLE planner_goals ALTER COLUMN purpose DROP NOT NULL"))
+            _exec(text("ALTER TABLE planner_goals ALTER COLUMN timeline DROP NOT NULL"))
+            _exec(text("ALTER TABLE planner_goals ALTER COLUMN available_hours_per_week DROP NOT NULL"))
+            _exec(text("ALTER TABLE planner_goals ALTER COLUMN priorities DROP NOT NULL"))
 
         # 6. Update applications table if it exists
         if "applications" in existing_tables:
@@ -317,15 +335,6 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "source_verification_status = 'SOURCE_VERIFIED' WHERE source_verification_status IS NULL"),
             ("scholarships", "application_window_status = 'OPEN' WHERE application_window_status IS NULL"),
             ("scholarships", "benefit_type = 'SCHOLARSHIP' WHERE benefit_type IS NULL"),
-            ("student_profiles", "gender = 'Male' WHERE gender IS NULL"),
-            ("student_profiles", "admission_quota = 'GOVERNMENT_QUOTA' WHERE admission_quota IS NULL"),
-            ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
-            ("student_profiles", first_grad_backfill),
-            ("student_profiles", "state = 'Tamil Nadu' WHERE state IS NULL"),
-            ("student_profiles", "native_state = 'Tamil Nadu' WHERE native_state IS NULL"),
-            ("student_profiles", "education_level = 'Undergraduate' WHERE education_level IS NULL"),
-            ("student_profiles", "stream = 'Engineering & Technology' WHERE stream IS NULL"),
-            ("student_profiles", "institution_type = 'Government-aided' WHERE institution_type IS NULL"),
             ("student_profiles", "bank_readiness = 'NOT_CONFIGURED' WHERE bank_readiness IS NULL"),
             ("student_profiles", "aadhaar_verification_status = 'NOT_PROVIDED' WHERE aadhaar_verification_status IS NULL"),
             ("funding_profiles", "income_certificate_status = 'NOT_UPLOADED' WHERE income_certificate_status IS NULL"),

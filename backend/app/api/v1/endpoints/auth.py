@@ -42,45 +42,47 @@ def register(req: UserRegisterRequest, response: Response, db: Session = Depends
     db.add(student)
     db.flush()
 
-    # 2. Create StudentProfile
+    # 2. Create StudentProfile with only student-provided values, no synthetic defaults
     profile = StudentProfile(
         student_id=student.id,
-        institution=req.institution or "Collegiate Institution",
-        course=req.course or "Undergraduate Degree",
-        year=req.year or "1st Year",
+        institution=req.institution.strip() if req.institution else None,
+        course=req.course.strip() if req.course else None,
+        year=req.year.strip() if req.year else None,
         cgpa=req.cgpa,
         twelfth_percentage=req.twelfth_percentage,
-        category=req.category or "BC",
-        state=req.state or "Tamil Nadu",
-        native_state="Tamil Nadu",
-        gender=req.gender or "Other",
-        education_level="Undergraduate",
-        stream="Engineering & Technology",
-        institution_type="Government-aided",
+        category=req.category.strip() if req.category else None,
+        state=req.state.strip() if req.state else None,
+        native_state=req.state.strip() if req.state else None,
+        gender=req.gender.strip() if req.gender else None,
+        education_level=None,
+        stream=None,
+        institution_type=None,
         bank_readiness="NOT_CONFIGURED",
         aadhaar_verification_status="NOT_PROVIDED",
     )
     db.add(profile)
 
-    # 3. Create FundingProfile (initialized with safe defaults without requiring during registration)
+    # 3. Create FundingProfile (initialized clean without synthetic prefill)
     funding = FundingProfile(
         student_id=student.id,
-        annual_education_cost=req.annual_education_cost or 0.0,
-        existing_support=req.existing_support or 0.0,
-        annual_family_income=req.annual_family_income or 0.0,
+        annual_education_cost=req.annual_education_cost,
+        existing_support=req.existing_support,
+        annual_family_income=req.annual_family_income,
         income_certificate_status="NOT_UPLOADED",
     )
     db.add(funding)
 
-    # 4. Create PlannerGoal
-    goal_target = max(0.0, (req.annual_education_cost or 0.0) - (req.existing_support or 0.0))
+    # 4. Create PlannerGoal (initialized clean with no synthetic defaults)
+    goal_target = None
+    if req.annual_education_cost is not None:
+        goal_target = max(0.0, float(req.annual_education_cost) - float(req.existing_support or 0.0))
     goal = PlannerGoal(
         student_id=student.id,
         target_funding=goal_target,
-        purpose="Tuition and educational expenses",
-        timeline="Current Academic Year",
-        available_hours_per_week=5.0,
-        priorities="High-impact & Deadline-urgent",
+        purpose=None,
+        timeline=None,
+        available_hours_per_week=None,
+        priorities=None,
     )
     db.add(goal)
 

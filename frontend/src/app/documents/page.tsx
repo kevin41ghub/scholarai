@@ -45,7 +45,7 @@ export default function DocumentsPage() {
   const [activeTab, setActiveTab] = useState<"READINESS" | "UPLOAD" | "REPOSITORY">("READINESS");
 
   // Upload Form State
-  const [selectedCategory, setSelectedCategory] = useState("INCOME_CERTIFICATE");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [notes, setNotes] = useState("");
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -153,6 +153,11 @@ export default function DocumentsPage() {
       return;
     }
 
+    if (!selectedCategory) {
+      setError("Please select a document category before uploading.");
+      return;
+    }
+
     try {
       setIsUploading(true);
       setUploadProgress("Validating cryptographic signature & storing in private vault...");
@@ -169,6 +174,7 @@ export default function DocumentsPage() {
         }.`
       );
       setFileToUpload(null);
+      setSelectedCategory("");
       setNotes("");
       if (fileInputRef.current) fileInputRef.current.value = "";
       // Prompt user to inspect AI extraction
@@ -795,6 +801,7 @@ export default function DocumentsPage() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-800 bg-stone-950 text-stone-100 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
                 >
+                  <option value="">Select document category / proof type...</option>
                   {DOCUMENT_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
@@ -802,7 +809,9 @@ export default function DocumentsPage() {
                   ))}
                 </select>
                 <p className="text-[11px] text-stone-400 mt-1">
-                  {DOCUMENT_CATEGORIES.find((c) => c.value === selectedCategory)?.hint}
+                  {selectedCategory
+                    ? DOCUMENT_CATEGORIES.find((c) => c.value === selectedCategory)?.hint
+                    : "Select the category or proof type for this upload."}
                 </p>
               </div>
 

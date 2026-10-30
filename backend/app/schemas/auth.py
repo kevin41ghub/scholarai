@@ -14,8 +14,8 @@ class UserRegisterRequest(BaseModel):
     phone: Optional[str] = None
     institution: Optional[str] = None
     course: Optional[str] = None
-    year: Optional[str] = "1st Year"
-    state: Optional[str] = "Tamil Nadu"
+    year: Optional[str] = None
+    state: Optional[str] = None
     gender: Optional[str] = None
 
     # Backward compatibility for existing payloads (optional, ignored or used safely)
@@ -30,9 +30,11 @@ class UserRegisterRequest(BaseModel):
     @classmethod
     def validate_state(cls, v):
         if v is None:
-            return "Tamil Nadu"
+            return None
         v_str = str(v).strip()
-        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+        if not v_str:
+            return None
+        if v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
             raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State must be 'Tamil Nadu'.")
         return "Tamil Nadu"
 

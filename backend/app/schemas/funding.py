@@ -17,11 +17,11 @@ class FundingProfileUpdate(BaseModel):
 class FundingProfileResponse(BaseModel):
     id: int
     student_id: int
-    annual_education_cost: float
-    existing_support: float
-    annual_family_income: float
-    funding_gap: float
-    funding_progress_percentage: float
+    annual_education_cost: Optional[float] = None
+    existing_support: Optional[float] = None
+    annual_family_income: Optional[float] = None
+    funding_gap: Optional[float] = None
+    funding_progress_percentage: Optional[float] = None
     income_range: Optional[str] = None
     income_certificate_status: Optional[str] = None
     financial_circumstances_notes: Optional[str] = None
@@ -30,10 +30,10 @@ class FundingProfileResponse(BaseModel):
 
 
 class FundingOverviewResponse(BaseModel):
-    annual_education_cost: float
-    existing_support: float
-    funding_gap: float
-    funding_progress_percentage: float
-    annual_family_income: float
+    annual_education_cost: Optional[float] = None
+    existing_support: Optional[float] = None
+    funding_gap: Optional[float] = None
+    funding_progress_percentage: Optional[float] = None
+    annual_family_income: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)

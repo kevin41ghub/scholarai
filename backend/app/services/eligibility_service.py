@@ -69,15 +69,15 @@ class EligibilityService:
         qual_marks = float(profile.qualifying_marks) if getattr(profile, "qualifying_marks", None) is not None else None
         academic_score = twelfth if twelfth is not None else (qual_marks if qual_marks is not None else None)
 
-        income = float(funding.annual_family_income or 0.0)
-        course = (profile.course or "").lower()
-        year = (profile.year or "").lower()
-        state = (profile.state or "Tamil Nadu").lower()
-        native_state = (getattr(profile, "native_state", "Tamil Nadu") or "Tamil Nadu").lower()
-        category = (profile.category or "BC").lower()
-        gender = (getattr(profile, "gender", "Male") or "Male").lower()
-        stream_val = (getattr(profile, "stream", "Engineering & Technology") or "").lower()
-        inst_type = (getattr(profile, "institution_type", "Government-aided") or "").lower()
+        income = float(funding.annual_family_income) if funding and funding.annual_family_income is not None else None
+        course = (profile.course or "").strip().lower() if getattr(profile, "course", None) else ""
+        year = (profile.year or "").strip().lower() if getattr(profile, "year", None) else ""
+        state = (profile.state or "").strip().lower() if getattr(profile, "state", None) else None
+        native_state = (getattr(profile, "native_state", None) or "").strip().lower() if getattr(profile, "native_state", None) else None
+        category = (profile.category or "").strip().lower() if getattr(profile, "category", None) else None
+        gender = (getattr(profile, "gender", None) or "").strip().lower() if getattr(profile, "gender", None) else None
+        stream_val = (getattr(profile, "stream", None) or "").strip().lower() if getattr(profile, "stream", None) else ""
+        inst_type = (getattr(profile, "institution_type", None) or "").strip().lower() if getattr(profile, "institution_type", None) else ""
         school_type = (getattr(profile, "school_type", "") or "").lower()
         school_history = (getattr(profile, "school_study_history", "") or "").lower()
 
@@ -91,26 +91,56 @@ class EligibilityService:
             or any(kw in course for kw in ["b.sc", "b.a", "b.com", "bca", "bba", "m.sc", "m.a", "arts", "science", "commerce", "humanities"])
         )
 
-        if scholarship.stream == "ARTS_SCIENCE" and is_engineering and not is_arts_science:
-            unmatched.append("Scheme is designated exclusively for Arts & Science programs; student profile indicates Engineering.")
-            is_hard_ineligible = True
-        elif scholarship.stream == "ENGINEERING" and is_arts_science and not is_engineering:
-            unmatched.append("Scheme is designated exclusively for Engineering programs (B.E./B.Tech); student profile indicates Arts & Science.")
-            is_hard_ineligible = True
-        elif scholarship.stream in ["ARTS_SCIENCE", "ENGINEERING", "BOTH"]:
-            matched.append(f"Program matches stream requirement ({scholarship.stream})")
+        if scholarship.stream == "ARTS_SCIENCE":
+            if is_engineering and not is_arts_science:
+                unmatched.append("Scheme is designated exclusively for Arts & Science programs; student profile indicates Engineering.")
+                is_hard_ineligible = True
+            elif is_arts_science:
+                matched.append("Program matches Arts & Science stream requirement")
+            elif not stream_val and not course:
+                needs_verif.append("Scheme is designated exclusively for Arts & Science programs; academic stream not specified in profile.")
+                missing_info.append("Academic stream / degree course")
+            else:
+                matched.append(f"Program matches stream requirement ({scholarship.stream})")
+        elif scholarship.stream == "ENGINEERING":
+            if is_arts_science and not is_engineering:
+                unmatched.append("Scheme is designated exclusively for Engineering programs (B.E./B.Tech); student profile indicates Arts & Science.")
+                is_hard_ineligible = True
+            elif is_engineering:
+                matched.append("Program matches Engineering stream requirement")
+            elif not stream_val and not course:
+                needs_verif.append("Scheme is designated exclusively for Engineering programs; academic stream not specified in profile.")
+                missing_info.append("Academic stream / degree course")
+            else:
+                matched.append(f"Program matches stream requirement ({scholarship.stream})")
+        elif scholarship.stream in ["BOTH", "ALL"]:
+            matched.append(f"Program open across academic streams ({scholarship.stream})")
 
         # Study Level Check (UG vs PG vs Diploma)
-        ed_level = (getattr(profile, "education_level", "Undergraduate") or "Undergraduate").lower()
+        ed_level = (getattr(profile, "education_level", "") or "").strip().lower()
         is_pg = "postgraduate" in ed_level or any(kw in course or kw in year for kw in ["pg", "postgraduate", "master", "m.tech", "m.sc", "m.a", "m.e", "ph.d", "phd"])
-        is_ug = "undergraduate" in ed_level or not is_pg
+        is_ug = "undergraduate" in ed_level or "b.sc" in course or "b.e" in course or "b.tech" in course or "b.a" in course or "b.com" in course
 
-        if scholarship.study_level == "PG" and not is_pg:
-            unmatched.append("Scheme is restricted to Postgraduate (PG) students; student profile indicates undergraduate standing.")
-            is_hard_ineligible = True
-        elif scholarship.study_level == "UG" and is_pg:
-            unmatched.append("Scheme is restricted to Undergraduate (UG) students; student profile indicates postgraduate standing.")
-            is_hard_ineligible = True
+        if scholarship.study_level == "PG":
+            if not is_pg and (is_ug or ed_level or course):
+                unmatched.append("Scheme is restricted to Postgraduate (PG) students; student profile indicates undergraduate standing.")
+                is_hard_ineligible = True
+            elif is_pg:
+                matched.append("Postgraduate academic level satisfies scheme requirement")
+            else:
+                needs_verif.append("Scheme is restricted to Postgraduate (PG) students; education level not specified in profile.")
+                missing_info.append("Education level (UG/PG)")
+        elif scholarship.study_level == "UG":
+            if is_pg:
+                unmatched.append("Scheme is restricted to Undergraduate (UG) students; student profile indicates postgraduate standing.")
+                is_hard_ineligible = True
+            elif is_ug:
+                matched.append("Undergraduate academic level satisfies scheme requirement")
+            elif not ed_level and not course:
+                needs_verif.append("Scheme is restricted to Undergraduate (UG) students; education level not specified in profile.")
+                missing_info.append("Education level (UG/PG)")
+            else:
+                matched.append(f"Academic level satisfies scheme requirement ({scholarship.study_level})")
         elif scholarship.study_level in ["UG", "PG", "BOTH"]:
             matched.append(f"Academic level satisfies scheme requirement ({scholarship.study_level})")
 
@@ -118,8 +148,11 @@ class EligibilityService:
         tn_req_val = getattr(scholarship, "tn_residency_required", False)
         is_tn_residency_mandatory = tn_req_val in [True, "YES", "yes", "True", "true", "1", 1]
         if is_tn_residency_mandatory:
-            if state in ["tamil nadu", "tamilnadu", "tn"] or native_state in ["tamil nadu", "tamilnadu", "tn"]:
+            if (state and state in ["tamil nadu", "tamilnadu", "tn"]) or (native_state and native_state in ["tamil nadu", "tamilnadu", "tn"]):
                 matched.append("Tamil Nadu state domicile verified.")
+            elif not state and not native_state:
+                needs_verif.append("Tamil Nadu residency/domicile is strictly required; state of residence not yet declared in profile.")
+                missing_info.append("State of residence")
             else:
                 unmatched.append(f"Tamil Nadu residency/domicile is strictly required; student profile indicates '{profile.state or 'Not Provided'}'.")
                 is_hard_ineligible = True
@@ -155,7 +188,7 @@ class EligibilityService:
             elif rtype == "MAX_INCOME":
                 try:
                     req_income = float(cval)
-                    if income > 0:
+                    if income is not None:
                         if income <= req_income:
                             matched.append(f"Annual family income ₹{int(income):,} is within statutory limit of ₹{int(req_income):,}")
                         else:
@@ -183,22 +216,32 @@ class EligibilityService:
                     needs_verif.append(f"Could not parse qualifying percentage: {cval}")
 
             elif rtype == "COURSE":
-                allowed_courses = [c.strip().lower() for c in cval.split(",")]
-                if any(ac in course for ac in allowed_courses):
-                    matched.append(f"Course '{profile.course}' matches eligible programs ({cval})")
+                if not course:
+                    needs_verif.append(f"Scheme specifies eligible courses ({cval}); degree/course not yet entered in profile.")
+                    missing_info.append("Degree / Course")
                 else:
-                    unmatched.append(f"Course '{profile.course}' does not match required program ({cval})")
-                    is_hard_ineligible = True
+                    allowed_courses = [c.strip().lower() for c in cval.split(",")]
+                    if any(ac in course for ac in allowed_courses):
+                        matched.append(f"Course '{profile.course}' matches eligible programs ({cval})")
+                    else:
+                        unmatched.append(f"Course '{profile.course}' does not match required program ({cval})")
+                        is_hard_ineligible = True
 
             elif rtype == "YEAR":
-                if cval.lower() in year or year in cval.lower():
+                if not year:
+                    needs_verif.append(f"Scheme specifies year of study ({cval}); academic year not yet entered in profile.")
+                    missing_info.append("Year of study")
+                elif cval.lower() in year or year in cval.lower():
                     matched.append(f"Academic year '{profile.year}' satisfies eligibility")
                 else:
                     unmatched.append(f"Academic year '{profile.year}' does not match requirement ({cval})")
                     is_hard_ineligible = True
 
             elif rtype == "STATE":
-                if cval.lower() in [state, native_state] or (cval.lower() == "tamil nadu" and (state in ["tamil nadu", "tamilnadu", "tn"] or native_state in ["tamil nadu", "tamilnadu", "tn"])):
+                if not state and not native_state:
+                    needs_verif.append(f"Scheme specifies domicile state ({cval}); state of residence not yet declared in profile.")
+                    missing_info.append("State of residence")
+                elif cval.lower() in [state or "", native_state or ""] or (cval.lower() == "tamil nadu" and ((state and state in ["tamil nadu", "tamilnadu", "tn"]) or (native_state and native_state in ["tamil nadu", "tamilnadu", "tn"]))):
                     matched.append(f"Domicile state matches requirement ({cval})")
                 else:
                     unmatched.append(f"Domicile state '{profile.state}' does not match requirement ({cval})")
@@ -207,6 +250,9 @@ class EligibilityService:
             elif rtype == "CATEGORY":
                 if cval.lower() == "needs verification":
                     needs_verif.append(desc)
+                elif not category:
+                    needs_verif.append(f"Scheme requires reservation category ({cval}); community/category not yet entered in profile.")
+                    missing_info.append("Community Category (BC/MBC/SC/ST/OC)")
                 else:
                     allowed_cats = [c.strip().lower() for c in cval.split(",")]
                     cat_synonyms = {
@@ -229,10 +275,13 @@ class EligibilityService:
                         is_hard_ineligible = True
 
             elif rtype == "GENDER":
-                if cval.lower() == gender:
+                if not gender:
+                    needs_verif.append(f"Scheme restricted to {cval} applicants; gender not yet entered in profile.")
+                    missing_info.append("Gender")
+                elif cval.lower() == gender:
                     matched.append(f"Applicant gender matches scheme restriction ({cval})")
                 else:
-                    unmatched.append(f"Scheme restricted to {cval} applicants only; student profile indicates {profile.gender or 'Male'}")
+                    unmatched.append(f"Scheme restricted to {cval} applicants only; student profile indicates {profile.gender or 'Not Specified'}")
                     is_hard_ineligible = True
 
             elif rtype in ["ADMISSION_QUOTA", "QUOTA"]:

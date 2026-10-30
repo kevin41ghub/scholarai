@@ -14,11 +14,11 @@ class PlannerService:
         if not goal:
             goal = PlannerGoal(
                 student_id=student_id,
-                target_funding=60000.0,
-                purpose="Tuition & Academic Expenses",
-                timeline="Current Academic Year",
-                available_hours_per_week=5.0,
-                priorities="High-impact & Deadline-urgent"
+                target_funding=None,
+                purpose=None,
+                timeline=None,
+                available_hours_per_week=None,
+                priorities=None,
             )
             db.add(goal)
             db.commit()
@@ -43,57 +43,63 @@ class PlannerService:
 
         actions = next_best_action_service.generate_and_rank_actions(db, student.id)
 
-        # Calculate portfolio funding metrics
-        cost = float(funding.annual_education_cost)
-        support = float(funding.existing_support)
-        gap = max(0.0, cost - support)
-        target = float(goal.target_funding)
+        # Calculate portfolio funding metrics safely with null checks
+        cost = float(funding.annual_education_cost) if funding and funding.annual_education_cost is not None else None
+        support = float(funding.existing_support) if funding and funding.existing_support is not None else None
+        gap = max(0.0, cost - (support or 0.0)) if cost is not None else None
+        target = float(goal.target_funding) if goal.target_funding is not None else None
 
         potential_identified = sum(float(a.scholarship.amount) for a in active_apps)
-        potential_remaining_gap = max(0.0, gap - potential_identified)
-        funding_progress = round((support / cost * 100.0), 1) if cost > 0 else 100.0
+        potential_remaining_gap = max(0.0, gap - potential_identified) if gap is not None else None
+        funding_progress = round(((support or 0.0) / cost * 100.0), 1) if (cost is not None and cost > 0) else None
 
-        # Heuristic Time-Constrained Allocation (e.g. 5 hours)
-        available_hours = float(goal.available_hours_per_week or 5.0)
+        available_hours = float(goal.available_hours_per_week) if goal.available_hours_per_week is not None else None
         allocations: List[Dict[str, Any]] = []
-        hours_left = available_hours
 
-        # 1. Allocate to primary blocker if any
-        dep_data = dependency_service.get_dependency_graph(db, student.id)
-        primary_blocker = dep_data.get("primary_blocker")
+        if available_hours is None or available_hours <= 0:
+            total_hours_display = 0.0
+            disclaimer = "No weekly hours configured. Enter your available hours per week in Goal Preferences to generate a tailored allocation plan."
+        else:
+            total_hours_display = available_hours
+            hours_left = available_hours
+            disclaimer = "Suggested weekly plan based on transparent deadline and blocker heuristics. Does not claim mathematical optimality."
 
-        if primary_blocker and hours_left >= 1.0:
-            alloc_hours = min(2.0, hours_left)
-            allocations.append({
-                "task": f"Resolve Shared Blocker: {primary_blocker['document_name']}",
-                "allocated_hours": alloc_hours,
-                "reason": f"Unblocks {primary_blocker['blocked_applications_count']} active applications representing ₹{int(primary_blocker['potential_funding_affected']):,} in potential aid.",
-                "category": "DOCUMENT_PREPARATION",
-            })
-            hours_left -= alloc_hours
+            # 1. Allocate to primary blocker if any
+            dep_data = dependency_service.get_dependency_graph(db, student.id)
+            primary_blocker = dep_data.get("primary_blocker")
 
-        # 2. Allocate to active applications by deadline urgency
-        sorted_apps = sorted(active_apps, key=lambda a: a.scholarship.deadline)
-        for app in sorted_apps:
-            if hours_left <= 0:
-                break
-            alloc_hours = min(1.5, hours_left)
-            allocations.append({
-                "task": f"Progress {app.scholarship.name} ({app.status})",
-                "allocated_hours": alloc_hours,
-                "reason": f"Approaching deadline. Current completion is {app.progress:.0f}%. Potential award: ₹{int(app.scholarship.amount):,}.",
-                "category": "APPLICATION_WORK",
-            })
-            hours_left -= alloc_hours
+            if primary_blocker and hours_left >= 1.0:
+                alloc_hours = min(2.0, hours_left)
+                allocations.append({
+                    "task": f"Resolve Shared Blocker: {primary_blocker['document_name']}",
+                    "allocated_hours": alloc_hours,
+                    "reason": f"Unblocks {primary_blocker['blocked_applications_count']} active applications representing ₹{int(primary_blocker['potential_funding_affected']):,} in potential aid.",
+                    "category": "DOCUMENT_PREPARATION",
+                })
+                hours_left -= alloc_hours
 
-        # 3. If any time remaining, allocate to discovery/statement refinement
-        if hours_left > 0:
-            allocations.append({
-                "task": "Review New Matching Schemes & Refine Statements",
-                "allocated_hours": round(hours_left, 1),
-                "reason": "Explore additional high-coverage opportunities on Discover to maximize fallback security.",
-                "category": "STRATEGY_REVIEW",
-            })
+            # 2. Allocate to active applications by deadline urgency
+            sorted_apps = sorted(active_apps, key=lambda a: a.scholarship.deadline)
+            for app in sorted_apps:
+                if hours_left <= 0:
+                    break
+                alloc_hours = min(1.5, hours_left)
+                allocations.append({
+                    "task": f"Progress {app.scholarship.name} ({app.status})",
+                    "allocated_hours": alloc_hours,
+                    "reason": f"Approaching deadline. Current completion is {app.progress:.0f}%. Potential award: ₹{int(app.scholarship.amount):,}.",
+                    "category": "APPLICATION_WORK",
+                })
+                hours_left -= alloc_hours
+
+            # 3. If any time remaining, allocate to discovery/statement refinement
+            if hours_left > 0:
+                allocations.append({
+                    "task": "Review New Matching Schemes & Refine Statements",
+                    "allocated_hours": round(hours_left, 1),
+                    "reason": "Explore additional high-coverage opportunities on Discover to maximize fallback security.",
+                    "category": "STRATEGY_REVIEW",
+                })
 
         return {
             "funding_overview": {
@@ -112,9 +118,9 @@ class PlannerService:
                 "priorities": goal.priorities,
             },
             "suggested_weekly_plan": {
-                "total_hours": available_hours,
+                "total_hours": total_hours_display,
                 "allocations": allocations,
-                "methodology_disclaimer": "Suggested weekly plan based on transparent deadline and blocker heuristics. Does not claim mathematical optimality.",
+                "methodology_disclaimer": disclaimer,
             },
             "funding_strategy": {
                 "active_applications_count": len(active_apps),
@@ -132,11 +138,11 @@ class PlannerService:
 planner_service = PlannerService()
 
 
-def generate_weekly_plan(db: Session, student_id: int, available_hours: float = 5.0) -> Dict[str, Any]:
+def generate_weekly_plan(db: Session, student_id: int, available_hours: Optional[float] = None) -> Dict[str, Any]:
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         return {}
-    if available_hours:
+    if available_hours is not None:
         goal = planner_service.get_or_create_goal(db, student_id)
         goal.available_hours_per_week = available_hours
         db.commit()

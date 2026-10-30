@@ -28,72 +28,72 @@ function SettingsPageInner() {
   const { student, user, displayEmail, refreshUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
-  // Profile Form state — strictly no CGPA!
+  // Profile Form state — strictly no CGPA, no unintended prefilled defaults!
   const [profileForm, setProfileForm] = useState({
     // Personal Information
     name: "",
     email: "",
     phone: "",
     dob: "",
-    gender: "Male",
-    state: "Tamil Nadu", // Strictly restricted to Tamil Nadu
-    district: "Chennai",
-    native_state: "Tamil Nadu",
-    domicile_status: "Tamil Nadu Domicile",
+    gender: "",
+    state: "",
+    district: "",
+    native_state: "",
+    domicile_status: "",
 
     // Academic Information
     institution: "",
     course: "",
-    stream: "Engineering & Technology",
-    education_level: "Undergraduate",
-    year: "1st Year",
-    admission_quota: "GOVERNMENT_QUOTA",
-    hosteller_status: "DAY_SCHOLAR",
-    mode_of_study: "Regular / Full-Time",
+    stream: "",
+    education_level: "",
+    year: "",
+    admission_quota: "",
+    hosteller_status: "",
+    mode_of_study: "",
     studied_govt_school_6_to_12: false,
     is_first_graduate: false,
-    board_of_education: "Tamil Nadu State Board",
+    board_of_education: "",
     qualifying_marks: "",
-    school_type: "Tamil Nadu Government School (Classes 6-12)",
+    school_type: "",
     school_study_history: "",
 
     // Community Information (Statutory Categories Only)
-    category: "BC",
-    minority_status: "None",
-    special_category: "None",
+    category: "",
+    minority_status: "",
+    special_category: "",
 
     // Sports & Special Athletic Eligibility
     participates_in_sports: false,
     sport_discipline: "",
-    sports_competition_level: "District / Divisional",
-    sports_achievement_type: "Winner / Gold Medalist",
-    sports_certificate_status: "Have Verified Official Certificate",
-    sports_achievement_year: "2024",
+    sports_competition_level: "",
+    sports_achievement_type: "",
+    sports_certificate_status: "",
+    sports_achievement_year: "",
 
     // Disability & Accessibility Accommodations (Confidential & Consent-Based)
     has_disability: false,
     disability_consent_given: false,
-    disability_category: "Locomotor Disability",
+    disability_category: "",
     disability_percentage: "",
-    udid_card_status: "UDID Card Available",
-    accessibility_needs: "None / Independent",
+    udid_card_status: "",
+    accessibility_needs: "",
 
     // Financial Information
-    annual_family_income: 0,
-    income_range: "Below ₹2.5 Lakhs",
-    income_certificate_status: "Have Valid E-Sevai Certificate",
-    annual_education_cost: 0,
-    existing_support: 0,
-    funding_gap: 0,
+    annual_family_income: "" as string | number,
+    income_range: "",
+    income_certificate_status: "",
+    annual_education_cost: "" as string | number,
+    existing_support: "" as string | number,
+    funding_gap: "" as string | number,
     financial_circumstances_notes: "",
 
     // Identity & Benefits
     aadhaar_masked: "",
     aadhaar_consent_given: false,
     aadhaar_verification_status: "NOT_PROVIDED",
-    dbt_seeding_status: "Don't Know",
+    dbt_seeding_status: "",
     dbt_enabled: false,
-    ration_card_type: "Priority (PHH)",
+    ration_card_type: "",
     bank_readiness: "NOT_CONFIGURED",
     account_holder_name: "",
     bank_name: "",
@@ -119,59 +119,59 @@ function SettingsPageInner() {
           email: student.email || "",
           phone: student.phone || "",
           dob: p?.dob || "",
-          gender: p?.gender || "Male",
-          state: "Tamil Nadu", // strictly locked to Tamil Nadu
-          district: p?.district || "Chennai",
-          native_state: p?.native_state || "Tamil Nadu",
-          domicile_status: p?.domicile_status || "Tamil Nadu Domicile",
+          gender: p?.gender || "",
+          state: p?.state || "",
+          district: p?.district || "",
+          native_state: p?.native_state || "",
+          domicile_status: p?.domicile_status || "",
 
           institution: p?.institution || "",
           course: p?.course || "",
-          stream: p?.stream || "Engineering & Technology",
-          education_level: p?.education_level || "Undergraduate",
-          year: p?.year || "1st Year",
-          admission_quota: p?.admission_quota || "GOVERNMENT_QUOTA",
-          hosteller_status: p?.hosteller_status || "DAY_SCHOLAR",
-          mode_of_study: p?.mode_of_study || "Regular / Full-Time",
+          stream: p?.stream || "",
+          education_level: p?.education_level || "",
+          year: p?.year || "",
+          admission_quota: p?.admission_quota || "",
+          hosteller_status: p?.hosteller_status || "",
+          mode_of_study: p?.mode_of_study || "",
           studied_govt_school_6_to_12: Boolean(p?.studied_govt_school_6_to_12),
           is_first_graduate: Boolean(p?.is_first_graduate),
-          board_of_education: p?.board_of_education || "Tamil Nadu State Board",
-          qualifying_marks: p?.qualifying_marks ? String(p.qualifying_marks) : (p?.twelfth_percentage ? String(p.twelfth_percentage) : ""),
-          school_type: p?.school_type || "Tamil Nadu Government School (Classes 6-12)",
+          board_of_education: p?.board_of_education || "",
+          qualifying_marks: p?.qualifying_marks != null ? String(p.qualifying_marks) : (p?.twelfth_percentage != null ? String(p.twelfth_percentage) : ""),
+          school_type: p?.school_type || "",
           school_study_history: p?.school_study_history || "",
 
-          category: p?.category || "BC",
-          minority_status: p?.minority_status || "None",
-          special_category: p?.special_category || "None",
+          category: p?.category || "",
+          minority_status: p?.minority_status || "",
+          special_category: p?.special_category || "",
 
           participates_in_sports: Boolean(p?.participates_in_sports),
           sport_discipline: p?.sport_discipline || "",
-          sports_competition_level: p?.sports_competition_level || "District / Divisional",
-          sports_achievement_type: p?.sports_achievement_type || "Winner / Gold Medalist",
-          sports_certificate_status: p?.sports_certificate_status || "Have Verified Official Certificate",
+          sports_competition_level: p?.sports_competition_level || "",
+          sports_achievement_type: p?.sports_achievement_type || "",
+          sports_certificate_status: p?.sports_certificate_status || "",
           sports_achievement_year: p?.sports_achievement_year || "",
 
           has_disability: Boolean(p?.has_disability),
           disability_consent_given: Boolean(p?.disability_consent_given),
-          disability_category: p?.disability_category || "Locomotor Disability",
+          disability_category: p?.disability_category || "",
           disability_percentage: p?.disability_percentage !== null && p?.disability_percentage !== undefined ? String(p.disability_percentage) : "",
-          udid_card_status: p?.udid_card_status || "UDID Card Available",
-          accessibility_needs: p?.accessibility_needs || "None / Independent",
+          udid_card_status: p?.udid_card_status || "",
+          accessibility_needs: p?.accessibility_needs || "",
 
-          annual_family_income: f?.annual_family_income || 0,
-          income_range: f?.income_range || "Below ₹2.5 Lakhs",
-          income_certificate_status: f?.income_certificate_status || "Have Valid E-Sevai Certificate",
-          annual_education_cost: f?.annual_education_cost || 0,
-          existing_support: f?.existing_support || 0,
-          funding_gap: f?.funding_gap || 0,
+          annual_family_income: f?.annual_family_income != null ? f.annual_family_income : "",
+          income_range: f?.income_range || "",
+          income_certificate_status: f?.income_certificate_status || "",
+          annual_education_cost: f?.annual_education_cost != null ? f.annual_education_cost : "",
+          existing_support: f?.existing_support != null ? f.existing_support : "",
+          funding_gap: f?.funding_gap != null ? f.funding_gap : "",
           financial_circumstances_notes: f?.financial_circumstances_notes || "",
 
           aadhaar_masked: p?.aadhaar_masked || "",
           aadhaar_consent_given: Boolean(p?.aadhaar_consent_given),
           aadhaar_verification_status: p?.aadhaar_verification_status || "NOT_PROVIDED",
-          dbt_seeding_status: p?.dbt_seeding_status || (p?.dbt_enabled ? "Yes" : "Don't Know"),
+          dbt_seeding_status: p?.dbt_seeding_status || "",
           dbt_enabled: Boolean(p?.dbt_enabled),
-          ration_card_type: p?.ration_card_type || "Priority (PHH)",
+          ration_card_type: p?.ration_card_type || "",
           bank_readiness: p?.bank_readiness || "NOT_CONFIGURED",
           account_holder_name: p?.account_holder_name || student.name || "",
           bank_name: p?.bank_name || "",
@@ -213,61 +213,61 @@ function SettingsPageInner() {
         email: profileForm.email.trim(),
         phone: profileForm.phone.trim() || null,
         dob: profileForm.dob || null,
-        gender: profileForm.gender,
-        state: "Tamil Nadu", // strictly locked to Tamil Nadu
-        district: profileForm.district,
-        native_state: profileForm.native_state,
-        domicile_status: profileForm.domicile_status,
+        gender: profileForm.gender || null,
+        state: profileForm.state || null,
+        district: profileForm.district || null,
+        native_state: profileForm.native_state || null,
+        domicile_status: profileForm.domicile_status || null,
 
-        institution: profileForm.institution.trim(),
-        course: profileForm.course.trim(),
-        stream: profileForm.stream,
-        education_level: profileForm.education_level,
-        year: profileForm.year,
-        admission_quota: profileForm.admission_quota,
-        hosteller_status: profileForm.hosteller_status,
-        mode_of_study: profileForm.mode_of_study,
+        institution: profileForm.institution.trim() || null,
+        course: profileForm.course.trim() || null,
+        stream: profileForm.stream || null,
+        education_level: profileForm.education_level || null,
+        year: profileForm.year || null,
+        admission_quota: profileForm.admission_quota || null,
+        hosteller_status: profileForm.hosteller_status || null,
+        mode_of_study: profileForm.mode_of_study || null,
         studied_govt_school_6_to_12: profileForm.studied_govt_school_6_to_12,
         is_first_graduate: profileForm.is_first_graduate,
-        board_of_education: profileForm.board_of_education,
+        board_of_education: profileForm.board_of_education || null,
         qualifying_marks: qMarks !== null && !isNaN(qMarks) ? qMarks : null,
-        school_type: profileForm.school_type,
+        school_type: profileForm.school_type || null,
         school_study_history: profileForm.school_study_history.trim() || null,
 
-        category: profileForm.category,
-        minority_status: profileForm.minority_status,
-        special_category: profileForm.special_category,
+        category: profileForm.category || null,
+        minority_status: profileForm.minority_status || null,
+        special_category: profileForm.special_category || null,
 
         // Sports & Special Athletic Eligibility
         participates_in_sports: profileForm.participates_in_sports,
         sport_discipline: profileForm.sport_discipline.trim() || null,
-        sports_competition_level: profileForm.sports_competition_level,
-        sports_achievement_type: profileForm.sports_achievement_type,
-        sports_certificate_status: profileForm.sports_certificate_status,
+        sports_competition_level: profileForm.sports_competition_level || null,
+        sports_achievement_type: profileForm.sports_achievement_type || null,
+        sports_certificate_status: profileForm.sports_certificate_status || null,
         sports_achievement_year: profileForm.sports_achievement_year.trim() || null,
 
         // Disability & Accessibility Accommodations (Confidential & Consent-Based)
         has_disability: profileForm.has_disability,
         disability_consent_given: profileForm.disability_consent_given,
-        disability_category: profileForm.has_disability ? profileForm.disability_category : null,
+        disability_category: profileForm.has_disability ? (profileForm.disability_category || null) : null,
         disability_percentage: profileForm.has_disability && profileForm.disability_percentage ? parseFloat(profileForm.disability_percentage) : null,
-        udid_card_status: profileForm.has_disability ? profileForm.udid_card_status : "Not Available",
-        accessibility_needs: profileForm.has_disability ? profileForm.accessibility_needs : null,
+        udid_card_status: profileForm.has_disability ? (profileForm.udid_card_status || null) : null,
+        accessibility_needs: profileForm.has_disability ? (profileForm.accessibility_needs || null) : null,
 
-        annual_family_income: Number(profileForm.annual_family_income) || 0,
-        income_range: profileForm.income_range,
-        income_certificate_status: profileForm.income_certificate_status,
-        annual_education_cost: Number(profileForm.annual_education_cost) || 0,
-        existing_support: Number(profileForm.existing_support) || 0,
-        funding_gap: Number(profileForm.funding_gap) || 0,
+        annual_family_income: profileForm.annual_family_income !== "" && !isNaN(Number(profileForm.annual_family_income)) ? Number(profileForm.annual_family_income) : null,
+        income_range: profileForm.income_range || null,
+        income_certificate_status: profileForm.income_certificate_status || null,
+        annual_education_cost: profileForm.annual_education_cost !== "" && !isNaN(Number(profileForm.annual_education_cost)) ? Number(profileForm.annual_education_cost) : null,
+        existing_support: profileForm.existing_support !== "" && !isNaN(Number(profileForm.existing_support)) ? Number(profileForm.existing_support) : null,
+        funding_gap: profileForm.funding_gap !== "" && !isNaN(Number(profileForm.funding_gap)) ? Number(profileForm.funding_gap) : null,
         financial_circumstances_notes: profileForm.financial_circumstances_notes.trim() || null,
 
         aadhaar_masked: profileForm.aadhaar_masked.trim() || null,
         aadhaar_consent_given: profileForm.aadhaar_consent_given,
         aadhaar_verification_status: profileForm.aadhaar_verification_status,
-        dbt_seeding_status: profileForm.dbt_seeding_status,
+        dbt_seeding_status: profileForm.dbt_seeding_status || null,
         dbt_enabled: profileForm.dbt_seeding_status === "Yes" || profileForm.dbt_enabled,
-        ration_card_type: profileForm.ration_card_type,
+        ration_card_type: profileForm.ration_card_type || null,
         bank_readiness: profileForm.bank_readiness,
         account_holder_name: profileForm.account_holder_name.trim() || null,
         bank_name: profileForm.bank_name.trim() || null,
@@ -297,10 +297,10 @@ function SettingsPageInner() {
 
     try {
       await updateStudent({
-        annual_education_cost: Number(profileForm.annual_education_cost) || 0,
-        existing_support: Number(profileForm.existing_support) || 0,
-        annual_family_income: Number(profileForm.annual_family_income) || 0,
-        funding_gap: Number(profileForm.funding_gap) || 0,
+        annual_education_cost: profileForm.annual_education_cost !== "" && !isNaN(Number(profileForm.annual_education_cost)) ? Number(profileForm.annual_education_cost) : null,
+        existing_support: profileForm.existing_support !== "" && !isNaN(Number(profileForm.existing_support)) ? Number(profileForm.existing_support) : null,
+        annual_family_income: profileForm.annual_family_income !== "" && !isNaN(Number(profileForm.annual_family_income)) ? Number(profileForm.annual_family_income) : null,
+        funding_gap: profileForm.funding_gap !== "" && !isNaN(Number(profileForm.funding_gap)) ? Number(profileForm.funding_gap) : null,
       });
       await refreshUser();
       await loadCompletion();
@@ -503,6 +503,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select your gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other / Transgender</option>
@@ -538,19 +539,16 @@ function SettingsPageInner() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  State of Residence (Strictly Fixed)
+                  State of Residence (Tamil Nadu Only) *
                 </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    disabled
-                    value="Tamil Nadu"
-                    className="w-full px-3.5 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-not-allowed"
-                  />
-                  <span className="text-[10px] font-bold px-2 py-1 rounded bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50 whitespace-nowrap">
-                    TN Only
-                  </span>
-                </div>
+                <select
+                  value={profileForm.state}
+                  onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                >
+                  <option value="">Select state of residence</option>
+                  <option value="Tamil Nadu">Tamil Nadu (Higher Education in TN)</option>
+                </select>
               </div>
 
               <div>
@@ -562,6 +560,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, district: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select your district</option>
                   {TN_DISTRICTS.map((dst) => (
                     <option key={dst} value={dst}>{dst}</option>
                   ))}
@@ -577,6 +576,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, domicile_status: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select domicile / nativity status</option>
                   <option value="Tamil Nadu Domicile">Tamil Nadu Domicile (Native of TN)</option>
                   <option value="Other State Native (Studying in TN)">Other State Native (Studying in TN)</option>
                 </select>
@@ -660,6 +660,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, stream: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select academic stream</option>
                   <option value="Engineering & Technology">Engineering & Technology</option>
                   <option value="Arts & Science">Arts & Science</option>
                   <option value="Medical & Dental">Medical & Dental</option>
@@ -682,6 +683,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, education_level: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select degree level</option>
                   <option value="Diploma">Diploma</option>
                   <option value="Undergraduate">Undergraduate</option>
                   <option value="Postgraduate">Postgraduate</option>
@@ -698,6 +700,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, year: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select year of study</option>
                   <option value="1st Year">1st Year</option>
                   <option value="2nd Year">2nd Year</option>
                   <option value="3rd Year">3rd Year</option>
@@ -715,6 +718,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, admission_quota: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select admission quota</option>
                   <option value="GOVERNMENT_QUOTA">Government Quota (DoTE / TNEA / Centralized Allotment)</option>
                   <option value="MANAGEMENT_QUOTA">Management Quota</option>
                   <option value="CONSORTIUM_OTHER">Consortium / Other</option>
@@ -730,6 +734,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, hosteller_status: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select residential status</option>
                   <option value="DAY_SCHOLAR">Day Scholar</option>
                   <option value="HOSTELLER">Hosteller (Recognized College Hostel)</option>
                 </select>
@@ -744,6 +749,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, mode_of_study: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select mode of study</option>
                   <option value="Regular / Full-Time">Regular / Full-Time</option>
                   <option value="Lateral Entry">Lateral Entry</option>
                   <option value="Part-Time">Part-Time</option>
@@ -759,6 +765,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, board_of_education: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select board of education</option>
                   <option value="Tamil Nadu State Board">Tamil Nadu State Board (HSE)</option>
                   <option value="CBSE">CBSE</option>
                   <option value="ICSE">ICSE</option>
@@ -791,6 +798,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, school_type: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select schooling classification</option>
                   <option value="Tamil Nadu Government School (Classes 6-12)">Tamil Nadu Government School (Classes 6 to 12)</option>
                   <option value="Government-Aided School">Government-Aided School</option>
                   <option value="Private / Matriculation School">Private / Matriculation School</option>
@@ -866,6 +874,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select your community category</option>
                   <option value="BC">BC (Backward Class)</option>
                   <option value="MBC">MBC / DNC (Most Backward Class / De-notified Community)</option>
                   <option value="SC">SC (Scheduled Caste)</option>
@@ -884,6 +893,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, minority_status: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select minority status (if applicable)</option>
                   <option value="None">None</option>
                   <option value="Religious Minority (Muslim)">Religious Minority (Muslim)</option>
                   <option value="Religious Minority (Christian)">Religious Minority (Christian)</option>
@@ -903,6 +913,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, special_category: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select special category reservation (if applicable)</option>
                   <option value="None">None</option>
                   <option value="Children of Ex-Servicemen">Children of Ex-Servicemen</option>
                   <option value="Wards of Deceased Defense Personnel">Wards of Deceased Defense Personnel</option>
@@ -980,6 +991,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, sports_competition_level: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select competition level</option>
                       <option value="School / Zonal">School / Zonal Level</option>
                       <option value="District / Divisional">District / Divisional Level</option>
                       <option value="State">State Championship / State Games</option>
@@ -997,6 +1009,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, sports_achievement_type: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select achievement type</option>
                       <option value="Winner / Gold Medalist">Winner / Gold Medalist</option>
                       <option value="Runner-up / Silver Medalist">Runner-up / Silver Medalist</option>
                       <option value="Third Place / Bronze Medalist">Third Place / Bronze Medalist</option>
@@ -1014,6 +1027,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, sports_certificate_status: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select certificate status</option>
                       <option value="Have Verified Official Certificate">Have Verified Official Certificate (Form-II/III)</option>
                       <option value="Certificate Available / Pending Verification">Certificate Available / Pending Scrutiny</option>
                       <option value="Not Available">Not Available / In Progress</option>
@@ -1109,6 +1123,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, disability_category: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select disability category</option>
                       <option value="Locomotor Disability">Locomotor Disability</option>
                       <option value="Visual Impairment (Blind / Low Vision)">Visual Impairment (Blind / Low Vision)</option>
                       <option value="Hearing Impairment (Deaf / Hard of Hearing)">Hearing Impairment (Deaf / Hard of Hearing)</option>
@@ -1147,6 +1162,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, udid_card_status: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select UDID status</option>
                       <option value="UDID Card Available">UDID Card Available (Swavlamban Card)</option>
                       <option value="State Disability Certificate Available">State Medical Board Certificate Available</option>
                       <option value="Applied for UDID / In Progress">Applied for UDID / In Progress</option>
@@ -1163,6 +1179,7 @@ function SettingsPageInner() {
                       onChange={(e) => setProfileForm({ ...profileForm, accessibility_needs: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
+                      <option value="">Select accessibility accommodation</option>
                       <option value="None / Independent">None / Independent</option>
                       <option value="Screen Reader Support">Screen Reader Support</option>
                       <option value="Accessible Exam Scribe">Accessible Exam Scribe / Extra Time</option>
@@ -1221,9 +1238,8 @@ function SettingsPageInner() {
                 <input
                   type="number"
                   min="0"
-                  required
                   value={profileForm.annual_family_income}
-                  onChange={(e) => setProfileForm({ ...profileForm, annual_family_income: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setProfileForm({ ...profileForm, annual_family_income: e.target.value })}
                   placeholder="e.g. 210000"
                   className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
@@ -1238,6 +1254,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, income_certificate_status: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select certificate status</option>
                   <option value="Have Valid E-Sevai Certificate">Have Valid E-Sevai Certificate</option>
                   <option value="Applied / In Progress">Applied / In Progress</option>
                   <option value="Renewal Required">Renewal Required</option>
@@ -1252,16 +1269,18 @@ function SettingsPageInner() {
                 <input
                   type="number"
                   min="0"
-                  required
                   value={profileForm.funding_gap}
                   onChange={(e) => {
-                    const gap = parseFloat(e.target.value) || 0;
+                    const val = e.target.value;
+                    const gap = val === "" ? "" : (parseFloat(val) || 0);
+                    const support = typeof profileForm.existing_support === "number" ? profileForm.existing_support : (parseFloat(profileForm.existing_support) || 0);
                     setProfileForm({
                       ...profileForm,
                       funding_gap: gap,
-                      annual_education_cost: (profileForm.existing_support || 0) + gap,
+                      annual_education_cost: gap !== "" ? support + gap : profileForm.annual_education_cost,
                     });
                   }}
+                  placeholder="e.g. 60000"
                   className="w-full px-3.5 py-2 bg-red-50/50 dark:bg-red-950/30 border border-red-300 dark:border-red-900/60 rounded-lg text-sm font-bold text-red-600 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
@@ -1275,14 +1294,16 @@ function SettingsPageInner() {
                   min="0"
                   value={profileForm.annual_education_cost}
                   onChange={(e) => {
-                    const cost = parseFloat(e.target.value) || 0;
-                    const support = profileForm.existing_support || 0;
+                    const val = e.target.value;
+                    const cost = val === "" ? "" : (parseFloat(val) || 0);
+                    const support = typeof profileForm.existing_support === "number" ? profileForm.existing_support : (parseFloat(profileForm.existing_support) || 0);
                     setProfileForm({
                       ...profileForm,
                       annual_education_cost: cost,
-                      funding_gap: Math.max(0, cost - support),
+                      funding_gap: cost !== "" ? Math.max(0, cost - support) : profileForm.funding_gap,
                     });
                   }}
+                  placeholder="e.g. 65000"
                   className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
@@ -1296,14 +1317,16 @@ function SettingsPageInner() {
                   min="0"
                   value={profileForm.existing_support}
                   onChange={(e) => {
-                    const support = parseFloat(e.target.value) || 0;
-                    const cost = profileForm.annual_education_cost || 0;
+                    const val = e.target.value;
+                    const support = val === "" ? "" : (parseFloat(val) || 0);
+                    const cost = typeof profileForm.annual_education_cost === "number" ? profileForm.annual_education_cost : (parseFloat(profileForm.annual_education_cost) || 0);
                     setProfileForm({
                       ...profileForm,
                       existing_support: support,
-                      funding_gap: Math.max(0, cost - support),
+                      funding_gap: cost !== 0 ? Math.max(0, cost - (support || 0)) : profileForm.funding_gap,
                     });
                   }}
+                  placeholder="e.g. 0"
                   className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
@@ -1317,6 +1340,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, income_range: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select family income range</option>
                   <option value="Below ₹2.5 Lakhs">Below ₹2,50,000 (Full TN Waiver Bracket)</option>
                   <option value="₹2.5L - ₹4.5L">₹2,50,001 - ₹4,50,000 (Central CSSS Bracket)</option>
                   <option value="₹4.5L - ₹8.0L">₹4,50,001 - ₹8,00,000 (AICTE Pragati Bracket)</option>
@@ -1401,6 +1425,7 @@ function SettingsPageInner() {
                   })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select DBT seeding status</option>
                   <option value="Yes">Yes (Seeded &amp; Active for DBT)</option>
                   <option value="No">No</option>
                   <option value="In Progress">In Progress</option>
@@ -1417,6 +1442,7 @@ function SettingsPageInner() {
                   onChange={(e) => setProfileForm({ ...profileForm, ration_card_type: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
+                  <option value="">Select ration card type</option>
                   <option value="Priority (PHH)">Priority (PHH)</option>
                   <option value="Antyodaya (AAY)">Antyodaya (AAY)</option>
                   <option value="Non-Priority (NPHH)">Non-Priority (NPHH)</option>
@@ -1663,14 +1689,16 @@ function SettingsPageInner() {
                 min="0"
                 value={profileForm.annual_education_cost}
                 onChange={(e) => {
-                  const cost = parseFloat(e.target.value) || 0;
-                  const support = profileForm.existing_support || 0;
+                  const val = e.target.value;
+                  const cost = val === "" ? "" : (parseFloat(val) || 0);
+                  const support = typeof profileForm.existing_support === "number" ? profileForm.existing_support : (parseFloat(profileForm.existing_support) || 0);
                   setProfileForm({
                     ...profileForm,
                     annual_education_cost: cost,
-                    funding_gap: Math.max(0, cost - support),
+                    funding_gap: cost !== "" ? Math.max(0, cost - support) : profileForm.funding_gap,
                   });
                 }}
+                placeholder="e.g. 65000"
                 className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
               />
             </div>
@@ -1684,14 +1712,16 @@ function SettingsPageInner() {
                 min="0"
                 value={profileForm.existing_support}
                 onChange={(e) => {
-                  const support = parseFloat(e.target.value) || 0;
-                  const cost = profileForm.annual_education_cost || 0;
+                  const val = e.target.value;
+                  const support = val === "" ? "" : (parseFloat(val) || 0);
+                  const cost = typeof profileForm.annual_education_cost === "number" ? profileForm.annual_education_cost : (parseFloat(profileForm.annual_education_cost) || 0);
                   setProfileForm({
                     ...profileForm,
                     existing_support: support,
-                    funding_gap: Math.max(0, cost - support),
+                    funding_gap: cost !== 0 ? Math.max(0, cost - (support || 0)) : profileForm.funding_gap,
                   });
                 }}
+                placeholder="e.g. 0"
                 className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
               />
             </div>
@@ -1705,8 +1735,9 @@ function SettingsPageInner() {
                 min="0"
                 value={profileForm.annual_family_income}
                 onChange={(e) =>
-                  setProfileForm({ ...profileForm, annual_family_income: parseFloat(e.target.value) || 0 })
+                  setProfileForm({ ...profileForm, annual_family_income: e.target.value })
                 }
+                placeholder="e.g. 210000"
                 className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
               />
             </div>
@@ -1720,13 +1751,16 @@ function SettingsPageInner() {
                 min="0"
                 value={profileForm.funding_gap}
                 onChange={(e) => {
-                  const gap = parseFloat(e.target.value) || 0;
+                  const val = e.target.value;
+                  const gap = val === "" ? "" : (parseFloat(val) || 0);
+                  const support = typeof profileForm.existing_support === "number" ? profileForm.existing_support : (parseFloat(profileForm.existing_support) || 0);
                   setProfileForm({
                     ...profileForm,
                     funding_gap: gap,
-                    annual_education_cost: (profileForm.existing_support || 0) + gap,
+                    annual_education_cost: gap !== "" ? support + gap : profileForm.annual_education_cost,
                   });
                 }}
+                placeholder="e.g. 65000"
                 className="w-full px-3.5 py-2 bg-red-50/50 dark:bg-red-950/30 border border-red-300 dark:border-red-900/60 rounded-lg text-sm font-bold text-red-600 dark:text-red-400"
               />
             </div>

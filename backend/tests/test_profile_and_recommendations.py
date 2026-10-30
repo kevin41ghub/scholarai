@@ -39,7 +39,7 @@ def test_registration_without_cgpa_or_financial_fields(client: TestClient, db_se
     assert student.profile.native_state == "Tamil Nadu"
     # Funding profile created with zeroed/default gap
     assert student.funding_profile is not None
-    assert student.funding_profile.funding_gap == 0.0
+    assert student.funding_profile.funding_gap in (None, 0.0)
 
 
 def test_profile_update_and_persistence(client: TestClient, db_session):

@@ -69,27 +69,25 @@ class StudentService:
         if update_data.district is not None:
             profile.district = update_data.district.strip() if update_data.district else None
         if update_data.native_state is not None:
-            profile.native_state = update_data.native_state.strip() if update_data.native_state else "Tamil Nadu"
+            profile.native_state = update_data.native_state.strip() if update_data.native_state else None
         if update_data.domicile_status is not None:
-            profile.domicile_status = update_data.domicile_status.strip() if update_data.domicile_status else "Tamil Nadu Domicile"
+            profile.domicile_status = update_data.domicile_status.strip() if update_data.domicile_status else None
         if update_data.state is not None:
-            profile.state = "Tamil Nadu"
-        else:
-            profile.state = "Tamil Nadu"
+            profile.state = update_data.state.strip() if update_data.state else None
         if update_data.gender is not None:
-            profile.gender = update_data.gender.strip()
+            profile.gender = update_data.gender.strip() if update_data.gender else None
 
         # Academic details
         if update_data.institution is not None:
-            profile.institution = update_data.institution.strip()
+            profile.institution = update_data.institution.strip() if update_data.institution else None
         if update_data.course is not None:
-            profile.course = update_data.course.strip()
+            profile.course = update_data.course.strip() if update_data.course else None
         if update_data.year is not None:
-            profile.year = update_data.year.strip()
+            profile.year = update_data.year.strip() if update_data.year else None
         if update_data.education_level is not None:
-            profile.education_level = update_data.education_level.strip()
+            profile.education_level = update_data.education_level.strip() if update_data.education_level else None
         if update_data.stream is not None:
-            profile.stream = update_data.stream.strip()
+            profile.stream = update_data.stream.strip() if update_data.stream else None
         if update_data.university is not None:
             profile.university = update_data.university.strip() if update_data.university else None
         if update_data.admission_year is not None:
@@ -99,15 +97,15 @@ class StudentService:
         if update_data.qualifying_exam is not None:
             profile.qualifying_exam = update_data.qualifying_exam.strip() if update_data.qualifying_exam else None
         if update_data.qualifying_marks is not None:
-            profile.qualifying_marks = float(update_data.qualifying_marks)
+            profile.qualifying_marks = float(update_data.qualifying_marks) if update_data.qualifying_marks is not None else None
         if update_data.institution_type is not None:
-            profile.institution_type = update_data.institution_type.strip()
+            profile.institution_type = update_data.institution_type.strip() if update_data.institution_type else None
         if update_data.admission_quota is not None:
-            profile.admission_quota = update_data.admission_quota.strip()
+            profile.admission_quota = update_data.admission_quota.strip() if update_data.admission_quota else None
         if update_data.hosteller_status is not None:
-            profile.hosteller_status = update_data.hosteller_status.strip()
+            profile.hosteller_status = update_data.hosteller_status.strip() if update_data.hosteller_status else None
         if update_data.mode_of_study is not None:
-            profile.mode_of_study = update_data.mode_of_study.strip() if update_data.mode_of_study else "Regular / Full-Time"
+            profile.mode_of_study = update_data.mode_of_study.strip() if update_data.mode_of_study else None
         if update_data.studied_govt_school_6_to_12 is not None:
             profile.studied_govt_school_6_to_12 = bool(update_data.studied_govt_school_6_to_12)
             if profile.studied_govt_school_6_to_12:
@@ -117,7 +115,7 @@ class StudentService:
                 if profile.school_type and "government" in profile.school_type.lower():
                     profile.school_type = "Private / Non-Government School"
         if update_data.board_of_education is not None:
-            profile.board_of_education = update_data.board_of_education.strip() if update_data.board_of_education else "Tamil Nadu State Board"
+            profile.board_of_education = update_data.board_of_education.strip() if update_data.board_of_education else None
         if update_data.is_first_graduate is not None:
             profile.is_first_graduate = bool(update_data.is_first_graduate)
         if update_data.school_type is not None:
@@ -127,17 +125,18 @@ class StudentService:
 
         # Legacy optional academic scores
         if update_data.cgpa is not None:
-            profile.cgpa = float(update_data.cgpa)
+            profile.cgpa = float(update_data.cgpa) if update_data.cgpa is not None else None
         if update_data.twelfth_percentage is not None:
-            profile.twelfth_percentage = float(update_data.twelfth_percentage)
+            profile.twelfth_percentage = float(update_data.twelfth_percentage) if update_data.twelfth_percentage is not None else None
 
         # Community & Sensitive Reservation (Sub-caste deprecated & not collected)
-        if update_data.category is not None:
-            profile.category = update_data.category.strip()
+        cat_update = update_data.category if update_data.category is not None else update_data.community_category
+        if cat_update is not None:
+            profile.category = cat_update.strip() if cat_update else None
         if update_data.minority_status is not None:
-            profile.minority_status = update_data.minority_status.strip() if update_data.minority_status else "None"
+            profile.minority_status = update_data.minority_status.strip() if update_data.minority_status else None
         if update_data.special_category is not None:
-            profile.special_category = update_data.special_category.strip() if update_data.special_category else "None"
+            profile.special_category = update_data.special_category.strip() if update_data.special_category else None
 
         # Sports & Athletic Achievements
         if update_data.participates_in_sports is not None:
@@ -149,7 +148,7 @@ class StudentService:
         if update_data.sports_achievement_type is not None:
             profile.sports_achievement_type = update_data.sports_achievement_type.strip() if update_data.sports_achievement_type else None
         if update_data.sports_certificate_status is not None:
-            profile.sports_certificate_status = update_data.sports_certificate_status.strip() if update_data.sports_certificate_status else "Not Available"
+            profile.sports_certificate_status = update_data.sports_certificate_status.strip() if update_data.sports_certificate_status else None
         if update_data.sports_achievement_year is not None:
             profile.sports_achievement_year = update_data.sports_achievement_year.strip() if update_data.sports_achievement_year else None
 
@@ -163,25 +162,25 @@ class StudentService:
         if update_data.disability_percentage is not None:
             profile.disability_percentage = float(update_data.disability_percentage) if update_data.disability_percentage is not None else None
         if update_data.udid_card_status is not None:
-            profile.udid_card_status = update_data.udid_card_status.strip() if update_data.udid_card_status else "Not Available"
+            profile.udid_card_status = update_data.udid_card_status.strip() if update_data.udid_card_status else None
         if update_data.accessibility_needs is not None:
             profile.accessibility_needs = update_data.accessibility_needs.strip() if update_data.accessibility_needs else None
 
         # Bank and Benefit
         if update_data.bank_readiness is not None:
-            profile.bank_readiness = update_data.bank_readiness.strip()
+            profile.bank_readiness = update_data.bank_readiness.strip() if update_data.bank_readiness else "NOT_CONFIGURED"
         if update_data.account_holder_name is not None:
             profile.account_holder_name = update_data.account_holder_name.strip() if update_data.account_holder_name else None
         if update_data.dbt_enabled is not None:
             profile.dbt_enabled = bool(update_data.dbt_enabled)
         if update_data.dbt_seeding_status is not None:
-            profile.dbt_seeding_status = update_data.dbt_seeding_status.strip() if update_data.dbt_seeding_status else "Don't Know"
+            profile.dbt_seeding_status = update_data.dbt_seeding_status.strip() if update_data.dbt_seeding_status else None
             if profile.dbt_seeding_status in ["Yes", "YES", "Ready", "Seeded"]:
                 profile.dbt_enabled = True
             elif profile.dbt_seeding_status in ["No", "NO"]:
                 profile.dbt_enabled = False
         if update_data.ration_card_type is not None:
-            profile.ration_card_type = update_data.ration_card_type.strip() if update_data.ration_card_type else "Not Available / Don't Know"
+            profile.ration_card_type = update_data.ration_card_type.strip() if update_data.ration_card_type else None
         if update_data.bank_name is not None:
             profile.bank_name = update_data.bank_name.strip() if update_data.bank_name else None
         if update_data.bank_branch is not None:
@@ -224,7 +223,7 @@ class StudentService:
         # If user explicitly updated funding_gap, synchronize annual_education_cost to match: cost = support + gap
         if update_data.funding_gap is not None and update_data.annual_education_cost is None:
             gap = max(0.0, float(update_data.funding_gap))
-            funding.annual_education_cost = float(funding.existing_support) + gap
+            funding.annual_education_cost = float(funding.existing_support or 0.0) + gap
 
         db.commit()
         db.refresh(student)
@@ -311,10 +310,10 @@ class StudentService:
 
         # 4. Financial Information
         fin_missing = []
-        income_val = funding.annual_family_income if funding else 0.0
-        if income_val <= 0 and not (funding and funding.income_range):
+        income_val = funding.annual_family_income if (funding and funding.annual_family_income is not None) else None
+        if (income_val is None or income_val <= 0) and not (funding and funding.income_range):
             fin_missing.append("Annual Family Income")
-        if not funding or funding.annual_education_cost <= 0:
+        if not funding or funding.annual_education_cost is None or funding.annual_education_cost <= 0:
             fin_missing.append("Annual Education Cost / Need")
 
         has_income_doc = income_doc and income_doc.status == "AVAILABLE"
@@ -324,7 +323,7 @@ class StudentService:
             status=fin_status,
             percentage=fin_pct,
             missing_fields=fin_missing,
-            summary=f"Income ₹{int(income_val):,} recorded ({'Certificate attached' if has_income_doc else 'Certificate pending'})." if len(fin_missing) == 0 else f"Missing: {', '.join(fin_missing)}"
+            summary=f"Income ₹{int(income_val or 0):,} recorded ({'Certificate attached' if has_income_doc else 'Certificate pending'})." if len(fin_missing) == 0 else f"Missing: {', '.join(fin_missing)}"
         )
 
         # 5. Bank and Benefit

@@ -12,12 +12,12 @@ export default function MyGoalPage() {
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Form inputs
-  const [hoursPerWeek, setHoursPerWeek] = useState<number>(5.0);
-  const [targetFunding, setTargetFunding] = useState<number>(60000.0);
-  const [purpose, setPurpose] = useState<string>("Tuition & Academic Lab Equipment");
-  const [timeline, setTimeline] = useState<string>("Current Academic Year (2026-2027)");
-  const [priorities, setPriorities] = useState<string>("High-impact & Deadline-urgent");
+  // Form inputs — empty by default, no unintended prefilled assumptions
+  const [hoursPerWeek, setHoursPerWeek] = useState<number | string>("");
+  const [targetFunding, setTargetFunding] = useState<number | string>("");
+  const [purpose, setPurpose] = useState<string>("");
+  const [timeline, setTimeline] = useState<string>("");
+  const [priorities, setPriorities] = useState<string>("");
 
   const loadPlanner = useCallback(async () => {
     try {
@@ -25,11 +25,11 @@ export default function MyGoalPage() {
       setError(null);
       const data = await getPlanner();
       setPlanner(data);
-      setHoursPerWeek(data.goal_preferences.available_hours_per_week);
-      setTargetFunding(data.funding_overview.target_funding);
-      setPurpose(data.goal_preferences.purpose);
-      setTimeline(data.goal_preferences.timeline);
-      setPriorities(data.goal_preferences.priorities);
+      setHoursPerWeek(data.goal_preferences.available_hours_per_week != null ? data.goal_preferences.available_hours_per_week : "");
+      setTargetFunding(data.funding_overview.target_funding != null ? data.funding_overview.target_funding : "");
+      setPurpose(data.goal_preferences.purpose || "");
+      setTimeline(data.goal_preferences.timeline || "");
+      setPriorities(data.goal_preferences.priorities || "");
     } catch (err: unknown) {
       setError((err as Error)?.message || "Failed to load funding planner.");
     } finally {
@@ -49,13 +49,20 @@ export default function MyGoalPage() {
     try {
       setSaving(true);
       setSuccessToast(null);
-      const updated = await updatePlanner({
-        available_hours_per_week: hoursPerWeek,
-        target_funding: targetFunding,
-        purpose,
-        timeline,
-        priorities,
-      });
+      const payload: {
+        available_hours_per_week?: number;
+        target_funding?: number;
+        purpose?: string;
+        timeline?: string;
+        priorities?: string;
+      } = {};
+      if (hoursPerWeek !== "") payload.available_hours_per_week = parseFloat(String(hoursPerWeek));
+      if (targetFunding !== "") payload.target_funding = parseFloat(String(targetFunding));
+      if (purpose) payload.purpose = purpose;
+      if (timeline) payload.timeline = timeline;
+      if (priorities) payload.priorities = priorities;
+
+      const updated = await updatePlanner(payload);
       setPlanner(updated);
       setSuccessToast("Goal preferences updated and weekly plan re-allocated!");
     } catch (err: unknown) {
@@ -164,25 +171,34 @@ export default function MyGoalPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Heuristic effort allocation prioritizing deadline proximity and shared document blockers</p>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-            {weeklyPlan.total_hours} Hours Allocated / Week
+            {weeklyPlan.total_hours > 0 ? `${weeklyPlan.total_hours} Hours Allocated / Week` : "Hours Not Configured"}
           </span>
         </div>
 
         {/* Weekly Task Allocation Breakdown */}
         <div className="space-y-3">
-          {weeklyPlan.allocations.map((alloc, idx) => (
-            <div key={idx} className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="space-y-0.5">
-                <span className="font-bold text-slate-900 dark:text-white text-sm block">{alloc.task}</span>
-                <p className="text-slate-600 dark:text-slate-400">{alloc.reason}</p>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">{alloc.category}</span>
+          {weeklyPlan.allocations.length > 0 ? (
+            weeklyPlan.allocations.map((alloc, idx) => (
+              <div key={idx} className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm block">{alloc.task}</span>
+                  <p className="text-slate-600 dark:text-slate-400">{alloc.reason}</p>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-semibold">{alloc.category}</span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-base font-extrabold font-mono text-red-600 dark:text-red-400 block">{alloc.allocated_hours} hrs</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">allocated time</span>
+                </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <span className="text-base font-extrabold font-mono text-red-600 dark:text-red-400 block">{alloc.allocated_hours} hrs</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">allocated time</span>
-              </div>
+            ))
+          ) : (
+            <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">No weekly hours configured yet</span>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Enter your available weekly hours below to receive a personalized, deadline-prioritized preparation schedule.
+              </p>
             </div>
-          ))}
+          )}
         </div>
 
         <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
@@ -198,10 +214,11 @@ export default function MyGoalPage() {
             <input
               type="number"
               step="0.5"
-              min="1"
+              min="0.5"
               max="40"
               value={hoursPerWeek}
-              onChange={(e) => setHoursPerWeek(parseFloat(e.target.value) || 1)}
+              onChange={(e) => setHoursPerWeek(e.target.value === "" ? "" : (parseFloat(e.target.value) || ""))}
+              placeholder="e.g. 5"
               className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>
@@ -214,7 +231,8 @@ export default function MyGoalPage() {
               step="1000"
               min="0"
               value={targetFunding}
-              onChange={(e) => setTargetFunding(parseFloat(e.target.value) || 0)}
+              onChange={(e) => setTargetFunding(e.target.value === "" ? "" : (parseFloat(e.target.value) || ""))}
+              placeholder="e.g. 60000"
               className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>
@@ -226,6 +244,7 @@ export default function MyGoalPage() {
               type="text"
               value={priorities}
               onChange={(e) => setPriorities(e.target.value)}
+              placeholder="e.g. High-impact & Deadline-urgent"
               className="w-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
             />
           </div>

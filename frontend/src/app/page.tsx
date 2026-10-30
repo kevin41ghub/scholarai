@@ -111,10 +111,11 @@ export default function Dashboard() {
   }
 
   const fundingProfile = student?.funding_profile;
-  const annualCost = fundingProfile?.annual_education_cost || 0;
-  const existingSupport = fundingProfile?.existing_support || 0;
-  const fundingGap = fundingProfile?.funding_gap || 0;
-  const progressPct = fundingProfile?.funding_progress_percentage || 0;
+  const hasCostConfigured = fundingProfile?.annual_education_cost != null && fundingProfile.annual_education_cost > 0;
+  const annualCost = fundingProfile?.annual_education_cost ?? null;
+  const existingSupport = fundingProfile?.existing_support ?? 0;
+  const fundingGap = fundingProfile?.funding_gap ?? (hasCostConfigured && annualCost != null ? Math.max(0, annualCost - existingSupport) : null);
+  const progressPct = fundingProfile?.funding_progress_percentage ?? null;
 
   const sharedBlocker = portfolio?.primary_shared_blocker;
   const topAction = portfolio?.top_next_best_action;
@@ -531,9 +532,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Annual Educational Need"
-            value={formatINR(annualCost)}
-            subtitle="Tuition, books, and living allowance"
-            badge={{ text: "Total Cost", variant: "neutral" }}
+            value={annualCost != null ? formatINR(annualCost) : "Not Configured"}
+            subtitle={annualCost != null ? "Tuition, books, and living allowance" : "Set in Settings → Funding"}
+            badge={{ text: annualCost != null ? "Total Cost" : "Pending", variant: "neutral" }}
           />
           <MetricCard
             title="Confirmed Support"
@@ -543,11 +544,11 @@ export default function Dashboard() {
           />
           <MetricCard
             title="Net Funding Shortfall"
-            value={formatINR(fundingGap)}
-            subtitle="Funding gap remaining to be covered"
+            value={fundingGap != null ? formatINR(fundingGap) : "Not Calculated"}
+            subtitle={fundingGap != null ? "Funding gap remaining to be covered" : "Set annual cost to compute"}
             badge={{
-              text: fundingGap > 0 ? "Gap Open" : "Funded",
-              variant: fundingGap > 0 ? "warning" : "success",
+              text: fundingGap == null ? "Pending" : fundingGap > 0 ? "Gap Open" : "Funded",
+              variant: fundingGap == null ? "neutral" : fundingGap > 0 ? "warning" : "success",
             }}
           />
           <MetricCard

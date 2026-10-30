@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import Column, Integer, Float, String, Text, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
@@ -14,9 +15,9 @@ class FundingProfile(Base):
         nullable=False,
         index=True,
     )
-    annual_education_cost = Column(Float, nullable=False, default=0.0)
-    existing_support = Column(Float, nullable=False, default=0.0)
-    annual_family_income = Column(Float, nullable=False, default=0.0)
+    annual_education_cost = Column(Float, nullable=True)
+    existing_support = Column(Float, nullable=True)
+    annual_family_income = Column(Float, nullable=True)
 
     # Extended Financial Attributes for My Profile Dashboard
     income_range = Column(String(50), nullable=True)  # e.g. "Below ₹2.5 Lakhs", "₹2.5L - ₹4.5L", "₹4.5L - ₹8.0L"
@@ -29,20 +30,25 @@ class FundingProfile(Base):
     student = relationship("Student", back_populates="funding_profile")
 
     @property
-    def funding_gap(self) -> float:
+    def funding_gap(self) -> Optional[float]:
         """
         Calculated dynamically: max(0, annual education cost - existing support)
-        Never hardcoded or stale.
+        Returns None when annual education cost has not been specified by the student.
         """
-        return max(0.0, float(self.annual_education_cost) - float(self.existing_support))
+        if self.annual_education_cost is None:
+            return None
+        cost = float(self.annual_education_cost)
+        support = float(self.existing_support or 0.0)
+        return max(0.0, cost - support)
 
     @property
-    def funding_progress_percentage(self) -> float:
+    def funding_progress_percentage(self) -> Optional[float]:
         """
         Percentage of annual education cost covered by existing support.
+        Returns None when annual education cost is unspecified.
         """
+        if self.annual_education_cost is None or self.annual_education_cost <= 0:
+            return None
         cost = float(self.annual_education_cost)
-        if cost <= 0:
-            return 100.0
-        support = float(self.existing_support)
+        support = float(self.existing_support or 0.0)
         return min(100.0, round((support / cost) * 100.0, 1))

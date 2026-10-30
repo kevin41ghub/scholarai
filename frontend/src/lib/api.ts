@@ -319,12 +319,14 @@ export async function updatePlanner(payload: {
   });
 }
 
-export function formatINR(amount: number): string {
+export function formatINR(amount?: number | string | null): string {
+  const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
+  const safeNum = isNaN(num) ? 0 : num;
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(safeNum);
 }
 
 // ==========================================
