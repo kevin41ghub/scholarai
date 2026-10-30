@@ -1007,10 +1007,16 @@ def init_db(db: Session) -> None:
                     setattr(existing, key, val)
                     updated = True
             # Also backfill any missing eligibility rules on existing scholarship records
-            existing_rule_types = {r.rule_type for r in existing.eligibility_rules}
+            existing_rules_set = {(r.rule_type, str(r.criteria_value)) for r in existing.eligibility_rules}
             for r in rules_data:
-                if r["rule_type"] not in existing_rule_types:
+                if (r["rule_type"], str(r.get("criteria_value", ""))) not in existing_rules_set:
                     db.add(EligibilityRule(scholarship_id=existing.id, **r))
+                    updated = True
+            # Also backfill any missing requirements on existing scholarship records
+            existing_req_names = {req.name for req in (existing.requirements or [])}
+            for req in reqs_data:
+                if req.get("name") not in existing_req_names:
+                    db.add(ScholarshipRequirement(scholarship_id=existing.id, **req))
                     updated = True
             if updated:
                 synced_count += 1

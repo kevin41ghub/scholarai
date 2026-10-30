@@ -27,6 +27,60 @@ def run_schema_migrations(db_engine_or_conn):
     logger.info(f"Running safe schema migration checks for dialect: {dialect_name}...")
 
     def _apply_migrations(conn):
+        def _exec(stmt):
+            try:
+                if hasattr(conn, "begin_nested"):
+                    with conn.begin_nested():
+                        conn.execute(stmt)
+                else:
+                    conn.execute(stmt)
+            except Exception as e:
+                logger.warning(f"Note during schema migration statement: {e}")
+
+        def _sync_pg_sequences():
+            if dialect_name == "postgresql":
+                tables_with_id = [
+                    "students",
+                    "users",
+                    "student_profiles",
+                    "funding_profiles",
+                    "planner_goals",
+                    "scholarships",
+                    "applications",
+                    "documents",
+                    "actions",
+                    "evidence",
+                    "knowledge_sources",
+                    "knowledge_documents",
+                    "knowledge_chunks",
+                    "notifications",
+                    "eligibility_rules",
+                    "scholarship_requirements",
+                    "application_requirements",
+                ]
+                for tbl in tables_with_id:
+                    if tbl in existing_tables:
+                        _exec(text(f"""
+                            DO $$
+                            DECLARE
+                                seq_name TEXT;
+                                max_id BIGINT;
+                            BEGIN
+                                seq_name := pg_get_serial_sequence('{tbl}', 'id');
+                                IF seq_name IS NOT NULL THEN
+                                    EXECUTE 'SELECT COALESCE(MAX(id), 0) FROM {tbl}' INTO max_id;
+                                    IF max_id > 0 THEN
+                                        PERFORM setval(seq_name, max_id, true);
+                                    ELSE
+                                        PERFORM setval(seq_name, 1, false);
+                                    END IF;
+                                END IF;
+                            END $$;
+                        """))
+
+        # Pre-synchronize PostgreSQL sequences before inserting any rules
+        _sync_pg_sequences()
+
         # 1. Update documents table if it exists
         if "documents" in existing_tables:
             doc_columns = {col["name"] for col in inspector.get_columns("documents")}
@@ -50,26 +104,20 @@ def run_schema_migrations(db_engine_or_conn):
             for col_name, sqlite_type, pg_type in new_columns:
                 if col_name not in doc_columns:
                     logger.info(f"Adding column '{col_name}' to 'documents' table...")
-                    try:
-                        if dialect_name == "postgresql":
-                            conn.execute(text(f"ALTER TABLE documents ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
-                        else:
-                            conn.execute(text(f"ALTER TABLE documents ADD COLUMN {col_name} {sqlite_type}"))
-                    except Exception as col_err:
-                        logger.warning(f"Could not add column {col_name} to documents: {col_err}")
+                    if dialect_name == "postgresql":
+                        _exec(text(f"ALTER TABLE documents ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                    else:
+                        _exec(text(f"ALTER TABLE documents ADD COLUMN {col_name} {sqlite_type}"))
 
         # 2. Update users table if it exists
         if "users" in existing_tables:
             user_columns = {col["name"] for col in inspector.get_columns("users")}
             if "role" not in user_columns:
                 logger.info("Adding column 'role' to 'users' table...")
-                try:
-                    if dialect_name == "postgresql":
-                        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'STUDENT'"))
-                    else:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'STUDENT'"))
-                except Exception as role_err:
-                    logger.warning(f"Could not add column role to users: {role_err}")
+                if dialect_name == "postgresql":
+                    _exec(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'STUDENT'"))
+                else:
+                    _exec(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'STUDENT'"))
 
         # 3. Update scholarships table if it exists
         if "scholarships" in existing_tables:
@@ -98,13 +146,10 @@ def run_schema_migrations(db_engine_or_conn):
             for col_name, sqlite_type, pg_type in new_sch_columns:
                 if col_name not in sch_columns:
                     logger.info(f"Adding column '{col_name}' to 'scholarships' table...")
-                    try:
-                        if dialect_name == "postgresql":
-                            conn.execute(text(f"ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
-                        else:
-                            conn.execute(text(f"ALTER TABLE scholarships ADD COLUMN {col_name} {sqlite_type}"))
-                    except Exception as col_err:
-                        logger.warning(f"Could not add column {col_name} to scholarships: {col_err}")
+                    if dialect_name == "postgresql":
+                        _exec(text(f"ALTER TABLE scholarships ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                    else:
+                        _exec(text(f"ALTER TABLE scholarships ADD COLUMN {col_name} {sqlite_type}"))
 
             # PostgreSQL column widening: safely widen existing columns to support legitimate long descriptive strings
             if dialect_name == "postgresql":
@@ -117,17 +162,11 @@ def run_schema_migrations(db_engine_or_conn):
                     ("award_display", "VARCHAR(500)"),
                 ]
                 for col_name, pg_type in widen_columns:
-                    try:
-                        conn.execute(text(f"ALTER TABLE scholarships ALTER COLUMN {col_name} TYPE {pg_type}"))
-                    except Exception as alter_err:
-                        logger.warning(f"Note widening column {col_name} on scholarships: {alter_err}")
+                    _exec(text(f"ALTER TABLE scholarships ALTER COLUMN {col_name} TYPE {pg_type}"))
 
         # 4. Update actions table if it exists
         if "actions" in existing_tables and dialect_name == "postgresql":
-            try:
-                conn.execute(text("ALTER TABLE actions ALTER COLUMN effort_estimate TYPE VARCHAR(255)"))
-            except Exception as act_err:
-                logger.warning(f"Note widening effort_estimate on actions: {act_err}")
+            _exec(text("ALTER TABLE actions ALTER COLUMN effort_estimate TYPE VARCHAR(255)"))
 
         # 5. Update student_profiles table if it exists
         if "student_profiles" in existing_tables:
@@ -183,20 +222,14 @@ def run_schema_migrations(db_engine_or_conn):
             for col_name, sqlite_type, pg_type in new_sp_columns:
                 if col_name not in sp_columns:
                     logger.info(f"Adding column '{col_name}' to 'student_profiles' table...")
-                    try:
-                        if dialect_name == "postgresql":
-                            conn.execute(text(f"ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
-                        else:
-                            conn.execute(text(f"ALTER TABLE student_profiles ADD COLUMN {col_name} {sqlite_type}"))
-                    except Exception as sp_err:
-                        logger.warning(f"Could not add column {col_name} to student_profiles: {sp_err}")
+                    if dialect_name == "postgresql":
+                        _exec(text(f"ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                    else:
+                        _exec(text(f"ALTER TABLE student_profiles ADD COLUMN {col_name} {sqlite_type}"))
 
             if dialect_name == "postgresql":
-                try:
-                    conn.execute(text("ALTER TABLE student_profiles ALTER COLUMN cgpa DROP NOT NULL"))
-                    conn.execute(text("ALTER TABLE student_profiles ALTER COLUMN twelfth_percentage DROP NOT NULL"))
-                except Exception as cgpa_err:
-                    logger.warning(f"Note dropping NOT NULL on cgpa/twelfth_percentage: {cgpa_err}")
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN cgpa DROP NOT NULL"))
+                _exec(text("ALTER TABLE student_profiles ALTER COLUMN twelfth_percentage DROP NOT NULL"))
 
         # 5b. Update funding_profiles table if it exists
         if "funding_profiles" in existing_tables:
@@ -209,13 +242,10 @@ def run_schema_migrations(db_engine_or_conn):
             for col_name, sqlite_type, pg_type in new_fp_columns:
                 if col_name not in fp_columns:
                     logger.info(f"Adding column '{col_name}' to 'funding_profiles' table...")
-                    try:
-                        if dialect_name == "postgresql":
-                            conn.execute(text(f"ALTER TABLE funding_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
-                        else:
-                            conn.execute(text(f"ALTER TABLE funding_profiles ADD COLUMN {col_name} {sqlite_type}"))
-                    except Exception as fp_err:
-                        logger.warning(f"Could not add column {col_name} to funding_profiles: {fp_err}")
+                    if dialect_name == "postgresql":
+                        _exec(text(f"ALTER TABLE funding_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                    else:
+                        _exec(text(f"ALTER TABLE funding_profiles ADD COLUMN {col_name} {sqlite_type}"))
 
         # 6. Update applications table if it exists
         if "applications" in existing_tables:
@@ -239,13 +269,10 @@ def run_schema_migrations(db_engine_or_conn):
             for col_name, sqlite_type, pg_type in new_app_columns:
                 if col_name not in app_columns:
                     logger.info(f"Adding column '{col_name}' to 'applications' table...")
-                    try:
-                        if dialect_name == "postgresql":
-                            conn.execute(text(f"ALTER TABLE applications ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
-                        else:
-                            conn.execute(text(f"ALTER TABLE applications ADD COLUMN {col_name} {sqlite_type}"))
-                    except Exception as app_err:
-                        logger.warning(f"Could not add column {col_name} to applications: {app_err}")
+                    if dialect_name == "postgresql":
+                        _exec(text(f"ALTER TABLE applications ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                    else:
+                        _exec(text(f"ALTER TABLE applications ADD COLUMN {col_name} {sqlite_type}"))
 
         # 7. Ensure performance and constraint indexes exist
         index_definitions = [
@@ -272,10 +299,7 @@ def run_schema_migrations(db_engine_or_conn):
         ]
         for tbl, idx_name, cols in index_definitions:
             if tbl in existing_tables:
-                try:
-                    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {cols}"))
-                except Exception as idx_err:
-                    logger.warning(f"Note creating index {idx_name}: {idx_err}")
+                _exec(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {cols}"))
 
         # 8. Idempotent default backfill for legacy rows with NULLs
         first_grad_backfill = "is_first_graduate = FALSE WHERE is_first_graduate IS NULL" if dialect_name == "postgresql" else "is_first_graduate = 0 WHERE is_first_graduate IS NULL"
@@ -319,85 +343,40 @@ def run_schema_migrations(db_engine_or_conn):
         ]
         for tbl, set_clause in backfill_updates:
             if tbl in existing_tables:
-                try:
-                    conn.execute(text(f"UPDATE {tbl} SET {set_clause}"))
-                except Exception as bf_err:
-                    logger.warning(f"Note backfilling {tbl}: {bf_err}")
+                _exec(text(f"UPDATE {tbl} SET {set_clause}"))
 
         # 8b. Ensure Pudhumai Penn has SCHOOL_TYPE rule in eligibility_rules
         if "eligibility_rules" in existing_tables and "scholarships" in existing_tables:
-            try:
-                like_clause = "s.name ILIKE '%Pudhumai Penn%'" if dialect_name == "postgresql" else "s.name LIKE '%Pudhumai Penn%'"
-                conn.execute(text(f"""
-                    INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description)
-                    SELECT s.id, 'SCHOOL_TYPE', 'Government School', 'EQUALS', 'Studied Classes 6 to 12 in Tamil Nadu Government School'
-                    FROM scholarships s
-                    WHERE {like_clause}
-                    AND NOT EXISTS (
-                        SELECT 1 FROM eligibility_rules er
-                        WHERE er.scholarship_id = s.id AND er.rule_type = 'SCHOOL_TYPE'
-                    )
-                """))
-            except Exception as r_err:
-                logger.warning(f"Note ensuring Pudhumai Penn rule in migrations: {r_err}")
+            if dialect_name == "postgresql":
+                _exec(text("ALTER TABLE eligibility_rules ALTER COLUMN is_mandatory SET DEFAULT TRUE"))
+            like_clause = "s.name ILIKE '%Pudhumai Penn%'" if dialect_name == "postgresql" else "s.name LIKE '%Pudhumai Penn%'"
+            _exec(text(f"""
+                INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description, is_mandatory)
+                SELECT s.id, 'SCHOOL_TYPE', 'Government School', 'EQUALS', 'Studied Classes 6 to 12 in Tamil Nadu Government School', true
+                FROM scholarships s
+                WHERE {like_clause}
+                AND NOT EXISTS (
+                    SELECT 1 FROM eligibility_rules er
+                    WHERE er.scholarship_id = s.id AND er.rule_type = 'SCHOOL_TYPE'
+                )
+            """))
 
         # 8c. Ensure Saksham has DISABILITY_BENCHMARK rule in eligibility_rules
         if "eligibility_rules" in existing_tables and "scholarships" in existing_tables:
-            try:
-                saksham_like = "s.name ILIKE '%Saksham%'" if dialect_name == "postgresql" else "s.name LIKE '%Saksham%'"
-                conn.execute(text(f"""
-                    INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description)
-                    SELECT s.id, 'DISABILITY_BENCHMARK', '40', 'GTE', 'Benchmark disability of 40% or above certified by UDID or Medical Board'
-                    FROM scholarships s
-                    WHERE {saksham_like}
-                    AND NOT EXISTS (
-                        SELECT 1 FROM eligibility_rules er
-                        WHERE er.scholarship_id = s.id AND er.rule_type IN ('DISABILITY', 'DISABILITY_BENCHMARK', 'PWD')
-                    )
-                """))
-            except Exception as sak_err:
-                logger.warning(f"Note ensuring Saksham rule in migrations: {sak_err}")
+            saksham_like = "s.name ILIKE '%Saksham%'" if dialect_name == "postgresql" else "s.name LIKE '%Saksham%'"
+            _exec(text(f"""
+                INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description, is_mandatory)
+                SELECT s.id, 'DISABILITY_BENCHMARK', '40', 'GTE', 'Benchmark disability of 40% or above certified by UDID or Medical Board', true
+                FROM scholarships s
+                WHERE {saksham_like}
+                AND NOT EXISTS (
+                    SELECT 1 FROM eligibility_rules er
+                    WHERE er.scholarship_id = s.id AND er.rule_type IN ('DISABILITY', 'DISABILITY_BENCHMARK', 'PWD')
+                )
+            """))
 
         # 9. Sync PostgreSQL primary key sequences with MAX(id) to prevent duplicate key violations
-        if dialect_name == "postgresql":
-            tables_with_id = [
-                "students",
-                "users",
-                "student_profiles",
-                "funding_profiles",
-                "planner_goals",
-                "scholarships",
-                "applications",
-                "documents",
-                "actions",
-                "evidence",
-                "knowledge_sources",
-                "knowledge_documents",
-                "knowledge_chunks",
-                "notifications",
-            ]
-            for tbl in tables_with_id:
-                if tbl in existing_tables:
-                    try:
-                        conn.execute(text(f"""
-                            DO $$
-                            DECLARE
-                                seq_name TEXT;
-                                max_id BIGINT;
-                            BEGIN
-                                seq_name := pg_get_serial_sequence('{tbl}', 'id');
-                                IF seq_name IS NOT NULL THEN
-                                    EXECUTE 'SELECT COALESCE(MAX(id), 0) FROM {tbl}' INTO max_id;
-                                    IF max_id > 0 THEN
-                                        PERFORM setval(seq_name, max_id, true);
-                                    ELSE
-                                        PERFORM setval(seq_name, 1, false);
-                                    END IF;
-                                END IF;
-                            END $$;
-                        """))
-                    except Exception as seq_err:
-                        logger.warning(f"Note syncing sequence for {tbl}: {seq_err}")
+        _sync_pg_sequences()
 
     # Determine if db_engine_or_conn is an Engine or a Connection
     from sqlalchemy.engine import Engine, Connection
