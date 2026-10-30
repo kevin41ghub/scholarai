@@ -29,11 +29,10 @@ export default function Header() {
     { name: "Discover", href: "/discover" },
     { name: "Applications", href: "/applications" },
     { name: "Documents", href: "/documents" },
-    { name: "Achievements & Credentials", href: "/evidence" },
     { name: "Goal Planner", href: "/goal" },
     { name: "AI Assistant", href: "/assistant" },
     { name: "Settings", href: "/settings" },
-    { name: "Student Profile", href: "/profile" },
+    { name: "Student Profile", href: "/settings?tab=profile" },
   ];
 
   const fetchNotifs = useCallback(async () => {
@@ -345,11 +344,11 @@ export default function Header() {
                   </p>
                 </div>
                 <Link
-                  href="/profile"
+                  href="/settings?tab=profile"
                   onClick={() => setUserMenuOpen(false)}
                   className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  Student Profile
+                  My Profile
                 </Link>
                 <Link
                   href="/settings"
@@ -357,13 +356,6 @@ export default function Header() {
                   className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Settings & Preferences
-                </Link>
-                <Link
-                  href="/evidence"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  Achievements & Credentials
                 </Link>
                 {user?.role === "ADMIN" && (
                   <Link

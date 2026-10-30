@@ -54,7 +54,14 @@ def test_update_student_profile_and_funding(auth_client):
         "cgpa": 9.1,
         "twelfth_percentage": 91.5,
         "category": "General",
-        "state": "Maharashtra",
+        "state": "Tamil Nadu",
+        "mode_of_study": "Regular / Full-Time",
+        "studied_govt_school_6_to_12": True,
+        "board_of_education": "Tamil Nadu State Board",
+        "minority_status": "None",
+        "special_category": "None",
+        "dbt_seeding_status": "Yes",
+        "ration_card_type": "Priority (PHH)",
         "annual_education_cost": 200000.0,
         "existing_support": 50000.0,
         "annual_family_income": 300000.0,
@@ -72,7 +79,13 @@ def test_update_student_profile_and_funding(auth_client):
     assert data["profile"]["cgpa"] == 9.1
     assert data["profile"]["twelfth_percentage"] == 91.5
     assert data["profile"]["category"] == "General"
-    assert data["profile"]["state"] == "Maharashtra"
+    assert data["profile"]["state"] == "Tamil Nadu"
+    assert data["profile"]["mode_of_study"] == "Regular / Full-Time"
+    assert data["profile"]["studied_govt_school_6_to_12"] is True
+    assert data["profile"]["board_of_education"] == "Tamil Nadu State Board"
+    assert data["profile"]["dbt_seeding_status"] == "Yes"
+    assert data["profile"]["dbt_enabled"] is True
+    assert data["profile"]["ration_card_type"] == "Priority (PHH)"
 
     # Funding gap dynamically recalculated: 200000 - 50000 = 150000
     assert data["funding_profile"]["annual_education_cost"] == 200000.0
@@ -140,3 +153,37 @@ def test_funding_gap_non_negative_when_support_exceeds_cost(auth_client):
     data = response.json()
     assert data["funding_profile"]["funding_gap"] == 0.0
     assert data["funding_profile"]["funding_progress_percentage"] == 100.0
+
+
+def test_state_restriction_disallows_other_states(auth_client):
+    """
+    State of residence is strictly restricted to Tamil Nadu for SCHOLARAi higher education schemes.
+    Other states must be disallowed in validation.
+    """
+    # Attempting to set Karnataka or Maharashtra must fail with 422 Unprocessable Entity
+    res1 = auth_client.put("/api/v1/student/me", json={"state": "Karnataka"})
+    assert res1.status_code == 422
+
+    res2 = auth_client.put("/api/v1/student/me", json={"state": "Maharashtra"})
+    assert res2.status_code == 422
+
+    # Setting Tamil Nadu or leaving state omitted must succeed
+    res3 = auth_client.put("/api/v1/student/me", json={"state": "Tamil Nadu"})
+    assert res3.status_code == 200
+    assert res3.json()["profile"]["state"] == "Tamil Nadu"
+
+
+def test_registration_state_restriction(client):
+    """
+    Registration disallows states other than Tamil Nadu.
+    """
+    res = client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Out Of State Student",
+            "email": "outofstate@example.com",
+            "password": "SecurePassword123!",
+            "state": "Kerala",
+        },
+    )
+    assert res.status_code == 422

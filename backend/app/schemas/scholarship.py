@@ -188,6 +188,7 @@ class ScholarshipRecommendationItem(BaseModel):
     satisfied_requirements: List[str]
     missing_information: List[str]
     requirements_needing_verification: List[str]
+    required_documents: List[str] = []
     deadline: datetime
     academic_year: Optional[str] = None
     official_source_url: Optional[str] = None

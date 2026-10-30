@@ -88,7 +88,7 @@ def create_authenticated_client(client, db_session):
             cgpa=8.0,
             twelfth_percentage=85.0,
             category="GENERAL",
-            state="Karnataka",
+            state="Tamil Nadu",
             gender="Female",
         )
         db_session.add(profile)

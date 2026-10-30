@@ -158,6 +158,14 @@ def run_schema_migrations(db_engine_or_conn):
                 ("aadhaar_verification_status", "VARCHAR(50) DEFAULT 'NOT_PROVIDED'", "VARCHAR(50) DEFAULT 'NOT_PROVIDED'"),
                 ("aadhaar_masked", "VARCHAR(50)", "VARCHAR(50)"),
                 ("aadhaar_consent_given", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("mode_of_study", "VARCHAR(50) DEFAULT 'Regular / Full-Time'", "VARCHAR(50) DEFAULT 'Regular / Full-Time'"),
+                ("studied_govt_school_6_to_12", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("board_of_education", "VARCHAR(100) DEFAULT 'Tamil Nadu State Board'", "VARCHAR(100) DEFAULT 'Tamil Nadu State Board'"),
+                ("minority_status", "VARCHAR(100) DEFAULT 'None'", "VARCHAR(100) DEFAULT 'None'"),
+                ("special_category", "VARCHAR(100) DEFAULT 'None'", "VARCHAR(100) DEFAULT 'None'"),
+                ("dbt_seeding_status", "VARCHAR(50) DEFAULT 'Don''t Know'", "VARCHAR(50) DEFAULT 'Don''t Know'"),
+                ("ration_card_type", "VARCHAR(100) DEFAULT 'Not Available / Don''t Know'", "VARCHAR(100) DEFAULT 'Not Available / Don''t Know'"),
+                ("domicile_status", "VARCHAR(100) DEFAULT 'Tamil Nadu Domicile'", "VARCHAR(100) DEFAULT 'Tamil Nadu Domicile'"),
             ]
             for col_name, sqlite_type, pg_type in new_sp_columns:
                 if col_name not in sp_columns:

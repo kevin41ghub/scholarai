@@ -65,7 +65,7 @@ export default function RegisterPage() {
             Create Student Account
           </h1>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Initialize your student funding profile, scholarship eligibility, and Evidence Bank
+            Initialize your student funding profile, scholarship eligibility, and Document Vault
           </p>
         </div>
 

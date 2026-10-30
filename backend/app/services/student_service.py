@@ -70,8 +70,12 @@ class StudentService:
             profile.district = update_data.district.strip() if update_data.district else None
         if update_data.native_state is not None:
             profile.native_state = update_data.native_state.strip() if update_data.native_state else "Tamil Nadu"
+        if update_data.domicile_status is not None:
+            profile.domicile_status = update_data.domicile_status.strip() if update_data.domicile_status else "Tamil Nadu Domicile"
         if update_data.state is not None:
-            profile.state = update_data.state.strip()
+            profile.state = "Tamil Nadu"
+        else:
+            profile.state = "Tamil Nadu"
         if update_data.gender is not None:
             profile.gender = update_data.gender.strip()
 
@@ -102,6 +106,14 @@ class StudentService:
             profile.admission_quota = update_data.admission_quota.strip()
         if update_data.hosteller_status is not None:
             profile.hosteller_status = update_data.hosteller_status.strip()
+        if update_data.mode_of_study is not None:
+            profile.mode_of_study = update_data.mode_of_study.strip() if update_data.mode_of_study else "Regular / Full-Time"
+        if update_data.studied_govt_school_6_to_12 is not None:
+            profile.studied_govt_school_6_to_12 = bool(update_data.studied_govt_school_6_to_12)
+            if profile.studied_govt_school_6_to_12 and not profile.school_type:
+                profile.school_type = "Government School (Classes 6-12)"
+        if update_data.board_of_education is not None:
+            profile.board_of_education = update_data.board_of_education.strip() if update_data.board_of_education else "Tamil Nadu State Board"
         if update_data.is_first_graduate is not None:
             profile.is_first_graduate = bool(update_data.is_first_graduate)
         if update_data.school_type is not None:
@@ -120,6 +132,10 @@ class StudentService:
             profile.category = update_data.category.strip()
         if update_data.community_subcategory is not None:
             profile.community_subcategory = update_data.community_subcategory.strip() if update_data.community_subcategory else None
+        if update_data.minority_status is not None:
+            profile.minority_status = update_data.minority_status.strip() if update_data.minority_status else "None"
+        if update_data.special_category is not None:
+            profile.special_category = update_data.special_category.strip() if update_data.special_category else "None"
 
         # Bank and Benefit
         if update_data.bank_readiness is not None:
@@ -128,6 +144,14 @@ class StudentService:
             profile.account_holder_name = update_data.account_holder_name.strip() if update_data.account_holder_name else None
         if update_data.dbt_enabled is not None:
             profile.dbt_enabled = bool(update_data.dbt_enabled)
+        if update_data.dbt_seeding_status is not None:
+            profile.dbt_seeding_status = update_data.dbt_seeding_status.strip() if update_data.dbt_seeding_status else "Don't Know"
+            if profile.dbt_seeding_status in ["Yes", "YES", "Ready", "Seeded"]:
+                profile.dbt_enabled = True
+            elif profile.dbt_seeding_status in ["No", "NO"]:
+                profile.dbt_enabled = False
+        if update_data.ration_card_type is not None:
+            profile.ration_card_type = update_data.ration_card_type.strip() if update_data.ration_card_type else "Not Available / Don't Know"
         if update_data.bank_name is not None:
             profile.bank_name = update_data.bank_name.strip() if update_data.bank_name else None
         if update_data.bank_branch is not None:

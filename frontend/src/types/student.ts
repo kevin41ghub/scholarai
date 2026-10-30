@@ -22,13 +22,21 @@ export interface StudentProfile {
   institution_type?: string | null;
   admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
   hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
+  mode_of_study?: string | null;
+  studied_govt_school_6_to_12?: boolean | null;
+  board_of_education?: string | null;
   is_first_graduate?: boolean | null;
   school_type?: string | null;
   school_study_history?: string | null;
   community_subcategory?: string | null;
+  minority_status?: string | null;
+  special_category?: string | null;
+  domicile_status?: string | null;
   bank_readiness?: string | null;
   account_holder_name?: string | null;
   dbt_enabled?: boolean | null;
+  dbt_seeding_status?: string | null;
+  ration_card_type?: string | null;
   bank_name?: string | null;
   bank_branch?: string | null;
   aadhaar_verification_status?: string | null;
@@ -89,6 +97,9 @@ export interface StudentUpdatePayload {
   institution_type?: string | null;
   admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
   hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
+  mode_of_study?: string | null;
+  studied_govt_school_6_to_12?: boolean | null;
+  board_of_education?: string | null;
   is_first_graduate?: boolean | null;
   school_type?: string | null;
   school_study_history?: string | null;
@@ -98,6 +109,9 @@ export interface StudentUpdatePayload {
 
   category?: string | null;
   community_subcategory?: string | null;
+  minority_status?: string | null;
+  special_category?: string | null;
+  domicile_status?: string | null;
 
   annual_education_cost?: number | null;
   existing_support?: number | null;
@@ -110,6 +124,8 @@ export interface StudentUpdatePayload {
   bank_readiness?: string | null;
   account_holder_name?: string | null;
   dbt_enabled?: boolean | null;
+  dbt_seeding_status?: string | null;
+  ration_card_type?: string | null;
   bank_name?: string | null;
   bank_branch?: string | null;
 
@@ -152,6 +168,7 @@ export interface ScholarshipRecommendationItem {
   satisfied_requirements: string[];
   missing_information: string[];
   requirements_needing_verification: string[];
+  required_documents?: string[];
   deadline: string;
   academic_year?: string | null;
   official_source_url?: string | null;

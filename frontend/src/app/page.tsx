@@ -185,7 +185,7 @@ export default function Dashboard() {
               Operating Principle:
             </span>
             <span className="text-stone-600 dark:text-stone-400">
-              &ldquo;AI assists. Official sources decide. Student approves.&rdquo; SCHOLARAi organizes deadlines and evidence. Award decisions are determined exclusively by official statutory bodies.
+              &ldquo;AI assists. Official sources decide. Student approves.&rdquo; SCHOLARAi organizes deadlines and verified documentation. Award decisions are determined exclusively by official statutory bodies.
             </span>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function Dashboard() {
             </div>
           </div>
           <Link
-            href="/profile"
+            href="/settings?tab=profile"
             className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-xs self-start sm:self-auto transition-colors flex items-center space-x-1.5 whitespace-nowrap"
           >
             <span>Complete My Profile</span>
@@ -444,7 +444,7 @@ export default function Dashboard() {
                   {rec.requirements_needing_verification.length > 0 && (
                     <div className="space-y-1 pt-1">
                       <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                        📄 Document & Policy Verification Required:
+                        📄 Document &amp; Policy Verification Required:
                       </span>
                       <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-zinc-500 dark:text-zinc-400">
                         {rec.requirements_needing_verification.map((v, idx) => (
@@ -453,9 +453,28 @@ export default function Dashboard() {
                       </ul>
                     </div>
                   )}
+
+                  {/* Required Documents Checklist */}
+                  {rec.required_documents && rec.required_documents.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                        📑 Mandatory Documents Checklist:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {rec.required_documents.map((doc, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-medium border border-zinc-200 dark:border-zinc-700"
+                          >
+                            ✓ {doc}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Footer with statutory links and assistant launcher */}
+                {/* Footer with statutory links, official portal button, and assistant launcher */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 text-xs">
                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500 dark:text-zinc-400">
                     {rec.official_source_url && (
@@ -491,13 +510,28 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <Link
-                    href={`/discover/${rec.id}`}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all self-start sm:self-auto flex items-center space-x-1.5"
-                  >
-                    <span>Prepare with Assistant</span>
-                    <span>&rarr;</span>
-                  </Link>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {(rec.official_application_portal_url || rec.official_source_url) && (
+                      <a
+                        href={rec.official_application_portal_url || rec.official_source_url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-1.5 cursor-pointer whitespace-nowrap"
+                      >
+                        <span>Open Official Portal &amp; Verify</span>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                    <Link
+                      href={`/discover/${rec.id}`}
+                      className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-1.5 whitespace-nowrap"
+                    >
+                      <span>Prepare with Assistant</span>
+                      <span>&rarr;</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))

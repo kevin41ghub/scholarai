@@ -39,17 +39,25 @@ class StudentProfile(Base):
     institution_type = Column(String(50), nullable=True, default="Government-aided")  # Government, Government-aided, Private
     admission_quota = Column(String(50), nullable=True, default="GOVERNMENT_QUOTA")  # GOVERNMENT_QUOTA | MANAGEMENT_QUOTA
     hosteller_status = Column(String(50), nullable=True, default="DAY_SCHOLAR")  # DAY_SCHOLAR | HOSTELLER
+    mode_of_study = Column(String(50), nullable=True, default="Regular / Full-Time")  # Regular / Full-Time, Lateral Entry, Part-Time
+    studied_govt_school_6_to_12 = Column(Boolean, nullable=True)  # Studied 6th to 12th in Tamil Nadu Government School
+    board_of_education = Column(String(100), nullable=True, default="Tamil Nadu State Board")  # Tamil Nadu State Board, CBSE, ICSE, Other
     is_first_graduate = Column(Boolean, nullable=True)
     school_type = Column(String(100), nullable=True)  # Government School (Classes 6-12), Government-aided, Private/Matriculation
     school_study_history = Column(Text, nullable=True)  # Detailed schooling history for Pudhumai Penn / Tamil Pudhalvan
 
     # Community & Sensitive Reservation Attributes
     community_subcategory = Column(String(100), nullable=True)  # Optional notified subcategory/caste where scheme requires
+    minority_status = Column(String(100), nullable=True, default="None")  # None, Religious Minority (Muslim), Religious Minority (Christian), Linguistic Minority, Other
+    special_category = Column(String(100), nullable=True, default="None")  # None, Differently Abled (PwD), Children of Ex-Servicemen, Wards of Deceased Defense Personnel, Sports Person (State/National)
+    domicile_status = Column(String(100), nullable=True, default="Tamil Nadu Domicile")
 
     # Bank & Benefit Distribution Attributes (Masked/Readiness)
     bank_readiness = Column(String(50), nullable=True, default="NOT_CONFIGURED")  # READY | NOT_CONFIGURED | ACCOUNT_ACTIVE
     account_holder_name = Column(String(255), nullable=True)
     dbt_enabled = Column(Boolean, nullable=True, default=False)
+    dbt_seeding_status = Column(String(50), nullable=True, default="Don't Know")  # Yes / No / In Progress / Don't Know
+    ration_card_type = Column(String(100), nullable=True, default="Not Available / Don't Know")  # Priority (PHH), Antyodaya (AAY), Non-Priority (NPHH), Not Available / Don't Know
     bank_name = Column(String(100), nullable=True)
     bank_branch = Column(String(100), nullable=True)
 

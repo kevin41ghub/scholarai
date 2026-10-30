@@ -279,9 +279,11 @@ class EligibilityService:
                         is_hard_ineligible = True
 
             elif rtype in ["SCHOOL_TYPE", "GOVT_SCHOOL"]:
+                studied_govt_flag = getattr(profile, "studied_govt_school_6_to_12", None)
                 # Pudhumai Penn / Tamil Pudhalvan Government School check
                 is_govt_school = (
-                    "government school" in school_type
+                    studied_govt_flag is True
+                    or "government school" in school_type
                     or "govt" in school_type
                     or "classes 6-12" in school_type
                     or "6_to_12" in school_type
@@ -290,8 +292,8 @@ class EligibilityService:
                 )
                 if is_govt_school:
                     matched.append("Tamil Nadu Government school attendance (Classes 6 to 12) verified")
-                elif school_type and "private" in school_type:
-                    unmatched.append("Scheme requires schooling in Tamil Nadu Government schools from Classes 6 to 12; profile indicates private school.")
+                elif studied_govt_flag is False or (school_type and "private" in school_type):
+                    unmatched.append("Scheme requires schooling in Tamil Nadu Government schools from Classes 6 to 12; profile indicates non-government school.")
                     is_hard_ineligible = True
                 else:
                     needs_verif.append("Requires verification of attendance in Tamil Nadu Government schools (Classes 6 to 12) via EMIS certificate.")

@@ -269,6 +269,7 @@ def get_personalized_recommendations(
             satisfied_requirements=eval_res["matched_rules"],
             missing_information=eval_res.get("missing_information", []),
             requirements_needing_verification=eval_res.get("requirements_needing_verification", []),
+            required_documents=[r.name for r in s.requirements],
             deadline=s.deadline,
             academic_year=s.academic_year or "2024-2025 / 2025-2026",
             official_source_url=s.source_url or s.official_guideline_url,

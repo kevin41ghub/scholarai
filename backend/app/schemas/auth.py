@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class UserRegisterRequest(BaseModel):
@@ -25,6 +25,16 @@ class UserRegisterRequest(BaseModel):
     annual_family_income: Optional[float] = None
     annual_education_cost: Optional[float] = None
     existing_support: Optional[float] = None
+
+    @field_validator("state", mode="before")
+    @classmethod
+    def validate_state(cls, v):
+        if v is None:
+            return "Tamil Nadu"
+        v_str = str(v).strip()
+        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+            raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State must be 'Tamil Nadu'.")
+        return "Tamil Nadu"
 
 
 class UserLoginRequest(BaseModel):

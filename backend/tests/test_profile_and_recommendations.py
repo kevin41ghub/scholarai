@@ -378,3 +378,118 @@ def test_evr_nagammai_scheme_eligibility(client: TestClient, db_session):
     m_rec = client.get("/api/v1/scholarships/recommendations", headers=m_headers).json()
     inelig_evr = [i for i in m_rec["currently_ineligible"] if "Nagammai" in i["name"]]
     assert len(inelig_evr) > 0, "Male students must be marked ineligible for E.V.R. Nagammai"
+
+
+def test_comprehensive_profile_settings_persistence(client: TestClient, db_session):
+    """
+    Verify complete editable student profile in Settings:
+    - Personal: name, dob, gender, phone, email, state=Tamil Nadu, district, domicile
+    - Academic: institution, course, stream, level, year, quota, hosteller, mode, govt school, FG, board, score
+    - Community: category, subcaste, minority, special category
+    - Financial: income, certificate status, gap, notes
+    - Identity & Benefits: masked Aadhaar, consent, DBT readiness, smart card
+    """
+    reg_payload = {
+        "email": "settings_student@example.edu",
+        "name": "Ananya Krishnan",
+        "password": "Password123!",
+        "institution": "Anna University CEG",
+        "course": "B.E. Computer Science",
+        "year": "2nd Year",
+        "state": "Tamil Nadu",
+    }
+    resp = client.post("/api/v1/auth/register", json=reg_payload)
+    assert resp.status_code == 201
+    token = resp.json()["session_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Save comprehensive profile
+    full_profile_payload = {
+        "name": "Ananya Krishnan",
+        "dob": "2005-08-20",
+        "gender": "Female",
+        "phone": "+91 94444 33221",
+        "state": "Tamil Nadu",
+        "district": "Madurai",
+        "domicile_status": "Tamil Nadu Domicile",
+        "native_state": "Tamil Nadu",
+
+        "institution": "Anna University CEG",
+        "course": "B.E. Computer Science",
+        "stream": "Engineering & Technology",
+        "education_level": "Undergraduate",
+        "year": "2nd Year",
+        "admission_quota": "GOVERNMENT_QUOTA",
+        "hosteller_status": "HOSTELLER",
+        "mode_of_study": "Regular / Full-Time",
+        "studied_govt_school_6_to_12": True,
+        "is_first_graduate": True,
+        "board_of_education": "Tamil Nadu State Board",
+        "qualifying_marks": 94.5,
+        "school_type": "Tamil Nadu Government School (Classes 6-12)",
+
+        "category": "BC",
+        "community_subcategory": "Backward Class",
+        "minority_status": "None",
+        "special_category": "None",
+
+        "annual_family_income": 120000.0,
+        "income_range": "Below ₹2.5 Lakhs",
+        "income_certificate_status": "Have Valid E-Sevai Certificate",
+        "annual_education_cost": 50000.0,
+        "existing_support": 10000.0,
+        "funding_gap": 40000.0,
+        "financial_circumstances_notes": "Father is a marginal farmer in Madurai district.",
+
+        "aadhaar_masked": "XXXX-XXXX-4567",
+        "aadhaar_consent_given": True,
+        "dbt_seeding_status": "Yes",
+        "ration_card_type": "Priority (PHH)",
+        "bank_readiness": "READY",
+        "account_holder_name": "Ananya Krishnan",
+        "bank_name": "Canara Bank",
+        "bank_branch": "Madurai Main",
+    }
+
+    put_resp = client.put("/api/v1/student/me", json=full_profile_payload, headers=headers)
+    assert put_resp.status_code == 200, f"Failed: {put_resp.text}"
+    p_data = put_resp.json()
+
+    assert p_data["profile"]["state"] == "Tamil Nadu"
+    assert p_data["profile"]["district"] == "Madurai"
+    assert p_data["profile"]["mode_of_study"] == "Regular / Full-Time"
+    assert p_data["profile"]["studied_govt_school_6_to_12"] is True
+    assert p_data["profile"]["is_first_graduate"] is True
+    assert p_data["profile"]["board_of_education"] == "Tamil Nadu State Board"
+    assert p_data["profile"]["qualifying_marks"] == 94.5
+    assert p_data["profile"]["dbt_seeding_status"] == "Yes"
+    assert p_data["profile"]["dbt_enabled"] is True
+    assert p_data["profile"]["ration_card_type"] == "Priority (PHH)"
+    assert p_data["funding_profile"]["funding_gap"] == 40000.0
+
+    # Verify that updating only one section (e.g. phone) does not wipe out academic or financial details
+    partial_resp = client.put("/api/v1/student/me", json={"phone": "+91 94444 99999"}, headers=headers)
+    assert partial_resp.status_code == 200
+    refreshed = partial_resp.json()
+    assert refreshed["phone"] == "+91 94444 99999"
+    assert refreshed["profile"]["district"] == "Madurai"
+    assert refreshed["profile"]["studied_govt_school_6_to_12"] is True
+    assert refreshed["funding_profile"]["funding_gap"] == 40000.0
+
+    # Recalculated recommendations include Pudhumai Penn and First Graduate concession
+    rec_resp = client.get("/api/v1/scholarships/recommendations", headers=headers)
+    assert rec_resp.status_code == 200
+    rec_data = rec_resp.json()
+    all_recs = (
+        rec_data["likely_eligible"]
+        + rec_data["potentially_eligible"]
+        + rec_data["currently_ineligible"]
+        + rec_data["window_needs_verification"]
+    )
+    pudhumai = [r for r in all_recs if "Pudhumai Penn" in r["name"]]
+    assert len(pudhumai) > 0
+    assert pudhumai[0]["recommendation_category"] in ["LIKELY_ELIGIBLE", "POTENTIALLY_ELIGIBLE"]
+
+    fg_rec = [r for r in all_recs if "First Graduate" in r["name"]]
+    assert len(fg_rec) > 0
+    assert fg_rec[0]["recommendation_category"] in ["LIKELY_ELIGIBLE", "POTENTIALLY_ELIGIBLE"]

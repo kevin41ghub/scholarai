@@ -17,6 +17,7 @@ class StudentProfileBase(BaseModel):
     dob: Optional[str] = None
     district: Optional[str] = None
     native_state: Optional[str] = "Tamil Nadu"
+    domicile_status: Optional[str] = "Tamil Nadu Domicile"
 
     # Academic Information Extensions
     education_level: Optional[str] = "Undergraduate"
@@ -29,17 +30,24 @@ class StudentProfileBase(BaseModel):
     institution_type: Optional[str] = "Government-aided"
     admission_quota: Optional[str] = Field("GOVERNMENT_QUOTA", description="Admission Quota: GOVERNMENT_QUOTA or MANAGEMENT_QUOTA")
     hosteller_status: Optional[str] = Field("DAY_SCHOLAR", description="Residential Status: DAY_SCHOLAR or HOSTELLER")
+    mode_of_study: Optional[str] = "Regular / Full-Time"
+    studied_govt_school_6_to_12: Optional[bool] = None
+    board_of_education: Optional[str] = "Tamil Nadu State Board"
     is_first_graduate: Optional[bool] = Field(False, description="First generation graduate in immediate family")
     school_type: Optional[str] = None
     school_study_history: Optional[str] = None
 
     # Community & Sensitive Reservation Attributes
     community_subcategory: Optional[str] = None
+    minority_status: Optional[str] = "None"
+    special_category: Optional[str] = "None"
 
     # Bank & Benefit Distribution
     bank_readiness: Optional[str] = "NOT_CONFIGURED"
     account_holder_name: Optional[str] = None
     dbt_enabled: Optional[bool] = False
+    dbt_seeding_status: Optional[str] = "Don't Know"
+    ration_card_type: Optional[str] = "Not Available / Don't Know"
     bank_name: Optional[str] = None
     bank_branch: Optional[str] = None
 
@@ -47,6 +55,16 @@ class StudentProfileBase(BaseModel):
     aadhaar_verification_status: Optional[str] = "NOT_PROVIDED"
     aadhaar_masked: Optional[str] = None
     aadhaar_consent_given: Optional[bool] = False
+
+    @field_validator("state", mode="before")
+    @classmethod
+    def validate_state(cls, v):
+        if v is None:
+            return "Tamil Nadu"
+        v_str = str(v).strip()
+        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+            raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State of residence must be 'Tamil Nadu'.")
+        return "Tamil Nadu"
 
     @field_validator("admission_quota", mode="before")
     @classmethod
@@ -105,6 +123,7 @@ class StudentUpdate(BaseModel):
     dob: Optional[str] = None
     district: Optional[str] = None
     native_state: Optional[str] = None
+    domicile_status: Optional[str] = None
     gender: Optional[str] = None
     state: Optional[str] = None
 
@@ -122,6 +141,9 @@ class StudentUpdate(BaseModel):
     institution_type: Optional[str] = None
     admission_quota: Optional[str] = None
     hosteller_status: Optional[str] = None
+    mode_of_study: Optional[str] = None
+    studied_govt_school_6_to_12: Optional[bool] = None
+    board_of_education: Optional[str] = None
     is_first_graduate: Optional[bool] = None
     school_type: Optional[str] = None
     school_study_history: Optional[str] = None
@@ -133,6 +155,8 @@ class StudentUpdate(BaseModel):
     # Community & Reservation
     category: Optional[str] = None
     community_subcategory: Optional[str] = None
+    minority_status: Optional[str] = None
+    special_category: Optional[str] = None
 
     # Financial info
     annual_education_cost: Optional[float] = Field(None, ge=0.0)
@@ -147,6 +171,8 @@ class StudentUpdate(BaseModel):
     bank_readiness: Optional[str] = None
     account_holder_name: Optional[str] = None
     dbt_enabled: Optional[bool] = None
+    dbt_seeding_status: Optional[str] = None
+    ration_card_type: Optional[str] = None
     bank_name: Optional[str] = None
     bank_branch: Optional[str] = None
 
@@ -154,6 +180,16 @@ class StudentUpdate(BaseModel):
     aadhaar_verification_status: Optional[str] = None
     aadhaar_masked: Optional[str] = None
     aadhaar_consent_given: Optional[bool] = None
+
+    @field_validator("state", mode="before")
+    @classmethod
+    def validate_update_state(cls, v):
+        if v is None:
+            return v
+        v_str = str(v).strip()
+        if v_str and v_str.lower() not in ["tamil nadu", "tamilnadu", "tn"]:
+            raise ValueError("SCHOLARAi is exclusively available for higher education in Tamil Nadu. State of residence must be 'Tamil Nadu'.")
+        return "Tamil Nadu"
 
     @field_validator("admission_quota", mode="before")
     @classmethod
