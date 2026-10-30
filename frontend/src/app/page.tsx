@@ -7,6 +7,7 @@ import {
   getPortfolioSummary,
   getPersonalizedRecommendations,
   getProfileCompletion,
+  getDocuments,
   formatINR,
 } from "@/lib/api";
 import {
@@ -15,9 +16,11 @@ import {
   PersonalizedRecommendationsData,
   ProfileCompletionData,
   ScholarshipRecommendationItem,
+  DocumentItem,
 } from "@/types/student";
 import MetricCard from "@/components/MetricCard";
 import FundingProgressBar from "@/components/FundingProgressBar";
+import ScholarshipDetailsModal from "@/components/ScholarshipDetailsModal";
 import { useAuth } from "@/context/AuthContext";
 
 type RecCategoryTab = "likely" | "potentially" | "ineligible" | "window";
@@ -28,6 +31,8 @@ export default function Dashboard() {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [recommendations, setRecommendations] = useState<PersonalizedRecommendationsData | null>(null);
   const [completion, setCompletion] = useState<ProfileCompletionData | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [selectedRec, setSelectedRec] = useState<ScholarshipRecommendationItem | null>(null);
   const [recTab, setRecTab] = useState<RecCategoryTab>("likely");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,16 +41,18 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [studentData, portfolioData, recsData, compData] = await Promise.all([
+      const [studentData, portfolioData, recsData, compData, docsData] = await Promise.all([
         getCurrentStudent(),
         getPortfolioSummary(),
         getPersonalizedRecommendations().catch(() => null),
         getProfileCompletion().catch(() => null),
+        getDocuments().catch(() => []),
       ]);
       setStudent(studentData);
       setPortfolio(portfolioData);
       if (recsData) setRecommendations(recsData);
       if (compData) setCompletion(compData);
+      if (docsData) setDocuments(docsData);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -367,12 +374,12 @@ export default function Dashboard() {
             displayedRecs.map((rec) => (
               <div
                 key={rec.id}
-                className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all space-y-4"
+                className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all space-y-3.5 shadow-xs"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold border border-zinc-200 dark:border-zinc-700/60">
                         {rec.academic_year || "2024-2026 Cycle"}
                       </span>
                       {rec.benefit_type && (
@@ -401,94 +408,38 @@ export default function Dashboard() {
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-snug">
                       {rec.name}
                     </h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       Awarding Authority: <strong className="text-zinc-700 dark:text-zinc-300">{rec.provider}</strong>
                     </p>
                   </div>
 
-                  <div className="text-left sm:text-right flex-shrink-0">
-                    <span className="text-lg font-bold font-mono text-zinc-900 dark:text-white block">
-                      {formatINR(rec.amount)}
-                    </span>
-                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">
-                      {rec.award_display || "Variable Statutory Aid"}
-                    </span>
+                  <div className="flex items-start gap-3 self-start sm:self-auto shrink-0">
+                    <div className="text-left sm:text-right">
+                      <span className="text-lg font-bold font-mono text-zinc-900 dark:text-white block">
+                        {formatINR(rec.amount)}
+                      </span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block max-w-[180px] sm:max-w-none truncate sm:whitespace-normal">
+                        {rec.award_display || "Variable Statutory Aid"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRec(rec)}
+                      aria-label={`View scholarship details for ${rec.name}`}
+                      title="View complete scholarship details"
+                      className="w-7 h-7 rounded-full border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      ?
+                    </button>
                   </div>
                 </div>
 
-                {/* Eligibility Summary & Match Rationale */}
-                <div className="p-3.5 rounded-xl bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800/80 text-xs space-y-2">
-                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                    <strong>Scheme Overview:</strong> {rec.eligibility_summary}
-                  </p>
-
-                  {/* Why it matches */}
-                  {rec.satisfied_requirements.length > 0 && (
-                    <div className="space-y-1 pt-1">
-                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                        ✓ Why it Matches Your Saved Profile:
-                      </span>
-                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-zinc-600 dark:text-zinc-300">
-                        {rec.satisfied_requirements.map((r, idx) => (
-                          <li key={idx}>{r}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Missing information */}
-                  {rec.missing_information.length > 0 && (
-                    <div className="space-y-1 pt-1">
-                      <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
-                        ⚠ Missing Profile Information to Confirm Fit:
-                      </span>
-                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-amber-800 dark:text-amber-300">
-                        {rec.missing_information.map((m, idx) => (
-                          <li key={idx}>{m}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Requirements needing document verification */}
-                  {rec.requirements_needing_verification.length > 0 && (
-                    <div className="space-y-1 pt-1">
-                      <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-                        📄 Document &amp; Policy Verification Required:
-                      </span>
-                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {rec.requirements_needing_verification.map((v, idx) => (
-                          <li key={idx}>{v}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Required Documents Checklist */}
-                  {rec.required_documents && rec.required_documents.length > 0 && (
-                    <div className="space-y-1 pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                        📑 Mandatory Documents Checklist:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {rec.required_documents.map((doc, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] font-medium border border-zinc-200 dark:border-zinc-700"
-                          >
-                            ✓ {doc}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {/* Footer with statutory links, official portal button, and assistant launcher */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500 dark:text-zinc-400">
                     {rec.official_source_url && (
                       <a
@@ -516,9 +467,13 @@ export default function Dashboard() {
                         </svg>
                       </a>
                     )}
-                    {rec.days_remaining !== null && rec.days_remaining !== undefined && (
+                    {rec.days_remaining !== null && rec.days_remaining !== undefined ? (
                       <span className="font-mono">
                         Deadline: {rec.days_remaining}d remaining
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-zinc-400">
+                        Annual cycle window
                       </span>
                     )}
                   </div>
@@ -766,6 +721,15 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Scholarship Complete Details Modal */}
+      <ScholarshipDetailsModal
+        key={selectedRec?.id ?? "none"}
+        isOpen={!!selectedRec}
+        onClose={() => setSelectedRec(null)}
+        scholarship={selectedRec}
+        studentDocuments={documents}
+      />
     </div>
   );
 }

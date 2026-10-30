@@ -21,6 +21,7 @@ from app.schemas.scholarship import (
     OfficialDossierChunk,
     OfficialDossierResponse,
     ScholarshipRecommendationItem,
+    ScholarshipRequirementResponse,
     PersonalizedRecommendationsResponse,
 )
 from app.schemas.scholarship_import import (
@@ -270,7 +271,23 @@ def get_personalized_recommendations(
             satisfied_requirements=eval_res["matched_rules"],
             missing_information=eval_res.get("missing_information", []),
             requirements_needing_verification=eval_res.get("requirements_needing_verification", []),
-            required_documents=[r.name for r in s.requirements],
+            required_documents=[r.name for r in (s.requirements or [])],
+            requirements=[
+                ScholarshipRequirementResponse.model_validate(r) for r in (s.requirements or [])
+            ],
+            dossier_index=s.dossier_index,
+            stream=s.stream or "BOTH",
+            study_level=s.study_level or "BOTH",
+            category_tag=s.category_tag or "GOVERNMENT",
+            institution_types=s.institution_types,
+            autonomous_compatibility=s.autonomous_compatibility,
+            tn_residency_required=s.tn_residency_required in [True, "YES", "yes", "1", 1] if s.tn_residency_required is not None else True,
+            community_category=s.community_category or "ALL",
+            income_ceiling=s.income_ceiling,
+            income_criteria_raw=s.income_criteria_raw,
+            award_type=s.award_type or "VARIABLE_ASSISTANCE",
+            official_portal_name=s.official_portal_name,
+            unresolved_questions=s.unresolved_questions,
             deadline=s.deadline,
             academic_year=s.academic_year or "2024-2025 / 2025-2026",
             official_source_url=s.source_url or s.official_guideline_url,

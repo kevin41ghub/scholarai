@@ -192,6 +192,20 @@ class ScholarshipRecommendationItem(BaseModel):
     missing_information: List[str]
     requirements_needing_verification: List[str]
     required_documents: List[str] = []
+    requirements: List[ScholarshipRequirementResponse] = []
+    dossier_index: Optional[str] = None
+    stream: Optional[str] = "BOTH"
+    study_level: Optional[str] = "BOTH"
+    category_tag: Optional[str] = "GOVERNMENT"
+    institution_types: Optional[str] = None
+    autonomous_compatibility: Optional[str] = None
+    tn_residency_required: Optional[bool] = True
+    community_category: Optional[str] = "ALL"
+    income_ceiling: Optional[float] = None
+    income_criteria_raw: Optional[str] = None
+    award_type: Optional[str] = None
+    official_portal_name: Optional[str] = None
+    unresolved_questions: Optional[str] = None
     deadline: datetime
     academic_year: Optional[str] = None
     official_source_url: Optional[str] = None

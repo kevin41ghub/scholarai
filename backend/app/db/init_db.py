@@ -1007,7 +1007,7 @@ def init_db(db: Session) -> None:
                     setattr(existing, key, val)
                     updated = True
             # Also backfill any missing eligibility rules on existing scholarship records
-            existing_rule_types = {r.rule_type for r in existing.rules}
+            existing_rule_types = {r.rule_type for r in existing.eligibility_rules}
             for r in rules_data:
                 if r["rule_type"] not in existing_rule_types:
                     db.add(EligibilityRule(scholarship_id=existing.id, **r))
