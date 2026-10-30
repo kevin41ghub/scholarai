@@ -300,6 +300,47 @@ def run_schema_migrations(db_engine_or_conn):
                 except Exception as bf_err:
                     logger.warning(f"Note backfilling {tbl}: {bf_err}")
 
+        # 9. Sync PostgreSQL primary key sequences with MAX(id) to prevent duplicate key violations
+        if dialect_name == "postgresql":
+            tables_with_id = [
+                "students",
+                "users",
+                "student_profiles",
+                "funding_profiles",
+                "planner_goals",
+                "scholarships",
+                "applications",
+                "documents",
+                "actions",
+                "evidence",
+                "knowledge_sources",
+                "knowledge_documents",
+                "knowledge_chunks",
+                "notifications",
+            ]
+            for tbl in tables_with_id:
+                if tbl in existing_tables:
+                    try:
+                        conn.execute(text(f"""
+                            DO $$
+                            DECLARE
+                                seq_name TEXT;
+                                max_id BIGINT;
+                            BEGIN
+                                seq_name := pg_get_serial_sequence('{tbl}', 'id');
+                                IF seq_name IS NOT NULL THEN
+                                    EXECUTE 'SELECT COALESCE(MAX(id), 0) FROM {tbl}' INTO max_id;
+                                    IF max_id > 0 THEN
+                                        PERFORM setval(seq_name, max_id, true);
+                                    ELSE
+                                        PERFORM setval(seq_name, 1, false);
+                                    END IF;
+                                END IF;
+                            END $$;
+                        """))
+                    except Exception as seq_err:
+                        logger.warning(f"Note syncing sequence for {tbl}: {seq_err}")
+
     # Determine if db_engine_or_conn is an Engine or a Connection
     from sqlalchemy.engine import Engine, Connection
     if isinstance(db_engine_or_conn, Engine):

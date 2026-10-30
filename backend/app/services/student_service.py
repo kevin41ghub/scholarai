@@ -110,8 +110,12 @@ class StudentService:
             profile.mode_of_study = update_data.mode_of_study.strip() if update_data.mode_of_study else "Regular / Full-Time"
         if update_data.studied_govt_school_6_to_12 is not None:
             profile.studied_govt_school_6_to_12 = bool(update_data.studied_govt_school_6_to_12)
-            if profile.studied_govt_school_6_to_12 and not profile.school_type:
-                profile.school_type = "Government School (Classes 6-12)"
+            if profile.studied_govt_school_6_to_12:
+                if not profile.school_type or "private" in profile.school_type.lower():
+                    profile.school_type = "Tamil Nadu Government School (Classes 6-12)"
+            else:
+                if profile.school_type and "government" in profile.school_type.lower():
+                    profile.school_type = "Private / Non-Government School"
         if update_data.board_of_education is not None:
             profile.board_of_education = update_data.board_of_education.strip() if update_data.board_of_education else "Tamil Nadu State Board"
         if update_data.is_first_graduate is not None:
