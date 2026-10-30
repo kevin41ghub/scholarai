@@ -300,6 +300,23 @@ def run_schema_migrations(db_engine_or_conn):
                 except Exception as bf_err:
                     logger.warning(f"Note backfilling {tbl}: {bf_err}")
 
+        # 8b. Ensure Pudhumai Penn has SCHOOL_TYPE rule in eligibility_rules
+        if "eligibility_rules" in existing_tables and "scholarships" in existing_tables:
+            try:
+                like_clause = "s.name ILIKE '%Pudhumai Penn%'" if dialect_name == "postgresql" else "s.name LIKE '%Pudhumai Penn%'"
+                conn.execute(text(f"""
+                    INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description)
+                    SELECT s.id, 'SCHOOL_TYPE', 'Government School', 'EQUALS', 'Studied Classes 6 to 12 in Tamil Nadu Government School'
+                    FROM scholarships s
+                    WHERE {like_clause}
+                    AND NOT EXISTS (
+                        SELECT 1 FROM eligibility_rules er
+                        WHERE er.scholarship_id = s.id AND er.rule_type = 'SCHOOL_TYPE'
+                    )
+                """))
+            except Exception as r_err:
+                logger.warning(f"Note ensuring Pudhumai Penn rule in migrations: {r_err}")
+
         # 9. Sync PostgreSQL primary key sequences with MAX(id) to prevent duplicate key violations
         if dialect_name == "postgresql":
             tables_with_id = [

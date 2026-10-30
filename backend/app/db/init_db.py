@@ -340,6 +340,7 @@ def init_db(db: Session) -> None:
                 "rules": [
                     {"rule_type": "STATE", "criteria_value": "Tamil Nadu", "operator": "EQUALS", "description": "Domicile of Tamil Nadu"},
                     {"rule_type": "GENDER", "criteria_value": "Female", "operator": "EQUALS", "description": "Restricted strictly to female students"},
+                    {"rule_type": "SCHOOL_TYPE", "criteria_value": "Government School", "operator": "EQUALS", "description": "Studied Classes 6 to 12 in Tamil Nadu Government School"},
                 ],
                 "requirements": [
                     {"name": "School Bonafide (6th-12th Govt School / EMIS Record)", "document_type": "BONAFIDE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
