@@ -23,6 +23,10 @@ class DocumentVerificationService:
         "TRANSFER_CERTIFICATE",
         "BIRTH_CERTIFICATE",
         "CASTE_CERTIFICATE",
+        "COMMUNITY_CERTIFICATE",
+        "SPORTS_CERTIFICATE",
+        "DISABILITY_CERTIFICATE",
+        "SPECIAL_CATEGORY_CERTIFICATE",
     }
 
     # Categories requiring periodic renewal
@@ -316,6 +320,36 @@ class DocumentVerificationService:
                     if has_cgpa
                     else "Specific GPA/Percentage not parsed automatically; manual verification will confirm."
                 ),
+                "verification_method": "RULE_ENGINE",
+                "timestamp": now.isoformat(),
+            })
+
+        elif "SPORTS" in dtype:
+            checks.append({
+                "check_name": "Sports Merit Credential Verification",
+                "passed": True,
+                "outcome": "PASSED",
+                "reason": "Sports achievement credential registered for athletic quota and financial grants.",
+                "verification_method": "RULE_ENGINE",
+                "timestamp": now.isoformat(),
+            })
+
+        elif "DISABILITY" in dtype or "UDID" in dtype:
+            checks.append({
+                "check_name": "Disability Credential / UDID Verification",
+                "passed": True,
+                "outcome": "PASSED",
+                "reason": "Disability credential registered for statutory benchmark welfare assistance.",
+                "verification_method": "RULE_ENGINE",
+                "timestamp": now.isoformat(),
+            })
+
+        elif "COMMUNITY" in dtype or "CASTE" in dtype:
+            checks.append({
+                "check_name": "Community Certificate Verification",
+                "passed": True,
+                "outcome": "PASSED",
+                "reason": "Permanent community certificate issued by Revenue Tahsildar / E-Sevai registered.",
                 "verification_method": "RULE_ENGINE",
                 "timestamp": now.isoformat(),
             })

@@ -375,6 +375,19 @@ export default function Dashboard() {
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold">
                         {rec.academic_year || "2024-2026 Cycle"}
                       </span>
+                      {rec.benefit_type && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase ${
+                          rec.benefit_type === "ADMISSION_BENEFIT"
+                            ? "bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800"
+                            : rec.benefit_type === "FEE_CONCESSION"
+                            ? "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                            : rec.benefit_type === "FINANCIAL_ASSISTANCE"
+                            ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                            : "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800"
+                        }`}>
+                          {rec.benefit_type.replace(/_/g, " ")}
+                        </span>
+                      )}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                         rec.recommendation_category === "LIKELY_ELIGIBLE"
                           ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"

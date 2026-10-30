@@ -308,6 +308,87 @@ class EligibilityService:
                 else:
                     needs_verif.append(f"Requires verification of institution type ({cval})")
 
+            elif rtype in ["SPORTS", "SPORTS_LEVEL", "SPORTS_ACHIEVEMENT", "SPORTS_PARTICIPATION"]:
+                participates = getattr(profile, "participates_in_sports", False)
+                level = getattr(profile, "sports_competition_level", None)
+                discipline = getattr(profile, "sport_discipline", None) or "Sports / Athletics"
+                cert_status = getattr(profile, "sports_certificate_status", "Not Available")
+
+                if not participates:
+                    unmatched.append("Scheme requires competitive sports participation / achievement; student profile indicates non-sports participant.")
+                    is_hard_ineligible = True
+                else:
+                    req_level = cval.strip().upper() if cval else "ANY"
+                    level_ranks = {"SCHOOL": 1, "ZONAL": 1, "DISTRICT": 2, "DIVISIONAL": 2, "STATE": 3, "NATIONAL": 4, "INTERNATIONAL": 5}
+                    student_rank = 1
+                    if level:
+                        for lk, lv in level_ranks.items():
+                            if lk in level.upper():
+                                student_rank = max(student_rank, lv)
+
+                    required_rank = 1
+                    for lk, lv in level_ranks.items():
+                        if lk in req_level:
+                            required_rank = max(required_rank, lv)
+
+                    if student_rank >= required_rank:
+                        matched.append(f"Sports participation ({discipline} - {level or 'Active'}) satisfies criteria ({cval or 'Recognized Sports'})")
+                        if cert_status in ["Have Verified Official Certificate", "Certificate Available / Pending Verification"]:
+                            matched.append("Official sports certificate or Form-II/III available")
+                        else:
+                            needs_verif.append("Official certificate from recognized sports association / SDAT required for verification")
+                            missing_info.append("Verified Sports Certificate")
+                    else:
+                        unmatched.append(f"Scheme requires {cval} level sports achievement; student profile indicates {level or 'lower tier'}.")
+                        is_hard_ineligible = True
+
+            elif rtype in ["DISABILITY", "DISABILITY_BENCHMARK", "PWD", "UDID"]:
+                has_disability = getattr(profile, "has_disability", False)
+                special_cat = getattr(profile, "special_category", "") or ""
+                dis_pct = getattr(profile, "disability_percentage", None)
+                udid_status = getattr(profile, "udid_card_status", "Not Available")
+
+                indicated_disability = has_disability or any(k in special_cat.lower() for k in ["pwd", "differently abled", "disab"])
+
+                if not indicated_disability:
+                    unmatched.append("Scheme is strictly restricted to students with benchmark disabilities (PwD / Divyangjan); profile does not indicate disability.")
+                    is_hard_ineligible = True
+                else:
+                    min_pct = 40.0
+                    try:
+                        if cval and cval.replace(".", "", 1).isdigit():
+                            min_pct = float(cval)
+                    except Exception:
+                        pass
+
+                    if dis_pct is not None:
+                        if dis_pct >= min_pct:
+                            matched.append(f"Disability percentage ({dis_pct}%) satisfies statutory benchmark criteria (>={min_pct}%)")
+                        else:
+                            unmatched.append(f"Statutory benchmark requires at least {min_pct}% disability; profile indicates {dis_pct}%")
+                            is_hard_ineligible = True
+                    else:
+                        needs_verif.append(f"Requires verification of benchmark disability (>={min_pct}%) via UDID card or competent medical authority certificate")
+                        missing_info.append("Disability percentage / UDID Card verification")
+
+                    if udid_status in ["UDID Card Available", "State Disability Certificate Available"]:
+                        matched.append(f"Disability documentation ({udid_status}) declared")
+                    else:
+                        needs_verif.append("Valid Unique Disability Identity (UDID) Card or state medical certificate required for portal authentication")
+                        missing_info.append("UDID Card / Disability Certificate")
+
+            elif rtype in ["GOVT_SCHOOL_7_POINT_5", "7_POINT_5_PERCENT_QUOTA"]:
+                studied_govt_flag = getattr(profile, "studied_govt_school_6_to_12", None)
+                if studied_govt_flag is False or (school_type and "private" in school_type):
+                    unmatched.append("7.5% preferential reservation requires continuous schooling in Tamil Nadu Government schools from Classes 6 to 12; profile indicates non-government school.")
+                    is_hard_ineligible = True
+                elif studied_govt_flag is True or "government school" in school_type:
+                    matched.append("Continuous schooling in Tamil Nadu Government schools (Classes 6-12) verified for 7.5% preferential quota eligibility")
+                    context_notes.append("Admission Benefit Policy: Tamil Nadu Act 14 of 2021 provides 100% full fee concession (tuition, hostel, exam fees) for eligible government school students admitted under the 7.5% counselling quota. Requires admission allotment under the 7.5% government school category.")
+                else:
+                    needs_verif.append("Requires verification of continuous schooling in Tamil Nadu Government schools (Classes 6-12) via EMIS certificate.")
+                    missing_info.append("Government school bonafide / EMIS student ID")
+
             else:
                 needs_verif.append(f"Special criteria: {desc}")
 

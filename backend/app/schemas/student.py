@@ -37,10 +37,26 @@ class StudentProfileBase(BaseModel):
     school_type: Optional[str] = None
     school_study_history: Optional[str] = None
 
-    # Community & Sensitive Reservation Attributes
-    community_subcategory: Optional[str] = None
+    # Community & Sensitive Reservation Attributes (Sub-caste deprecated & not collected)
+    community_subcategory: Optional[str] = Field(None, description="Deprecated, not collected from students")
     minority_status: Optional[str] = "None"
     special_category: Optional[str] = "None"
+
+    # Sports & Athletic Achievements
+    participates_in_sports: Optional[bool] = False
+    sport_discipline: Optional[str] = None
+    sports_competition_level: Optional[str] = None
+    sports_achievement_type: Optional[str] = None
+    sports_certificate_status: Optional[str] = "Not Available"
+    sports_achievement_year: Optional[str] = None
+
+    # Disability & Accessibility Accommodations (Privacy-conscious & Optional)
+    has_disability: Optional[bool] = False
+    disability_consent_given: Optional[bool] = False
+    disability_category: Optional[str] = None
+    disability_percentage: Optional[float] = None
+    udid_card_status: Optional[str] = "Not Available"
+    accessibility_needs: Optional[str] = None
 
     # Bank & Benefit Distribution
     bank_readiness: Optional[str] = "NOT_CONFIGURED"
@@ -152,11 +168,27 @@ class StudentUpdate(BaseModel):
     cgpa: Optional[float] = Field(None, ge=0.0, le=10.0)
     twelfth_percentage: Optional[float] = Field(None, ge=0.0, le=100.0)
 
-    # Community & Reservation
+    # Community & Reservation (Sub-caste deprecated & not collected)
     category: Optional[str] = None
-    community_subcategory: Optional[str] = None
+    community_subcategory: Optional[str] = Field(None, description="Deprecated, ignored")
     minority_status: Optional[str] = None
     special_category: Optional[str] = None
+
+    # Sports & Athletic Achievements
+    participates_in_sports: Optional[bool] = None
+    sport_discipline: Optional[str] = None
+    sports_competition_level: Optional[str] = None
+    sports_achievement_type: Optional[str] = None
+    sports_certificate_status: Optional[str] = None
+    sports_achievement_year: Optional[str] = None
+
+    # Disability & Accessibility Accommodations
+    has_disability: Optional[bool] = None
+    disability_consent_given: Optional[bool] = None
+    disability_category: Optional[str] = None
+    disability_percentage: Optional[float] = None
+    udid_card_status: Optional[str] = None
+    accessibility_needs: Optional[str] = None
 
     # Financial info
     annual_education_cost: Optional[float] = Field(None, ge=0.0)

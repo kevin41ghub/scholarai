@@ -32,6 +32,23 @@ export interface StudentProfile {
   minority_status?: string | null;
   special_category?: string | null;
   domicile_status?: string | null;
+
+  // Sports & Athletic Achievements
+  participates_in_sports?: boolean | null;
+  sport_discipline?: string | null;
+  sports_competition_level?: string | null;
+  sports_achievement_type?: string | null;
+  sports_certificate_status?: string | null;
+  sports_achievement_year?: string | null;
+
+  // Disability & Accessibility Accommodations (Confidential & Consent-Based)
+  has_disability?: boolean | null;
+  disability_consent_given?: boolean | null;
+  disability_category?: string | null;
+  disability_percentage?: number | null;
+  udid_card_status?: string | null;
+  accessibility_needs?: string | null;
+
   bank_readiness?: string | null;
   account_holder_name?: string | null;
   dbt_enabled?: boolean | null;
@@ -113,6 +130,22 @@ export interface StudentUpdatePayload {
   special_category?: string | null;
   domicile_status?: string | null;
 
+  // Sports & Special Athletic Eligibility
+  participates_in_sports?: boolean | null;
+  sport_discipline?: string | null;
+  sports_competition_level?: string | null;
+  sports_achievement_type?: string | null;
+  sports_certificate_status?: string | null;
+  sports_achievement_year?: string | null;
+
+  // Disability & Accessibility Accommodations (Confidential & Consent-Based)
+  has_disability?: boolean | null;
+  disability_consent_given?: boolean | null;
+  disability_category?: string | null;
+  disability_percentage?: number | null;
+  udid_card_status?: string | null;
+  accessibility_needs?: string | null;
+
   annual_education_cost?: number | null;
   existing_support?: number | null;
   annual_family_income?: number | null;
@@ -160,6 +193,7 @@ export interface ScholarshipRecommendationItem {
   provider: string;
   amount: number;
   currency: string;
+  benefit_type?: "SCHOLARSHIP" | "ADMISSION_BENEFIT" | "FEE_CONCESSION" | "FINANCIAL_ASSISTANCE" | string;
   award_display?: string | null;
   eligibility_summary?: string | null;
   recommendation_category: "LIKELY_ELIGIBLE" | "POTENTIALLY_ELIGIBLE" | "CURRENTLY_INELIGIBLE" | "WINDOW_NEEDS_VERIFICATION";
@@ -238,6 +272,7 @@ export interface ScholarshipListItem {
   deadline_risk?: string;
   application_status?: string;
   application_id?: number;
+  benefit_type?: string;
   // Tamil Nadu Editorial Intelligence Fields
   dossier_index?: string;
   stream?: "ARTS_SCIENCE" | "ENGINEERING" | "BOTH";

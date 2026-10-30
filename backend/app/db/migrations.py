@@ -93,6 +93,7 @@ def run_schema_migrations(db_engine_or_conn):
                 ("source_verification_status", "VARCHAR(50) DEFAULT 'SOURCE_VERIFIED'", "VARCHAR(50) DEFAULT 'SOURCE_VERIFIED'"),
                 ("application_window_status", "VARCHAR(50) DEFAULT 'OPEN'", "VARCHAR(50) DEFAULT 'OPEN'"),
                 ("unresolved_questions", "TEXT", "TEXT"),
+                ("benefit_type", "VARCHAR(50) DEFAULT 'SCHOLARSHIP'", "VARCHAR(50) DEFAULT 'SCHOLARSHIP'"),
             ]
             for col_name, sqlite_type, pg_type in new_sch_columns:
                 if col_name not in sch_columns:
@@ -166,6 +167,18 @@ def run_schema_migrations(db_engine_or_conn):
                 ("dbt_seeding_status", "VARCHAR(50) DEFAULT 'Don''t Know'", "VARCHAR(50) DEFAULT 'Don''t Know'"),
                 ("ration_card_type", "VARCHAR(100) DEFAULT 'Not Available / Don''t Know'", "VARCHAR(100) DEFAULT 'Not Available / Don''t Know'"),
                 ("domicile_status", "VARCHAR(100) DEFAULT 'Tamil Nadu Domicile'", "VARCHAR(100) DEFAULT 'Tamil Nadu Domicile'"),
+                ("participates_in_sports", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("sport_discipline", "VARCHAR(100)", "VARCHAR(100)"),
+                ("sports_competition_level", "VARCHAR(50)", "VARCHAR(50)"),
+                ("sports_achievement_type", "VARCHAR(100)", "VARCHAR(100)"),
+                ("sports_certificate_status", "VARCHAR(50) DEFAULT 'Not Available'", "VARCHAR(50) DEFAULT 'Not Available'"),
+                ("sports_achievement_year", "VARCHAR(20)", "VARCHAR(20)"),
+                ("has_disability", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("disability_consent_given", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("disability_category", "VARCHAR(100)", "VARCHAR(100)"),
+                ("disability_percentage", "FLOAT", "DOUBLE PRECISION"),
+                ("udid_card_status", "VARCHAR(50) DEFAULT 'Not Available'", "VARCHAR(50) DEFAULT 'Not Available'"),
+                ("accessibility_needs", "VARCHAR(255)", "VARCHAR(255)"),
             ]
             for col_name, sqlite_type, pg_type in new_sp_columns:
                 if col_name not in sp_columns:
@@ -249,6 +262,9 @@ def run_schema_migrations(db_engine_or_conn):
             ("student_profiles", "ix_student_profiles_education_level", "student_profiles(education_level)"),
             ("student_profiles", "ix_student_profiles_stream", "student_profiles(stream)"),
             ("student_profiles", "ix_student_profiles_institution_type", "student_profiles(institution_type)"),
+            ("student_profiles", "ix_student_profiles_sports", "student_profiles(participates_in_sports)"),
+            ("student_profiles", "ix_student_profiles_disability", "student_profiles(has_disability)"),
+            ("scholarships", "ix_scholarships_benefit_type", "scholarships(benefit_type)"),
             ("applications", "ix_applications_preparation_status", "applications(preparation_status)"),
             ("applications", "ix_applications_submission_status", "applications(submission_status)"),
             ("applications", "ix_applications_submission_mode", "applications(submission_mode)"),
@@ -276,6 +292,7 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "award_type = 'VARIABLE_ASSISTANCE' WHERE award_type IS NULL"),
             ("scholarships", "source_verification_status = 'SOURCE_VERIFIED' WHERE source_verification_status IS NULL"),
             ("scholarships", "application_window_status = 'OPEN' WHERE application_window_status IS NULL"),
+            ("scholarships", "benefit_type = 'SCHOLARSHIP' WHERE benefit_type IS NULL"),
             ("student_profiles", "gender = 'Male' WHERE gender IS NULL"),
             ("student_profiles", "admission_quota = 'GOVERNMENT_QUOTA' WHERE admission_quota IS NULL"),
             ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
@@ -323,6 +340,23 @@ def run_schema_migrations(db_engine_or_conn):
                 """))
             except Exception as r_err:
                 logger.warning(f"Note ensuring Pudhumai Penn rule in migrations: {r_err}")
+
+        # 8c. Ensure Saksham has DISABILITY_BENCHMARK rule in eligibility_rules
+        if "eligibility_rules" in existing_tables and "scholarships" in existing_tables:
+            try:
+                saksham_like = "s.name ILIKE '%Saksham%'" if dialect_name == "postgresql" else "s.name LIKE '%Saksham%'"
+                conn.execute(text(f"""
+                    INSERT INTO eligibility_rules (scholarship_id, rule_type, criteria_value, operator, description)
+                    SELECT s.id, 'DISABILITY_BENCHMARK', '40', 'GTE', 'Benchmark disability of 40% or above certified by UDID or Medical Board'
+                    FROM scholarships s
+                    WHERE {saksham_like}
+                    AND NOT EXISTS (
+                        SELECT 1 FROM eligibility_rules er
+                        WHERE er.scholarship_id = s.id AND er.rule_type IN ('DISABILITY', 'DISABILITY_BENCHMARK', 'PWD')
+                    )
+                """))
+            except Exception as sak_err:
+                logger.warning(f"Note ensuring Saksham rule in migrations: {sak_err}")
 
         # 9. Sync PostgreSQL primary key sequences with MAX(id) to prevent duplicate key violations
         if dialect_name == "postgresql":

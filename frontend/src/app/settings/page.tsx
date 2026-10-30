@@ -57,11 +57,26 @@ function SettingsPageInner() {
     school_type: "Tamil Nadu Government School (Classes 6-12)",
     school_study_history: "",
 
-    // Community Information
+    // Community Information (Statutory Categories Only)
     category: "BC",
-    community_subcategory: "",
     minority_status: "None",
     special_category: "None",
+
+    // Sports & Special Athletic Eligibility
+    participates_in_sports: false,
+    sport_discipline: "",
+    sports_competition_level: "District / Divisional",
+    sports_achievement_type: "Winner / Gold Medalist",
+    sports_certificate_status: "Have Verified Official Certificate",
+    sports_achievement_year: "2024",
+
+    // Disability & Accessibility Accommodations (Confidential & Consent-Based)
+    has_disability: false,
+    disability_consent_given: false,
+    disability_category: "Locomotor Disability",
+    disability_percentage: "",
+    udid_card_status: "UDID Card Available",
+    accessibility_needs: "None / Independent",
 
     // Financial Information
     annual_family_income: 0,
@@ -126,9 +141,22 @@ function SettingsPageInner() {
           school_study_history: p?.school_study_history || "",
 
           category: p?.category || "BC",
-          community_subcategory: p?.community_subcategory || "",
           minority_status: p?.minority_status || "None",
           special_category: p?.special_category || "None",
+
+          participates_in_sports: Boolean(p?.participates_in_sports),
+          sport_discipline: p?.sport_discipline || "",
+          sports_competition_level: p?.sports_competition_level || "District / Divisional",
+          sports_achievement_type: p?.sports_achievement_type || "Winner / Gold Medalist",
+          sports_certificate_status: p?.sports_certificate_status || "Have Verified Official Certificate",
+          sports_achievement_year: p?.sports_achievement_year || "",
+
+          has_disability: Boolean(p?.has_disability),
+          disability_consent_given: Boolean(p?.disability_consent_given),
+          disability_category: p?.disability_category || "Locomotor Disability",
+          disability_percentage: p?.disability_percentage !== null && p?.disability_percentage !== undefined ? String(p.disability_percentage) : "",
+          udid_card_status: p?.udid_card_status || "UDID Card Available",
+          accessibility_needs: p?.accessibility_needs || "None / Independent",
 
           annual_family_income: f?.annual_family_income || 0,
           income_range: f?.income_range || "Below ₹2.5 Lakhs",
@@ -207,9 +235,24 @@ function SettingsPageInner() {
         school_study_history: profileForm.school_study_history.trim() || null,
 
         category: profileForm.category,
-        community_subcategory: profileForm.community_subcategory.trim() || null,
         minority_status: profileForm.minority_status,
         special_category: profileForm.special_category,
+
+        // Sports & Special Athletic Eligibility
+        participates_in_sports: profileForm.participates_in_sports,
+        sport_discipline: profileForm.sport_discipline.trim() || null,
+        sports_competition_level: profileForm.sports_competition_level,
+        sports_achievement_type: profileForm.sports_achievement_type,
+        sports_certificate_status: profileForm.sports_certificate_status,
+        sports_achievement_year: profileForm.sports_achievement_year.trim() || null,
+
+        // Disability & Accessibility Accommodations (Confidential & Consent-Based)
+        has_disability: profileForm.has_disability,
+        disability_consent_given: profileForm.disability_consent_given,
+        disability_category: profileForm.has_disability ? profileForm.disability_category : null,
+        disability_percentage: profileForm.has_disability && profileForm.disability_percentage ? parseFloat(profileForm.disability_percentage) : null,
+        udid_card_status: profileForm.has_disability ? profileForm.udid_card_status : "Not Available",
+        accessibility_needs: profileForm.has_disability ? profileForm.accessibility_needs : null,
 
         annual_family_income: Number(profileForm.annual_family_income) || 0,
         income_range: profileForm.income_range,
@@ -798,7 +841,7 @@ function SettingsPageInner() {
           </div>
 
           {/* =================================================================== */}
-          {/* SECTION 3: COMMUNITY INFORMATION */}
+          {/* SECTION 3: COMMUNITY INFORMATION (STATUTORY ONLY - NO CASTE NAMES) */}
           {/* =================================================================== */}
           <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -809,11 +852,11 @@ function SettingsPageInner() {
                 Community Information
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Social category recognized by Tamil Nadu and Central statutory welfare lists.
+                Statutory social categories recognized by Tamil Nadu and Central welfare schemes (BC, MBC/DNC, SC, SCA, ST, OC).
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Community Category *
@@ -825,25 +868,11 @@ function SettingsPageInner() {
                 >
                   <option value="BC">BC (Backward Class)</option>
                   <option value="MBC">MBC / DNC (Most Backward Class / De-notified Community)</option>
-                  <option value="OC">OC / General (Open Competition)</option>
                   <option value="SC">SC (Scheduled Caste)</option>
                   <option value="SCA">SCA (Scheduled Caste - Arunthathiyar)</option>
                   <option value="ST">ST (Scheduled Tribe)</option>
-                  <option value="Other">Other</option>
+                  <option value="OC">OC / General (Open Competition)</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Caste / Sub-Caste Name (Optional Text)
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.community_subcategory}
-                  onChange={(e) => setProfileForm({ ...profileForm, community_subcategory: e.target.value })}
-                  placeholder="e.g. Kongu Vellalar, Nadar, Devendra Kula Velalar"
-                  className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
               </div>
 
               <div>
@@ -858,6 +887,8 @@ function SettingsPageInner() {
                   <option value="None">None</option>
                   <option value="Religious Minority (Muslim)">Religious Minority (Muslim)</option>
                   <option value="Religious Minority (Christian)">Religious Minority (Christian)</option>
+                  <option value="Religious Minority (Jain)">Religious Minority (Jain)</option>
+                  <option value="Religious Minority (Sikh / Buddhist / Parsi)">Religious Minority (Sikh / Buddhist / Parsi)</option>
                   <option value="Linguistic Minority">Linguistic Minority</option>
                   <option value="Other">Other</option>
                 </select>
@@ -865,7 +896,7 @@ function SettingsPageInner() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Special Category Reservation
+                  Special Reservation Category
                 </label>
                 <select
                   value={profileForm.special_category}
@@ -873,26 +904,306 @@ function SettingsPageInner() {
                   className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
                   <option value="None">None</option>
-                  <option value="Differently Abled (PwD)">Differently Abled (PwD)</option>
                   <option value="Children of Ex-Servicemen">Children of Ex-Servicemen</option>
                   <option value="Wards of Deceased Defense Personnel">Wards of Deceased Defense Personnel</option>
+                  <option value="Differently Abled (PwD)">Differently Abled (PwD)</option>
                   <option value="Sports Person (State/National)">Sports Person (State/National)</option>
                 </select>
               </div>
             </div>
 
             <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Privacy &amp; Non-Inference:</span> SCHOLARAi never infers or guesses caste or community from student names, locations, Aadhaar numbers, or email addresses. Community data is treated as sensitive personal data, restricted solely to authorized scholarship eligibility matching.
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Statutory Data Minimization &amp; Privacy:</span> SCHOLARAi collects solely the minimum statutory community classification (BC, MBC/DNC, SC, SCA, ST, OC) required under government reservation rules. Caste and sub-caste names are never requested, stored, or exposed on cards, dossiers, or dashboards. Community data is strictly protected and evaluated solely for authorized eligibility matching.
             </div>
           </div>
 
           {/* =================================================================== */}
-          {/* SECTION 4: FINANCIAL INFORMATION */}
+          {/* SECTION 4: SPORTS & SPECIAL ATHLETIC ELIGIBILITY */}
+          {/* =================================================================== */}
+          <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold uppercase mr-2">
+                  Section 4
+                </span>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white inline">
+                  Sports &amp; Special Athletic Eligibility
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  SDAT / TNCF sports development scholarships and Tamil Nadu 500-seat engineering quota (TNEA).
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/40 self-start sm:self-auto">
+                SDAT / TNEA Earmarked
+              </span>
+            </div>
+
+            <label className="flex items-start space-x-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profileForm.participates_in_sports}
+                onChange={(e) => setProfileForm({ ...profileForm, participates_in_sports: e.target.checked })}
+                className="w-4 h-4 mt-0.5 text-red-600 rounded border-slate-300 focus:ring-red-500"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-900 dark:text-white block">
+                  Participates in Competitive Sports / Athletics
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Enable to evaluate eligibility for SDAT / Tamil Nadu Champions Foundation athletic grants and the Eminent Sports Persons reservation quota.
+                </span>
+              </div>
+            </label>
+
+            {profileForm.participates_in_sports && (
+              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Sport / Athletic Discipline *
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.sport_discipline}
+                      onChange={(e) => setProfileForm({ ...profileForm, sport_discipline: e.target.value })}
+                      placeholder="e.g. Athletics, Cricket, Badminton, Football, Chess"
+                      className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Highest Competition Level *
+                    </label>
+                    <select
+                      value={profileForm.sports_competition_level}
+                      onChange={(e) => setProfileForm({ ...profileForm, sports_competition_level: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="School / Zonal">School / Zonal Level</option>
+                      <option value="District / Divisional">District / Divisional Level</option>
+                      <option value="State">State Championship / State Games</option>
+                      <option value="National">National Championship / Khelo India</option>
+                      <option value="International">International Championship / Games</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Achievement / Representation Type *
+                    </label>
+                    <select
+                      value={profileForm.sports_achievement_type}
+                      onChange={(e) => setProfileForm({ ...profileForm, sports_achievement_type: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="Winner / Gold Medalist">Winner / Gold Medalist</option>
+                      <option value="Runner-up / Silver Medalist">Runner-up / Silver Medalist</option>
+                      <option value="Third Place / Bronze Medalist">Third Place / Bronze Medalist</option>
+                      <option value="State/National Representation">Official State / National Representation</option>
+                      <option value="Participation">Participation / Squad Member</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Official Sports Certificate Status *
+                    </label>
+                    <select
+                      value={profileForm.sports_certificate_status}
+                      onChange={(e) => setProfileForm({ ...profileForm, sports_certificate_status: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="Have Verified Official Certificate">Have Verified Official Certificate (Form-II/III)</option>
+                      <option value="Certificate Available / Pending Verification">Certificate Available / Pending Scrutiny</option>
+                      <option value="Not Available">Not Available / In Progress</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Year of Highest Achievement
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.sports_achievement_year}
+                      onChange={(e) => setProfileForm({ ...profileForm, sports_achievement_year: e.target.value })}
+                      placeholder="e.g. 2024"
+                      className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                  <div className="text-xs">
+                    <strong className="text-slate-900 dark:text-white block">Sports Credential Verification</strong>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Upload your official Form-II/III or State/National federation certificate in your Document Vault for SDAT scholarship and TNEA quota processing.
+                    </span>
+                  </div>
+                  <a
+                    href="/documents"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Manage Sports Certificates</span>
+                    <span>&rarr;</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* =================================================================== */}
+          {/* SECTION 5: DISABILITY & ACCESSIBILITY (CONFIDENTIAL & CONSENT-BASED) */}
+          {/* =================================================================== */}
+          <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold uppercase mr-2">
+                  Section 5
+                </span>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white inline">
+                  Disability &amp; Accessibility Accommodations
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Confidential evaluation for AICTE Saksham (₹50,000/yr), DEPwD Post-Matric, and Tamil Nadu Differently Abled Welfare assistance.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 self-start sm:self-auto">
+                🔒 Privacy Protected
+              </span>
+            </div>
+
+            <label className="flex items-start space-x-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={profileForm.has_disability}
+                onChange={(e) => setProfileForm({
+                  ...profileForm,
+                  has_disability: e.target.checked,
+                  disability_consent_given: e.target.checked,
+                })}
+                className="w-4 h-4 mt-0.5 text-red-600 rounded border-slate-300 focus:ring-red-500"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-900 dark:text-white block">
+                  Consider for Schemes &amp; Accommodations for Differently Abled Students (RPwD Act 2016)
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Voluntary consent. If enabled, SCHOLARAi evaluates eligibility for benchmark disability scholarships and fee concessions.
+                </span>
+              </div>
+            </label>
+
+            {profileForm.has_disability && (
+              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Disability Category *
+                    </label>
+                    <select
+                      value={profileForm.disability_category}
+                      onChange={(e) => setProfileForm({ ...profileForm, disability_category: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="Locomotor Disability">Locomotor Disability</option>
+                      <option value="Visual Impairment (Blind / Low Vision)">Visual Impairment (Blind / Low Vision)</option>
+                      <option value="Hearing Impairment (Deaf / Hard of Hearing)">Hearing Impairment (Deaf / Hard of Hearing)</option>
+                      <option value="Speech and Language Disability">Speech and Language Disability</option>
+                      <option value="Intellectual / Learning Disability">Intellectual / Learning Disability</option>
+                      <option value="Multiple Disabilities">Multiple Disabilities</option>
+                      <option value="Other Benchmark Disability">Other Benchmark Disability</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Disability Percentage (%) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={profileForm.disability_percentage}
+                      onChange={(e) => setProfileForm({ ...profileForm, disability_percentage: e.target.value })}
+                      placeholder="e.g. 40"
+                      className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
+                      Statutory benchmark under RPwD Act 2016 is &gt;= 40% certified disability.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      UDID Card Status *
+                    </label>
+                    <select
+                      value={profileForm.udid_card_status}
+                      onChange={(e) => setProfileForm({ ...profileForm, udid_card_status: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="UDID Card Available">UDID Card Available (Swavlamban Card)</option>
+                      <option value="State Disability Certificate Available">State Medical Board Certificate Available</option>
+                      <option value="Applied for UDID / In Progress">Applied for UDID / In Progress</option>
+                      <option value="Not Available">Not Available</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Accessibility Accommodations Needed
+                    </label>
+                    <select
+                      value={profileForm.accessibility_needs}
+                      onChange={(e) => setProfileForm({ ...profileForm, accessibility_needs: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <option value="None / Independent">None / Independent</option>
+                      <option value="Screen Reader Support">Screen Reader Support</option>
+                      <option value="Accessible Exam Scribe">Accessible Exam Scribe / Extra Time</option>
+                      <option value="High Contrast / Large Text">High Contrast / Large Text</option>
+                      <option value="Assistive Software / Audio">Assistive Software / Audio</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                  <div className="text-xs">
+                    <strong className="text-slate-900 dark:text-white block">UDID Card / Medical Certificate Vault</strong>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Disability schemes require proof via unique UDID card or District Medical Board certificate.
+                    </span>
+                  </div>
+                  <a
+                    href="/documents"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Upload UDID Card</span>
+                    <span>&rarr;</span>
+                  </a>
+                </div>
+
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">Confidentiality &amp; Non-Discrimination:</span> In strict compliance with the Rights of Persons with Disabilities (RPwD) Act 2016, disability attributes are voluntary, confidential, and used exclusively for statutory welfare scheme matching.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* =================================================================== */}
+          {/* SECTION 6: FINANCIAL INFORMATION */}
           {/* =================================================================== */}
           <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold uppercase mr-2">
-                Section 4
+                Section 6
               </span>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white inline">
                 Financial Information
@@ -1044,12 +1355,12 @@ function SettingsPageInner() {
           </div>
 
           {/* =================================================================== */}
-          {/* SECTION 5: IDENTITY & BENEFITS */}
+          {/* SECTION 7: IDENTITY & BENEFITS */}
           {/* =================================================================== */}
           <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs space-y-4">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold uppercase mr-2">
-                Section 5
+                Section 7
               </span>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white inline">
                 Identity &amp; Benefits

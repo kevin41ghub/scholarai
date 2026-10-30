@@ -175,6 +175,19 @@ export default function ScholarshipDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {scholarship.benefit_type && (
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase ${
+                scholarship.benefit_type === "ADMISSION_BENEFIT"
+                  ? "bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800"
+                  : scholarship.benefit_type === "FEE_CONCESSION"
+                  ? "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800"
+                  : scholarship.benefit_type === "FINANCIAL_ASSISTANCE"
+                  ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                  : "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800"
+              }`}>
+                {scholarship.benefit_type.replace(/_/g, " ")}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
               {scholarship.source_verification_status || scholarship.verification_status}

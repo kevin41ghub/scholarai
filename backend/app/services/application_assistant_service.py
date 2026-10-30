@@ -138,20 +138,20 @@ class ApplicationAssistantService:
             )
         )
 
-        community_val = saved_form.get("community_category", {}).get("value") or (profile.category if profile else "General")
+        community_val = saved_form.get("community_category", {}).get("value") or (profile.category if profile else "BC")
         comm_doc = docs_by_type.get("COMMUNITY_CERTIFICATE") or docs_by_type.get("CASTE_CERTIFICATE")
         fields.append(
             ApplicationFormFieldItem(
                 key="community_category",
-                label="Social Community / Caste Category",
+                label="Community Category",
                 field_group="personal",
                 value=community_val,
-                suggested_value=profile.category if profile else "General",
+                suggested_value=profile.category if profile else "BC",
                 source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
                 verification_status="OFFICIALLY_VERIFIED" if comm_doc and comm_doc.status in ["AVAILABLE", "VERIFIED"] else "STUDENT_PROVIDED",
                 is_required=True,
                 is_confirmed=saved_form.get("community_category", {}).get("is_confirmed", bool(community_val)),
-                guidance="Social category recognized by Tamil Nadu Revenue Department or Central Caste List.",
+                guidance="Statutory community category recognized by Tamil Nadu Revenue Department (BC, MBC/DNC, SC, SCA, ST, OC).",
             )
         )
 

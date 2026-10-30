@@ -259,6 +259,7 @@ def get_personalized_recommendations(
             id=s.id,
             name=s.name,
             provider=s.provider,
+            benefit_type=getattr(s, "benefit_type", "SCHOLARSHIP") or "SCHOLARSHIP",
             amount=s.amount,
             currency=s.currency,
             award_display=s.award_display or f"Up to ₹{int(s.amount):,} funding",

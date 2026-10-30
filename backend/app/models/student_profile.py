@@ -46,11 +46,27 @@ class StudentProfile(Base):
     school_type = Column(String(100), nullable=True)  # Government School (Classes 6-12), Government-aided, Private/Matriculation
     school_study_history = Column(Text, nullable=True)  # Detailed schooling history for Pudhumai Penn / Tamil Pudhalvan
 
-    # Community & Sensitive Reservation Attributes
-    community_subcategory = Column(String(100), nullable=True)  # Optional notified subcategory/caste where scheme requires
+    # Community & Sensitive Statutory Reservation Attributes
+    community_subcategory = Column(String(100), nullable=True)  # Retained only for legacy DB compatibility; not collected in UI
     minority_status = Column(String(100), nullable=True, default="None")  # None, Religious Minority (Muslim), Religious Minority (Christian), Linguistic Minority, Other
     special_category = Column(String(100), nullable=True, default="None")  # None, Differently Abled (PwD), Children of Ex-Servicemen, Wards of Deceased Defense Personnel, Sports Person (State/National)
     domicile_status = Column(String(100), nullable=True, default="Tamil Nadu Domicile")
+
+    # Sports & Athletic Achievements
+    participates_in_sports = Column(Boolean, nullable=True, default=False)
+    sport_discipline = Column(String(100), nullable=True)
+    sports_competition_level = Column(String(50), nullable=True)  # School / Zonal, District, State, National, International
+    sports_achievement_type = Column(String(100), nullable=True)  # Winner / 1st Place, Runner-up / 2nd Place, Bronze / 3rd Place, State/National Representation, Participation
+    sports_certificate_status = Column(String(50), nullable=True, default="Not Available")  # Have Verified Official Certificate, Available / Pending Verification, Applied / In Progress, Not Available
+    sports_achievement_year = Column(String(20), nullable=True)
+
+    # Disability & Accessibility Accommodations (Privacy-conscious & Optional)
+    has_disability = Column(Boolean, nullable=True, default=False)
+    disability_consent_given = Column(Boolean, nullable=True, default=False)
+    disability_category = Column(String(100), nullable=True)  # Locomotor / Orthopedic, Visual Impairment, Hearing Impairment, Speech & Language, Intellectual Disability, Multiple Disabilities, Other
+    disability_percentage = Column(Float, nullable=True)  # Statutory benchmark >= 40%
+    udid_card_status = Column(String(50), nullable=True, default="Not Available")  # UDID Card Available, State Disability Certificate Available, Applied / In Progress, Not Available
+    accessibility_needs = Column(String(255), nullable=True)  # Screen reader support, High contrast / Large text, Keyboard navigation, None
 
     # Bank & Benefit Distribution Attributes (Masked/Readiness)
     bank_readiness = Column(String(50), nullable=True, default="NOT_CONFIGURED")  # READY | NOT_CONFIGURED | ACCOUNT_ACTIVE

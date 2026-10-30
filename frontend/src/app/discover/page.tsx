@@ -490,6 +490,19 @@ export default function DiscoverPage() {
 
                     {/* Stream & Category Badges */}
                     <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {s.benefit_type && (
+                        <span className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold uppercase ${
+                          s.benefit_type === "ADMISSION_BENEFIT"
+                            ? "bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800"
+                            : s.benefit_type === "FEE_CONCESSION"
+                            ? "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800"
+                            : s.benefit_type === "FINANCIAL_ASSISTANCE"
+                            ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                            : "bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-800"
+                        }`}>
+                          {s.benefit_type.replace(/_/g, " ")}
+                        </span>
+                      )}
                       <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono text-[11px] font-semibold">
                         Stream: {s.stream === "BOTH" ? "Arts & Science and Engineering" : s.stream}
                       </span>

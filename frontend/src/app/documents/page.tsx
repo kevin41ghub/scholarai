@@ -15,8 +15,11 @@ import { DocumentItem } from "@/types/student";
 const DOCUMENT_CATEGORIES = [
   { value: "INCOME_CERTIFICATE", label: "Income Certificate (Tahsil / Revenue)", hint: "Max validity 1 year, requires revenue authority" },
   { value: "DOMICILE_CERTIFICATE", label: "Domicile / Residence Certificate", hint: "State residency proof" },
-  { value: "CASTE_CERTIFICATE", label: "Caste / Category Certificate", hint: "Permanent credential" },
-  { value: "ACADEMIC_TRANSCRIPT", label: "College / Semester Transcript", hint: "Current CGPA / Grade sheet" },
+  { value: "COMMUNITY_CERTIFICATE", label: "Permanent Community Certificate (BC / MBC / SC / ST)", hint: "Statutory community certificate issued by Revenue Tahsildar / E-Sevai" },
+  { value: "SPORTS_CERTIFICATE", label: "Sports Merit Certificate (SDAT / Federation / Form-II/III)", hint: "Required for SDAT scholarships & TNEA Eminent Sports Persons quota" },
+  { value: "DISABILITY_CERTIFICATE", label: "UDID Card / Disability Certificate", hint: "Unique Disability ID card or District Medical Board certificate (>= 40% benchmark)" },
+  { value: "SPECIAL_CATEGORY_CERTIFICATE", label: "Special Category / Quota Certificate", hint: "First Graduate, Ex-Servicemen, or 7.5% Govt School Bonafide" },
+  { value: "ACADEMIC_TRANSCRIPT", label: "College / Semester Transcript", hint: "Current semester marksheet / Grade transcript" },
   { value: "10TH_MARKSHEET", label: "Class X Marksheet / Certificate", hint: "Permanent proof of date of birth & basic schooling" },
   { value: "12TH_MARKSHEET", label: "Class XII Marksheet / Higher Secondary", hint: "Permanent qualifying exam record" },
   { value: "FEE_RECEIPT", label: "Current Academic Fee Receipt", hint: "Proof of institutional tuition payment" },

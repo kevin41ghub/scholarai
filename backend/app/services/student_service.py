@@ -131,15 +131,41 @@ class StudentService:
         if update_data.twelfth_percentage is not None:
             profile.twelfth_percentage = float(update_data.twelfth_percentage)
 
-        # Community & Sensitive Reservation
+        # Community & Sensitive Reservation (Sub-caste deprecated & not collected)
         if update_data.category is not None:
             profile.category = update_data.category.strip()
-        if update_data.community_subcategory is not None:
-            profile.community_subcategory = update_data.community_subcategory.strip() if update_data.community_subcategory else None
         if update_data.minority_status is not None:
             profile.minority_status = update_data.minority_status.strip() if update_data.minority_status else "None"
         if update_data.special_category is not None:
             profile.special_category = update_data.special_category.strip() if update_data.special_category else "None"
+
+        # Sports & Athletic Achievements
+        if update_data.participates_in_sports is not None:
+            profile.participates_in_sports = bool(update_data.participates_in_sports)
+        if update_data.sport_discipline is not None:
+            profile.sport_discipline = update_data.sport_discipline.strip() if update_data.sport_discipline else None
+        if update_data.sports_competition_level is not None:
+            profile.sports_competition_level = update_data.sports_competition_level.strip() if update_data.sports_competition_level else None
+        if update_data.sports_achievement_type is not None:
+            profile.sports_achievement_type = update_data.sports_achievement_type.strip() if update_data.sports_achievement_type else None
+        if update_data.sports_certificate_status is not None:
+            profile.sports_certificate_status = update_data.sports_certificate_status.strip() if update_data.sports_certificate_status else "Not Available"
+        if update_data.sports_achievement_year is not None:
+            profile.sports_achievement_year = update_data.sports_achievement_year.strip() if update_data.sports_achievement_year else None
+
+        # Disability & Accessibility Accommodations (Optional & Consent-based)
+        if update_data.has_disability is not None:
+            profile.has_disability = bool(update_data.has_disability)
+        if update_data.disability_consent_given is not None:
+            profile.disability_consent_given = bool(update_data.disability_consent_given)
+        if update_data.disability_category is not None:
+            profile.disability_category = update_data.disability_category.strip() if update_data.disability_category else None
+        if update_data.disability_percentage is not None:
+            profile.disability_percentage = float(update_data.disability_percentage) if update_data.disability_percentage is not None else None
+        if update_data.udid_card_status is not None:
+            profile.udid_card_status = update_data.udid_card_status.strip() if update_data.udid_card_status else "Not Available"
+        if update_data.accessibility_needs is not None:
+            profile.accessibility_needs = update_data.accessibility_needs.strip() if update_data.accessibility_needs else None
 
         # Bank and Benefit
         if update_data.bank_readiness is not None:

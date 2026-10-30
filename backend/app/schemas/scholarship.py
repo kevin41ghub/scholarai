@@ -40,6 +40,7 @@ class ScholarshipListItemResponse(BaseModel):
 
     # Tamil Nadu Specific Fields
     dossier_index: Optional[str] = None
+    benefit_type: Optional[str] = "SCHOLARSHIP"
     stream: Optional[str] = "BOTH"
     study_level: Optional[str] = "BOTH"
     category_tag: Optional[str] = "GOVERNMENT"
@@ -141,6 +142,7 @@ class ScholarshipDetailResponse(BaseModel):
 
     # Tamil Nadu Specific Fields
     dossier_index: Optional[str] = None
+    benefit_type: Optional[str] = "SCHOLARSHIP"
     stream: Optional[str] = "BOTH"
     study_level: Optional[str] = "BOTH"
     category_tag: Optional[str] = "GOVERNMENT"
@@ -178,6 +180,7 @@ class ScholarshipRecommendationItem(BaseModel):
     id: int
     name: str
     provider: str
+    benefit_type: str = "SCHOLARSHIP"  # SCHOLARSHIP | FINANCIAL_ASSISTANCE | ADMISSION_BENEFIT | FEE_CONCESSION | ACCOMMODATION_ALLOWANCE
     amount: float
     currency: str = "INR"
     award_display: Optional[str] = None

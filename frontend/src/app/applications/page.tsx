@@ -24,10 +24,11 @@ import {
 const DOCUMENT_CATEGORIES = [
   { value: "INCOME_CERTIFICATE", label: "Income Certificate (Tahsil / Revenue)", hint: "Max validity 1 year, requires revenue authority" },
   { value: "COMMUNITY_CERTIFICATE", label: "Permanent Community Certificate", hint: "Tahsildar issued category proof" },
-  { value: "CASTE_CERTIFICATE", label: "Caste / Category Certificate", hint: "Permanent credential" },
+  { value: "SPORTS_CERTIFICATE", label: "Sports Merit Certificate (SDAT / Federation)", hint: "SDAT & TNEA Eminent Sports Persons proof" },
+  { value: "DISABILITY_CERTIFICATE", label: "UDID Card / Disability Certificate", hint: "UDID card or District Medical Board certificate" },
   { value: "BONAFIDE_CERTIFICATE", label: "Institution Bonafide Certificate", hint: "Current enrollment verification" },
   { value: "MARKSHEET", label: "Academic Marksheet / Transcript", hint: "Semester or qualifying examination mark sheet" },
-  { value: "ACADEMIC_TRANSCRIPT", label: "College / Semester Transcript", hint: "Current CGPA / Grade sheet" },
+  { value: "ACADEMIC_TRANSCRIPT", label: "College / Semester Transcript", hint: "Current semester marksheet / Grade transcript" },
   { value: "10TH_MARKSHEET", label: "Class X Marksheet / Certificate", hint: "Permanent proof of date of birth & basic schooling" },
   { value: "12TH_MARKSHEET", label: "Class XII Marksheet / Higher Secondary", hint: "Permanent qualifying exam record" },
   { value: "DEGREE_CERTIFICATE", label: "Degree Certificate", hint: "Undergraduate degree or graduation record" },
@@ -35,7 +36,7 @@ const DOCUMENT_CATEGORIES = [
   { value: "ID_PROOF", label: "Identity Proof (Aadhaar / Passport / Voter ID)", hint: "Government identity credential" },
   { value: "FEE_RECEIPT", label: "Current Academic Fee Receipt", hint: "Proof of institutional tuition payment" },
   { value: "STATEMENT_OF_PURPOSE", label: "Statement of Purpose / Declaration", hint: "Personal academic motivation statement" },
-  { value: "SPECIAL_CATEGORY_CERTIFICATE", label: "Special Category Certificate", hint: "First Graduate, Differently-Abled, etc." },
+  { value: "SPECIAL_CATEGORY_CERTIFICATE", label: "Special Category Certificate", hint: "First Graduate, Ex-Servicemen, or 7.5% Govt School Bonafide" },
   { value: "OTHER", label: "Other Supporting Document", hint: "Special category or supplementary proof" },
 ];
 

@@ -46,6 +46,7 @@ class Scholarship(Base):
     community_category = Column(String(255), default="ALL", nullable=False)
     income_ceiling = Column(Float, nullable=True)
     income_criteria_raw = Column(String(500), nullable=True)
+    benefit_type = Column(String(50), default="SCHOLARSHIP", nullable=False, index=True)  # SCHOLARSHIP, FINANCIAL_ASSISTANCE, ADMISSION_BENEFIT, FEE_CONCESSION, ACCOMMODATION_ALLOWANCE
     award_type = Column(String(255), default="VARIABLE_ASSISTANCE", nullable=False)
     award_display = Column(String(500), nullable=True)
     official_portal_name = Column(String(255), nullable=True)
