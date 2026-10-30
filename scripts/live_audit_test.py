@@ -183,15 +183,17 @@ def run_audit():
     results["recommendations_eligibility"] = "PASS"
 
     # 7. Dynamic Recommendation Recalculation when Profile Changes
-    # Change studied_govt_school_6_to_12 to False -> Pudhumai Penn must NO LONGER be likely_eligible
-    st, _ = request_api("PUT", "/api/v1/student/me", {"studied_govt_school_6_to_12": False, "school_type": "Private"}, demo_token)
+    # Change is_first_graduate to False -> First Graduate Concession must move to currently_ineligible
+    st, _ = request_api("PUT", "/api/v1/student/me", {"is_first_graduate": False}, demo_token)
     assert st == 200
     st, recs_after = request_api("GET", "/api/v1/scholarships/recommendations", token=demo_token)
     assert st == 200
     likely_after = recs_after.get("likely_eligible", [])
-    pudhumai_still_likely = any("Pudhumai Penn" in r.get("name", "") for r in likely_after)
-    print(f"[Check 7] Pudhumai Penn after setting studied_govt_school_6_to_12=False: still likely? {pudhumai_still_likely}")
-    assert not pudhumai_still_likely, "Recommendation engine failed to update when profile changed!"
+    ineligible_after = recs_after.get("currently_ineligible", [])
+    fg_in_likely = any("First Graduate" in r.get("name", "") for r in likely_after)
+    fg_in_ineligible = any("First Graduate" in r.get("name", "") for r in ineligible_after)
+    print(f"[Check 7] First Graduate Concession after is_first_graduate=False: in_likely={fg_in_likely}, in_ineligible={fg_in_ineligible}")
+    assert not fg_in_likely and fg_in_ineligible, "Recommendation engine failed to update when profile changed!"
     results["dynamic_recommendation_recalculation"] = "PASS"
 
     # 8. Student-to-Student Data Isolation & Privacy

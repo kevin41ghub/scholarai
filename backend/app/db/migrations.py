@@ -178,6 +178,13 @@ def run_schema_migrations(db_engine_or_conn):
                     except Exception as sp_err:
                         logger.warning(f"Could not add column {col_name} to student_profiles: {sp_err}")
 
+            if dialect_name == "postgresql":
+                try:
+                    conn.execute(text("ALTER TABLE student_profiles ALTER COLUMN cgpa DROP NOT NULL"))
+                    conn.execute(text("ALTER TABLE student_profiles ALTER COLUMN twelfth_percentage DROP NOT NULL"))
+                except Exception as cgpa_err:
+                    logger.warning(f"Note dropping NOT NULL on cgpa/twelfth_percentage: {cgpa_err}")
+
         # 5b. Update funding_profiles table if it exists
         if "funding_profiles" in existing_tables:
             fp_columns = {col["name"] for col in inspector.get_columns("funding_profiles")}
