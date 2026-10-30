@@ -5,6 +5,7 @@ from app.models.document import Document
 from app.models.application import Application
 from app.models.application_requirement import ApplicationRequirement
 from app.models.scholarship import Scholarship, KNOWN_FICTIONAL_DEMO_NAMES, RETIRED_DEMO_STATUSES
+from app.services.document_readiness_service import DOCUMENT_TYPE_ALIASES
 
 
 class DependencyService:
@@ -121,7 +122,11 @@ class DependencyService:
         for app in apps:
             app_modified = False
             for req in app.requirements:
-                if req.document_type == document.document_type:
+                is_match = (
+                    req.document_type == document.document_type
+                    or document.document_type in DOCUMENT_TYPE_ALIASES.get(req.document_type, [])
+                )
+                if is_match:
                     # Update status to match document
                     req.status = document.status
                     req.document_id = document.id

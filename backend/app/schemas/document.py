@@ -70,3 +70,53 @@ class DocumentUpdate(BaseModel):
 class DocumentReviewRequest(BaseModel):
     action: str = Field(..., pattern="^(APPROVE|REJECT|REQUEST_CHANGES)$")
     reason: str = Field(..., min_length=3)
+
+
+class DocumentConfirmExtractedRequest(BaseModel):
+    confirmed_fields: Dict[str, Any]
+    apply_to_profile: bool = False
+
+
+class DocumentChecklistItem(BaseModel):
+    id: Optional[int] = None
+    name: str
+    document_type: str
+    is_required: bool = True
+    description: Optional[str] = None
+    why_requested: str
+    is_uploaded: bool = False
+    document_id: Optional[int] = None
+    document_name: Optional[str] = None
+    document_status: Optional[str] = None
+    verification_status: Optional[str] = None
+    extracted_summary: Optional[Dict[str, Any]] = None
+    student_confirmed: bool = False
+
+
+class ScholarshipReadinessItem(BaseModel):
+    scholarship_id: int
+    scholarship_name: str
+    provider: str
+    dossier_index: Optional[str] = None
+    amount: float
+    deadline: str
+    academic_year: Optional[str] = None
+    official_portal_url: Optional[str] = None
+    official_portal_name: Optional[str] = None
+    readiness_status: str  # "READY", "MISSING_DOCUMENTS", "NEEDS_REVIEW"
+    readiness_percentage: float
+    total_required: int
+    completed_required: int
+    missing_count: int
+    has_application: bool
+    application_id: Optional[int] = None
+    checklist: List[DocumentChecklistItem]
+
+
+class StudentDocumentsReadinessOverview(BaseModel):
+    total_documents_uploaded: int
+    total_verified_documents: int
+    ready_scholarships_count: int
+    pending_scholarships_count: int
+    readiness_items: List[ScholarshipReadinessItem]
+    privacy_guarantees: Dict[str, Any]

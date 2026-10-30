@@ -40,6 +40,8 @@ import {
   OfficialApiSubmissionPayload,
   ProfileCompletionData,
   PersonalizedRecommendationsData,
+  StudentDocumentsReadinessOverview,
+  DocumentConfirmPayload,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -267,6 +269,20 @@ export async function reviewDocument(
   return request<DocumentItem>(`/api/v1/documents/${id}/review`, {
     method: "POST",
     body: JSON.stringify({ action, reason }),
+  });
+}
+
+export async function getDocumentsReadiness(): Promise<StudentDocumentsReadinessOverview> {
+  return request<StudentDocumentsReadinessOverview>("/api/v1/documents/readiness", { cache: "no-store" });
+}
+
+export async function confirmExtractedDocument(
+  id: number,
+  payload: DocumentConfirmPayload
+): Promise<DocumentItem> {
+  return request<DocumentItem>(`/api/v1/documents/${id}/confirm-extracted`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

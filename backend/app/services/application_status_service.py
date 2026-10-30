@@ -16,6 +16,7 @@ from app.models.application_requirement import ApplicationRequirement
 from app.models.document import Document
 from app.models.scholarship import Scholarship
 from app.models.user import User
+from app.services.document_readiness_service import DOCUMENT_TYPE_ALIASES
 
 logger = logging.getLogger("scholarai.application_status_service")
 
@@ -97,6 +98,14 @@ class ApplicationStatusService:
         # 2. Evaluate each requirement against actual uploaded documents
         for app_req in application.requirements:
             matched_doc = docs_by_type.get(app_req.document_type)
+
+            # Check aliases if no direct match or if direct match is missing
+            if not matched_doc or matched_doc.status == "MISSING":
+                aliases = DOCUMENT_TYPE_ALIASES.get(app_req.document_type, [])
+                for alias in aliases:
+                    if alias in docs_by_type and docs_by_type[alias].status != "MISSING":
+                        matched_doc = docs_by_type[alias]
+                        break
 
             # If no document exists or document is explicitly MISSING
             if not matched_doc or matched_doc.status == "MISSING":

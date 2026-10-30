@@ -13,11 +13,14 @@ from app.services.storage_service import storage_service
 from app.services.extraction_service import extraction_service
 from app.services.verification_service import verification_service
 from app.services.application_status_service import application_status_service
+from app.services.document_readiness_service import document_readiness_service
 from app.schemas.document import (
     DocumentResponse,
     DocumentCreate,
     DocumentUpdate,
     DocumentReviewRequest,
+    DocumentConfirmExtractedRequest,
+    StudentDocumentsReadinessOverview,
 )
 
 router = APIRouter()
@@ -81,6 +84,18 @@ def list_documents(
     resolved_by_type = {r["document_type"]: r for r in dep_data.get("resolved_dependencies", [])}
 
     return [_enrich_document_response(doc, blockers_by_type, resolved_by_type) for doc in docs]
+
+
+@router.get("/readiness", response_model=StudentDocumentsReadinessOverview, summary="Get Student Documents and Scholarship Readiness Overview")
+def get_documents_readiness(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """
+    Evaluates student's uploaded documents against real scholarship requirements.
+    Calculates scholarship-specific readiness, missing documents, and extraction summaries.
+    """
+    return document_readiness_service.get_student_readiness_overview(db, current_student)
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED, summary="Upload Real Document File")
@@ -379,6 +394,98 @@ def re_extract_document(
         "action": "RE_EXTRACT",
         "actor": current_user.email,
         "verification_status": verif_res["verification_status"],
+        "timestamp": now.isoformat(),
+    })
+    doc.audit_history = history
+
+    db.commit()
+    db.refresh(doc)
+
+    dependency_service.sync_document_to_requirements(db, doc.student_id, doc)
+    application_status_service.reconcile_student_applications(db, doc.student_id)
+
+    dep_data = dependency_service.get_dependency_graph(db, doc.student_id)
+    blockers_by_type = {b["document_type"]: b for b in dep_data.get("shared_blockers", [])}
+    resolved_by_type = {r["document_type"]: r for r in dep_data.get("resolved_dependencies", [])}
+
+    return _enrich_document_response(doc, blockers_by_type, resolved_by_type)
+
+
+@router.post("/{id}/confirm-extracted", response_model=DocumentResponse, summary="Confirm or Update Extracted Details with Student Review")
+def confirm_extracted_details(
+    id: int,
+    payload: DocumentConfirmExtractedRequest,
+    current_user: User = Depends(get_current_user),
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """
+    AI Document Assistance:
+    Allows students to review, correct, and confirm AI-extracted details.
+    Never invents information; records student confirmation and can optionally update the student profile.
+    """
+    doc = db.query(Document).filter(Document.id == id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    verify_student_access(current_user, doc.student_id)
+
+    now = datetime.now(timezone.utc)
+    current_extracted = dict(doc.extracted_data or {})
+    extracted_fields = dict(current_extracted.get("extracted_fields") or {})
+
+    # Merge student confirmed fields
+    for k, v in payload.confirmed_fields.items():
+        if v is not None:
+            extracted_fields[k] = v
+
+    current_extracted["extracted_fields"] = extracted_fields
+    current_extracted["student_confirmed"] = True
+    current_extracted["student_confirmed_at"] = now.isoformat()
+    current_extracted["confirmed_by"] = current_user.email
+    doc.extracted_data = current_extracted
+
+    # If verification status was awaiting review or unverified, update to automated checks passed
+    if doc.verification_status in ["NEEDS_HUMAN_REVIEW", "UPLOADED", "PROCESSING"]:
+        doc.verification_status = "AUTOMATED_CHECKS_PASSED"
+        doc.status = "AVAILABLE"
+
+    # Optionally apply confirmed fields to student profile
+    if payload.apply_to_profile:
+        if "annual_income" in payload.confirmed_fields:
+            try:
+                income_val = float(payload.confirmed_fields["annual_income"])
+                if income_val >= 0:
+                    current_student.annual_family_income = income_val
+                    if current_student.funding_profile:
+                        current_student.funding_profile.annual_family_income = income_val
+            except (ValueError, TypeError):
+                pass
+        if "cgpa" in payload.confirmed_fields:
+            try:
+                cgpa_val = float(payload.confirmed_fields["cgpa"])
+                if 0 <= cgpa_val <= 10:
+                    current_student.cgpa = cgpa_val
+                    if current_student.profile:
+                        current_student.profile.cgpa = cgpa_val
+            except (ValueError, TypeError):
+                pass
+        if "percentage" in payload.confirmed_fields:
+            try:
+                perc_val = float(payload.confirmed_fields["percentage"])
+                if 0 <= perc_val <= 100:
+                    current_student.twelfth_percentage = perc_val
+                    if current_student.profile:
+                        current_student.profile.twelfth_percentage = perc_val
+            except (ValueError, TypeError):
+                pass
+
+    # Audit history
+    history = list(doc.audit_history or [])
+    history.append({
+        "action": "STUDENT_CONFIRMED_EXTRACTED_DATA",
+        "actor": current_user.email,
+        "confirmed_fields": payload.confirmed_fields,
+        "applied_to_profile": payload.apply_to_profile,
         "timestamp": now.isoformat(),
     })
     doc.audit_history = history

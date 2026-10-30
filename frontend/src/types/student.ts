@@ -522,6 +522,10 @@ export interface DocumentItem {
     page_count?: number;
     extracted_fields?: Record<string, unknown>;
     extraction_notes?: string[];
+    student_confirmed?: boolean;
+    student_confirmed_at?: string | null;
+    confirmed_by?: string | null;
+    confirmed_fields?: Record<string, unknown> | null;
   } | null;
   verification_results?: VerificationCheckItem[] | null;
   failure_reasons?: string[] | null;
@@ -540,6 +544,61 @@ export interface DocumentItem {
   affected_applications_count: number;
   potential_funding_affected: number;
   is_shared_blocker: boolean;
+}
+
+export interface DocumentChecklistItem {
+  id?: number | null;
+  name: string;
+  document_type: string;
+  is_required: boolean;
+  description?: string | null;
+  why_requested: string;
+  is_uploaded: boolean;
+  document_id?: number | null;
+  document_name?: string | null;
+  document_status?: string | null;
+  verification_status?: string | null;
+  extracted_summary?: Record<string, unknown> | null;
+  student_confirmed: boolean;
+}
+
+export interface ScholarshipReadinessItem {
+  scholarship_id: number;
+  scholarship_name: string;
+  provider: string;
+  dossier_index?: string | null;
+  amount: number;
+  deadline: string;
+  academic_year?: string | null;
+  official_portal_url?: string | null;
+  official_portal_name?: string | null;
+  readiness_status: "READY" | "MISSING_DOCUMENTS" | "NEEDS_REVIEW";
+  readiness_percentage: number;
+  total_required: number;
+  completed_required: number;
+  missing_count: number;
+  has_application: boolean;
+  application_id?: number | null;
+  checklist: DocumentChecklistItem[];
+}
+
+export interface StudentDocumentsReadinessOverview {
+  total_documents_uploaded: number;
+  total_verified_documents: number;
+  ready_scholarships_count: number;
+  pending_scholarships_count: number;
+  readiness_items: ScholarshipReadinessItem[];
+  privacy_guarantees: {
+    uploads_optional: boolean;
+    privacy_notice: string;
+    official_submission_notice: string;
+    security_protections: string[];
+  };
+}
+
+export interface DocumentConfirmPayload {
+  confirmed_fields: Record<string, unknown>;
+  apply_to_profile?: boolean;
 }
 
 // Block 2: Actions
