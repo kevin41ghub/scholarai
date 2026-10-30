@@ -4,7 +4,7 @@ from app.db.session import get_db
 from app.core.auth import get_current_student
 from app.models.student import Student
 from app.services.student_service import student_service
-from app.schemas.student import StudentDetailResponse, StudentUpdate
+from app.schemas.student import StudentDetailResponse, StudentUpdate, ProfileCompletionResponse
 from app.schemas.funding import FundingOverviewResponse
 
 router = APIRouter()
@@ -27,13 +27,23 @@ def update_current_student_profile(
     db: Session = Depends(get_db),
 ):
     """
-    Updates the authenticated student's personal, academic, and/or financial details.
-    Validates all numeric boundaries (CGPA 0-10, percentage 0-100, income/cost/support >= 0).
-    Recalculates the funding gap dynamically from updated stored values.
+    Updates the authenticated student's personal, academic, community, financial, and bank details.
+    Partial updates are safely supported without overwriting other sections.
     Persists changes to the database.
     """
     updated_student = student_service.update_student(db, current_student, update_data)
     return updated_student
+
+
+@router.get("/me/completion", response_model=ProfileCompletionResponse, summary="Get Profile Completion Breakdown")
+def get_profile_completion_status(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """
+    Calculates and returns categorized profile completion scores and missing field indicators.
+    """
+    return student_service.get_profile_completion(db, current_student)
 
 
 @router.get("/funding", response_model=FundingOverviewResponse, summary="Get Student Funding Overview")

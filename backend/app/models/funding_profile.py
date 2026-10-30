@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -17,6 +17,11 @@ class FundingProfile(Base):
     annual_education_cost = Column(Float, nullable=False, default=0.0)
     existing_support = Column(Float, nullable=False, default=0.0)
     annual_family_income = Column(Float, nullable=False, default=0.0)
+
+    # Extended Financial Attributes for My Profile Dashboard
+    income_range = Column(String(50), nullable=True)  # e.g. "Below ₹2.5 Lakhs", "₹2.5L - ₹4.5L", "₹4.5L - ₹8.0L"
+    income_certificate_status = Column(String(50), nullable=True, default="NOT_UPLOADED")  # NOT_UPLOADED | UPLOADED | VERIFIED
+    financial_circumstances_notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

@@ -1,4 +1,5 @@
 from typing import Dict, Any, List
+from datetime import datetime, timezone
 from app.models.student import Student
 from app.models.scholarship import Scholarship
 from app.models.eligibility_rule import EligibilityRule
@@ -10,13 +11,11 @@ class EligibilityService:
         """
         Deterministic scholarship eligibility evaluation.
         Never guarantees eligibility or awards.
-        Returns:
-            status: 'eligible' | 'possibly_eligible' | 'ineligible' | 'needs_verification'
-            score: float (0.0 to 100.0)
-            reasons: list of detailed explanation strings
-            matched_rules: list of matched criteria descriptions
-            unmatched_rules: list of failed criteria descriptions
-            verification_notes: list of items needing verification
+        Classifies results into four structured recommendation categories:
+        1. Likely Eligible
+        2. Potentially Eligible — More Information Required
+        3. Currently Ineligible — Explain Why
+        4. Deadline or Application Window Needs Verification
         """
         profile = student.profile
         funding = student.funding_profile
@@ -24,51 +23,73 @@ class EligibilityService:
         if not profile or not funding:
             return {
                 "status": "needs_verification",
+                "recommendation_category": "POTENTIALLY_ELIGIBLE",
                 "score": 0.0,
-                "reasons": ["Student profile or funding details are incomplete."],
+                "reasons": ["Student profile or financial details are incomplete."],
                 "matched_rules": [],
                 "unmatched_rules": [],
                 "verification_notes": ["Complete your profile to determine eligibility."],
+                "missing_information": ["Personal profile details", "Financial overview"],
+                "disclaimer": "AI assists. Official sources decide. Student approves. Never guaranteed."
             }
 
         if scholarship.status == "INACTIVE" or scholarship.verification_status == "RETIRED_DEMO":
             return {
                 "status": "ineligible",
+                "recommendation_category": "CURRENTLY_INELIGIBLE",
                 "score": 0.0,
                 "reasons": ["This scholarship record has been retired from active funding cycles."],
                 "matched_rules": [],
                 "unmatched_rules": ["Scheme is inactive or retired"],
                 "verification_notes": ["No active applications can be accepted for this scheme."],
+                "missing_information": [],
+                "disclaimer": "AI assists. Official sources decide. Student approves."
             }
+
+        now = datetime.now(timezone.utc)
+        deadline = scholarship.deadline
+        if deadline is not None and deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+
+        is_window_unverified = (
+            scholarship.application_window_status in ["EXPIRED_OR_CLOSED", "CLOSED", "ANNOUNCED_TENTATIVE"]
+            or (deadline is not None and deadline < now)
+            or scholarship.source_verification_status in ["ELIGIBILITY_CONFIRMATION_REQUIRED", "EXPIRED_OR_CLOSED"]
+        )
 
         rules: List[EligibilityRule] = scholarship.eligibility_rules
-        if not rules:
-            return {
-                "status": "possibly_eligible",
-                "score": 75.0,
-                "reasons": ["No restrictive eligibility rules specified in demo record."],
-                "matched_rules": ["General student body"],
-                "unmatched_rules": [],
-                "verification_notes": ["Check official provider guidelines for unstated requirements."],
-            }
-
         matched = []
         unmatched = []
         needs_verif = []
+        missing_info = []
         is_hard_ineligible = False
 
-        cgpa = float(profile.cgpa or 0.0)
-        twelfth = float(profile.twelfth_percentage or 0.0)
+        cgpa = float(profile.cgpa) if getattr(profile, "cgpa", None) is not None else None
+        twelfth = float(profile.twelfth_percentage) if getattr(profile, "twelfth_percentage", None) is not None else None
+        qual_marks = float(profile.qualifying_marks) if getattr(profile, "qualifying_marks", None) is not None else None
+        academic_score = twelfth if twelfth is not None else (qual_marks if qual_marks is not None else None)
+
         income = float(funding.annual_family_income or 0.0)
         course = (profile.course or "").lower()
         year = (profile.year or "").lower()
-        state = (profile.state or "").lower()
-        category = (profile.category or "").lower()
+        state = (profile.state or "Tamil Nadu").lower()
+        native_state = (getattr(profile, "native_state", "Tamil Nadu") or "Tamil Nadu").lower()
+        category = (profile.category or "BC").lower()
         gender = (getattr(profile, "gender", "Male") or "Male").lower()
+        stream_val = (getattr(profile, "stream", "Engineering & Technology") or "").lower()
+        inst_type = (getattr(profile, "institution_type", "Government-aided") or "").lower()
+        school_type = (getattr(profile, "school_type", "") or "").lower()
+        school_history = (getattr(profile, "school_study_history", "") or "").lower()
 
-        # Tamil Nadu Stream Check
-        is_engineering = any(kw in course for kw in ["b.e", "b.tech", "engineering", "m.tech", "m.e"])
-        is_arts_science = any(kw in course for kw in ["b.sc", "b.a", "b.com", "bca", "bba", "m.sc", "m.a", "arts", "science", "commerce", "humanities"])
+        # Stream & Academic Discipline Check
+        is_engineering = (
+            "engineering" in stream_val
+            or any(kw in course for kw in ["b.e", "b.tech", "engineering", "m.tech", "m.e", "polytechnic", "diploma in eng"])
+        )
+        is_arts_science = (
+            "arts" in stream_val or "science" in stream_val or "commerce" in stream_val
+            or any(kw in course for kw in ["b.sc", "b.a", "b.com", "bca", "bba", "m.sc", "m.a", "arts", "science", "commerce", "humanities"])
+        )
 
         if scholarship.stream == "ARTS_SCIENCE" and is_engineering and not is_arts_science:
             unmatched.append("Scheme is designated exclusively for Arts & Science programs; student profile indicates Engineering.")
@@ -79,8 +100,11 @@ class EligibilityService:
         elif scholarship.stream in ["ARTS_SCIENCE", "ENGINEERING", "BOTH"]:
             matched.append(f"Program matches stream requirement ({scholarship.stream})")
 
-        # Study Level Check (UG vs PG)
-        is_pg = any(kw in course or kw in year for kw in ["pg", "postgraduate", "master", "m.tech", "m.sc", "m.a", "m.e", "ph.d", "phd"])
+        # Study Level Check (UG vs PG vs Diploma)
+        ed_level = (getattr(profile, "education_level", "Undergraduate") or "Undergraduate").lower()
+        is_pg = "postgraduate" in ed_level or any(kw in course or kw in year for kw in ["pg", "postgraduate", "master", "m.tech", "m.sc", "m.a", "m.e", "ph.d", "phd"])
+        is_ug = "undergraduate" in ed_level or not is_pg
+
         if scholarship.study_level == "PG" and not is_pg:
             unmatched.append("Scheme is restricted to Postgraduate (PG) students; student profile indicates undergraduate standing.")
             is_hard_ineligible = True
@@ -94,13 +118,13 @@ class EligibilityService:
         tn_req_val = getattr(scholarship, "tn_residency_required", False)
         is_tn_residency_mandatory = tn_req_val in [True, "YES", "yes", "True", "true", "1", 1]
         if is_tn_residency_mandatory:
-            if state in ["tamil nadu", "tamilnadu", "tn"]:
+            if state in ["tamil nadu", "tamilnadu", "tn"] or native_state in ["tamil nadu", "tamilnadu", "tn"]:
                 matched.append("Tamil Nadu state domicile verified.")
             else:
                 unmatched.append(f"Tamil Nadu residency/domicile is strictly required; student profile indicates '{profile.state or 'Not Provided'}'.")
                 is_hard_ineligible = True
 
-        # Autonomous College Compatibility Context & Caveats (Informational)
+        # Context Notes
         context_notes = []
         if getattr(scholarship, "autonomous_compatibility", None):
             context_notes.append(f"Autonomous College Policy: {scholarship.autonomous_compatibility}")
@@ -115,38 +139,50 @@ class EligibilityService:
             if rtype == "MIN_CGPA":
                 try:
                     req_cgpa = float(cval)
-                    if cgpa >= req_cgpa:
-                        matched.append(f"CGPA {cgpa:.2f} satisfies minimum requirement of {req_cgpa:.2f}")
+                    if cgpa is not None:
+                        if cgpa >= req_cgpa:
+                            matched.append(f"Academic standing satisfies minimum criteria (CGPA {cgpa:.2f} >= {req_cgpa:.2f})")
+                        else:
+                            unmatched.append(f"Current CGPA {cgpa:.2f} is below minimum requirement of {req_cgpa:.2f}")
+                            is_hard_ineligible = True
                     else:
-                        unmatched.append(f"CGPA {cgpa:.2f} is below minimum requirement of {req_cgpa:.2f}")
-                        is_hard_ineligible = True
+                        # CGPA is optional; do NOT reject solely because CGPA not provided
+                        needs_verif.append(f"Scheme mentions qualifying score of {req_cgpa:.2f}; verify semester marks or previous qualifying exam.")
+                        missing_info.append("Academic score or marksheet")
                 except ValueError:
-                    needs_verif.append(f"Could not parse CGPA requirement: {cval}")
+                    needs_verif.append(f"Could not parse score requirement: {cval}")
 
             elif rtype == "MAX_INCOME":
                 try:
                     req_income = float(cval)
-                    if income <= req_income:
-                        matched.append(f"Annual family income ₹{int(income):,} is within statutory limit of ₹{int(req_income):,}")
+                    if income > 0:
+                        if income <= req_income:
+                            matched.append(f"Annual family income ₹{int(income):,} is within statutory limit of ₹{int(req_income):,}")
+                        else:
+                            unmatched.append(f"Annual family income ₹{int(income):,} exceeds statutory ceiling of ₹{int(req_income):,}")
+                            is_hard_ineligible = True
                     else:
-                        unmatched.append(f"Annual family income ₹{int(income):,} exceeds statutory ceiling of ₹{int(req_income):,}")
-                        is_hard_ineligible = True
+                        needs_verif.append(f"Income ceiling is ₹{int(req_income):,}; family income not yet confirmed in profile.")
+                        missing_info.append("Annual family income declaration")
                 except ValueError:
                     needs_verif.append(f"Could not parse income limit: {cval}")
 
-            elif rtype == "MIN_12TH_PERCENTAGE":
+            elif rtype in ["MIN_12TH_PERCENTAGE", "MIN_MARKS"]:
                 try:
-                    req_12th = float(cval)
-                    if twelfth >= req_12th:
-                        matched.append(f"12th score {twelfth:.1f}% meets minimum requirement of {req_12th:.1f}%")
+                    req_marks = float(cval)
+                    if academic_score is not None:
+                        if academic_score >= req_marks:
+                            matched.append(f"Qualifying score {academic_score:.1f}% meets minimum requirement of {req_marks:.1f}%")
+                        else:
+                            unmatched.append(f"Qualifying score {academic_score:.1f}% is below minimum requirement of {req_marks:.1f}%")
+                            is_hard_ineligible = True
                     else:
-                        unmatched.append(f"12th score {twelfth:.1f}% is below minimum requirement of {req_12th:.1f}%")
-                        is_hard_ineligible = True
+                        needs_verif.append(f"Minimum {req_marks:.1f}% in qualifying examination required; marks not yet entered in profile.")
+                        missing_info.append("Qualifying exam marks / 12th percentage")
                 except ValueError:
-                    needs_verif.append(f"Could not parse 12th percentage: {cval}")
+                    needs_verif.append(f"Could not parse qualifying percentage: {cval}")
 
             elif rtype == "COURSE":
-                # Check degree level or course field
                 allowed_courses = [c.strip().lower() for c in cval.split(",")]
                 if any(ac in course for ac in allowed_courses):
                     matched.append(f"Course '{profile.course}' matches eligible programs ({cval})")
@@ -162,8 +198,8 @@ class EligibilityService:
                     is_hard_ineligible = True
 
             elif rtype == "STATE":
-                if cval.lower() == state or (cval.lower() == "tamil nadu" and state in ["tamil nadu", "tamilnadu", "tn"]):
-                    matched.append(f"Domicile state '{profile.state}' matches requirement")
+                if cval.lower() in [state, native_state] or (cval.lower() == "tamil nadu" and (state in ["tamil nadu", "tamilnadu", "tn"] or native_state in ["tamil nadu", "tamilnadu", "tn"])):
+                    matched.append(f"Domicile state matches requirement ({cval})")
                 else:
                     unmatched.append(f"Domicile state '{profile.state}' does not match requirement ({cval})")
                     is_hard_ineligible = True
@@ -173,12 +209,13 @@ class EligibilityService:
                     needs_verif.append(desc)
                 else:
                     allowed_cats = [c.strip().lower() for c in cval.split(",")]
-                    # Map common category abbreviations
                     cat_synonyms = {
-                        "bc": ["bc", "obc", "backward classes"],
-                        "mbc": ["mbc", "most backward classes", "dnc"],
-                        "sc": ["sc", "scheduled caste", "sca"],
+                        "bc": ["bc", "obc", "backward classes", "backward class"],
+                        "mbc": ["mbc", "most backward classes", "dnc", "denotified communities"],
+                        "sc": ["sc", "scheduled caste", "sca", "scheduled caste arunthathiyar"],
+                        "sca": ["sca", "scheduled caste arunthathiyar", "sc"],
                         "st": ["st", "scheduled tribe"],
+                        "oc": ["oc", "open category", "general", "other communities"],
                     }
                     expanded_allowed = set(allowed_cats)
                     for cat_key in allowed_cats:
@@ -202,7 +239,8 @@ class EligibilityService:
                 req_quota = cval.strip().upper()
                 admission_quota = getattr(profile, "admission_quota", None)
                 if not admission_quota:
-                    needs_verif.append(f"Admission quota ({req_quota}) requires verification — please declare your quota in student profile")
+                    needs_verif.append(f"Admission quota ({req_quota}) requires verification in student profile")
+                    missing_info.append("Admission quota (Govt Counselling vs Management)")
                 else:
                     norm_quota = str(admission_quota).strip().upper()
                     if norm_quota == req_quota:
@@ -216,6 +254,7 @@ class EligibilityService:
                 is_first_graduate = getattr(profile, "is_first_graduate", None)
                 if is_first_graduate is None:
                     needs_verif.append("First Graduate status needs verification against Revenue Tahsildar FG Certificate")
+                    missing_info.append("First Graduate certificate verification")
                 elif is_first_graduate is True and req_first_grad:
                     matched.append("First graduate in immediate family verified")
                 elif is_first_graduate is False and req_first_grad:
@@ -239,46 +278,86 @@ class EligibilityService:
                         unmatched.append(f"Scheme restricted to {req_hostel}; student profile indicates {hosteller_status}")
                         is_hard_ineligible = True
 
+            elif rtype in ["SCHOOL_TYPE", "GOVT_SCHOOL"]:
+                # Pudhumai Penn / Tamil Pudhalvan Government School check
+                is_govt_school = (
+                    "government school" in school_type
+                    or "govt" in school_type
+                    or "classes 6-12" in school_type
+                    or "6_to_12" in school_type
+                    or "government school" in school_history
+                    or "emis" in school_history
+                )
+                if is_govt_school:
+                    matched.append("Tamil Nadu Government school attendance (Classes 6 to 12) verified")
+                elif school_type and "private" in school_type:
+                    unmatched.append("Scheme requires schooling in Tamil Nadu Government schools from Classes 6 to 12; profile indicates private school.")
+                    is_hard_ineligible = True
+                else:
+                    needs_verif.append("Requires verification of attendance in Tamil Nadu Government schools (Classes 6 to 12) via EMIS certificate.")
+                    missing_info.append("Government school bonafide / EMIS student ID")
+
+            elif rtype in ["INSTITUTION_TYPE"]:
+                req_inst = cval.strip().lower()
+                if req_inst in inst_type or inst_type in req_inst:
+                    matched.append(f"Institution type '{profile.institution_type}' satisfies requirement ({cval})")
+                elif inst_type:
+                    unmatched.append(f"Scheme restricted to {cval} institutions; student profile indicates {profile.institution_type}")
+                    is_hard_ineligible = True
+                else:
+                    needs_verif.append(f"Requires verification of institution type ({cval})")
+
             else:
                 needs_verif.append(f"Special criteria: {desc}")
 
-        # Determine overall evaluation status
+        # Classify into 4 explicit recommendation categories:
         if is_hard_ineligible:
+            rec_cat = "CURRENTLY_INELIGIBLE"
             status = "ineligible"
             score = 15.0
-        elif needs_verif or scholarship.verification_status == "NEEDS_VERIFICATION":
+        elif is_window_unverified:
+            rec_cat = "WINDOW_NEEDS_VERIFICATION"
+            status = "needs_verification"
+            score = 40.0
+        elif needs_verif or missing_info or scholarship.verification_status == "NEEDS_VERIFICATION":
+            rec_cat = "POTENTIALLY_ELIGIBLE"
             status = "needs_verification"
             score = 65.0
         elif len(unmatched) == 0:
+            rec_cat = "LIKELY_ELIGIBLE"
             status = "eligible"
             score = 95.0
         else:
+            rec_cat = "POTENTIALLY_ELIGIBLE"
             status = "possibly_eligible"
             score = 50.0
 
         all_notes = needs_verif + context_notes
         all_reasons = []
-        if status == "eligible":
-            all_reasons.append("Likely eligible based on your provided profile attributes.")
+        if rec_cat == "LIKELY_ELIGIBLE":
+            all_reasons.append("Likely eligible based on your verified profile attributes.")
             all_reasons.extend(matched)
-        elif status == "ineligible":
-            all_reasons.append("Ineligible based on deterministic profile criteria.")
+        elif rec_cat == "CURRENTLY_INELIGIBLE":
+            all_reasons.append("Currently ineligible based on deterministic profile criteria.")
             all_reasons.extend(unmatched)
-        elif status == "needs_verification":
-            all_reasons.append("Potential fit, but specific document/eligibility requirements need verification.")
+        elif rec_cat == "POTENTIALLY_ELIGIBLE":
+            all_reasons.append("Potentially eligible — more information or document verification required.")
             all_reasons.extend(needs_verif)
             all_reasons.extend(matched)
-        else:
-            all_reasons.extend(matched)
-            all_reasons.extend(unmatched)
+        elif rec_cat == "WINDOW_NEEDS_VERIFICATION":
+            all_reasons.append("Application window or official notification cycle requires verification.")
+            all_reasons.extend(needs_verif)
 
         return {
             "status": status,
+            "recommendation_category": rec_cat,
             "score": score,
             "reasons": all_reasons,
             "matched_rules": matched,
             "unmatched_rules": unmatched,
             "verification_notes": all_notes,
+            "missing_information": missing_info,
+            "requirements_needing_verification": all_notes,
             "disclaimer": "AI assists. Official sources decide. Student approves. Never guaranteed."
         }
 
@@ -292,11 +371,14 @@ def evaluate_scholarship_eligibility(db, scholarship_id: int, student_id: int) -
     if not student or not scholarship:
         return {
             "status": "needs_verification",
+            "recommendation_category": "POTENTIALLY_ELIGIBLE",
             "score": 0.0,
             "reasons": ["Record not found."],
             "matched_rules": [],
             "unmatched_rules": [],
             "verification_notes": [],
+            "missing_information": [],
+            "requirements_needing_verification": [],
             "disclaimer": "AI assists. Official sources decide. Student approves."
         }
     return eligibility_service.evaluate_scholarship(student, scholarship)

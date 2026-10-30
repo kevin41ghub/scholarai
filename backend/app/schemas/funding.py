@@ -22,6 +22,9 @@ class FundingProfileResponse(BaseModel):
     annual_family_income: float
     funding_gap: float
     funding_progress_percentage: float
+    income_range: Optional[str] = None
+    income_certificate_status: Optional[str] = None
+    financial_circumstances_notes: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

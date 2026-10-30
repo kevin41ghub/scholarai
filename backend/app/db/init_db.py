@@ -167,8 +167,8 @@ def init_db(db: Session) -> None:
             student.funding_profile.existing_support = 0.0
         db.commit()
 
-    # 2. Idempotently Seed 11 Verified Tamil Nadu & Central Scholarship Schemes
-    logger.info("Verifying and idempotently synchronizing 11 verified Tamil Nadu scholarship records...")
+    # 2. Idempotently Seed Verified Tamil Nadu & Central Scholarship Schemes
+    logger.info("Verifying and idempotently synchronizing verified Tamil Nadu scholarship records...")
     now = datetime.now(timezone.utc)
 
     verified_scholarships_data = [
@@ -652,6 +652,95 @@ def init_db(db: Session) -> None:
                     {"name": "Undergraduate Degree Certificate & Consolidated Marksheet", "document_type": "DEGREE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
                     {"name": "Income Certificate", "document_type": "INCOME_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
                     {"name": "College Bonafide Certificate", "document_type": "BONAFIDE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                ]
+            },
+            {
+                "name": "Tamil Pudhalvan Higher Education Assurance Scheme",
+                "provider": "Social Welfare and Women Empowerment / Higher Education Department, Government of Tamil Nadu",
+                "dossier_index": "№ TN-HED-2025-12",
+                "stream": "BOTH",
+                "study_level": "BOTH",
+                "category_tag": "Government Scholarships, Tamil Nadu State Schemes, Student Stipend",
+                "institution_types": "All Recognized Colleges in Tamil Nadu",
+                "autonomous_compatibility": "Fully eligible across all Autonomous Arts & Science, Engineering, and Polytechnic colleges (Govt, Aided, Self-Financing).",
+                "tn_residency_required": True,
+                "community_category": "ALL",
+                "income_ceiling": None,
+                "income_criteria_raw": "No family income ceiling. Eligibility is verified based on schooling in Tamil Nadu Government schools from Classes 6 to 12.",
+                "award_type": "FIXED_STIPEND",
+                "award_display": "₹1,000 per month (₹12,000/year) DBT direct transfer for entire degree duration",
+                "amount": 12000.0,
+                "currency": "INR",
+                "deadline": now + timedelta(days=60),
+                "application_url": "https://www.tamilpudhalvan.tn.gov.in/",
+                "source_url": "https://tndce.tn.gov.in/Home/scholarship",
+                "source_name": "Tamil Nadu Higher Education Department (Official)",
+                "official_portal_name": "Tamil Pudhalvan Portal / UMIS TN",
+                "official_guideline_url": "https://tndce.tn.gov.in/Home/scholarship",
+                "academic_year": "2024-2026",
+                "source_verification_status": "SOURCE_VERIFIED",
+                "application_window_status": "ANNUAL_CYCLE",
+                "verification_status": "SOURCE_VERIFIED",
+                "eligibility_summary": "Male students, TN Domicile, studied Classes 6 to 12 in TN Govt schools, enrolled in regular higher education degree.",
+                "description": "Monthly financial assistance of ₹1,000 directly transferred to boys who completed schooling in TN government schools and enrolled in higher education degrees.",
+                "application_effort": "Low (2 hrs via EMIS school records)",
+                "status": "ACTIVE",
+                "unresolved_questions": "Requires EMIS student ID verification from high school records.",
+                "rules": [
+                    {"rule_type": "STATE", "criteria_value": "Tamil Nadu", "operator": "EQUALS", "description": "Domicile of Tamil Nadu"},
+                    {"rule_type": "GENDER", "criteria_value": "Male", "operator": "EQUALS", "description": "Restricted strictly to male students"},
+                    {"rule_type": "SCHOOL_TYPE", "criteria_value": "Government School", "operator": "EQUALS", "description": "Studied Classes 6 to 12 in Tamil Nadu Government School"},
+                ],
+                "requirements": [
+                    {"name": "School Bonafide (6th-12th Govt School / EMIS Record)", "document_type": "BONAFIDE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                    {"name": "College Bonafide Certificate", "document_type": "BONAFIDE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                    {"name": "Bank Passbook (Aadhaar Seeded)", "document_type": "ID_PROOF", "type": "DOCUMENT", "is_required": True},
+                    {"name": "Aadhaar Card", "document_type": "ID_PROOF", "type": "DOCUMENT", "is_required": True},
+                ]
+            },
+            {
+                "name": "E.V.R. Nagammai Memorial Free Education Scheme for PG Women Students",
+                "provider": "Directorate of Collegiate Education, Government of Tamil Nadu",
+                "dossier_index": "№ TN-DCE-2025-13",
+                "stream": "ARTS_SCIENCE",
+                "study_level": "PG",
+                "category_tag": "Government Scholarships, Tamil Nadu State Schemes, Women in Higher Education, Tuition and Fee Assistance",
+                "institution_types": "Government and Government-Aided Autonomous Arts & Science Colleges",
+                "autonomous_compatibility": "Exclusively for women students admitted to Postgraduate Arts & Science degree programs in Government and Aided Autonomous Colleges.",
+                "tn_residency_required": True,
+                "community_category": "ALL",
+                "income_ceiling": 250000.0,
+                "income_criteria_raw": "Annual parental income not exceeding ₹2,50,000. Applicant must not be receiving any other government scholarship.",
+                "award_type": "TUITION_WAIVER",
+                "award_display": "100% tuition fee exemption + special fees reimbursement for 2-year PG duration",
+                "amount": 15000.0,
+                "currency": "INR",
+                "deadline": now + timedelta(days=28),
+                "application_url": "https://tndce.tn.gov.in/Home/scholarship",
+                "source_url": "https://tndce.tn.gov.in/Home/scholarship",
+                "source_name": "TNDCE Official Portal",
+                "official_portal_name": "Tamil Nadu Directorate of Collegiate Education (TNDCE)",
+                "official_guideline_url": "https://tndce.tn.gov.in/Home/scholarship",
+                "academic_year": "2024-2026",
+                "source_verification_status": "SOURCE_VERIFIED",
+                "application_window_status": "ANNUAL_CYCLE",
+                "verification_status": "SOURCE_VERIFIED",
+                "eligibility_summary": "Female students, TN Domicile, enrolled in PG Arts & Science in Govt/Aided Colleges, Family Income <= ₹2.5L, not availing other scholarships.",
+                "description": "Special tuition fee concession granted to women postgraduate scholars pursuing M.A. and M.Sc. in government and aided colleges.",
+                "application_effort": "Low (1-2 hrs via college office)",
+                "status": "ACTIVE",
+                "unresolved_questions": "Candidate must provide declaration stating no other state or central scholarship is received.",
+                "rules": [
+                    {"rule_type": "STATE", "criteria_value": "Tamil Nadu", "operator": "EQUALS", "description": "Domicile of Tamil Nadu"},
+                    {"rule_type": "GENDER", "criteria_value": "Female", "operator": "EQUALS", "description": "Restricted strictly to female students"},
+                    {"rule_type": "COURSE", "criteria_value": "M.Sc,M.A.,Postgraduate,Master", "operator": "CONTAINS", "description": "Enrolled in Postgraduate Arts & Science degree"},
+                    {"rule_type": "MAX_INCOME", "criteria_value": "250000", "operator": "LTE", "description": "Annual family income up to ₹2,50,000"},
+                ],
+                "requirements": [
+                    {"name": "UG Degree Certificate & Marksheet", "document_type": "DEGREE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                    {"name": "Income Certificate", "document_type": "INCOME_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                    {"name": "College Bonafide Certificate", "document_type": "BONAFIDE_CERTIFICATE", "type": "DOCUMENT", "is_required": True},
+                    {"name": "Non-Receipt of Other Scholarship Declaration", "document_type": "STATEMENT_OF_PURPOSE", "type": "DOCUMENT", "is_required": True},
                 ]
             }
         ]

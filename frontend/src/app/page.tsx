@@ -2,16 +2,33 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getCurrentStudent, getPortfolioSummary, formatINR } from "@/lib/api";
-import { StudentDetail, PortfolioSummary } from "@/types/student";
+import {
+  getCurrentStudent,
+  getPortfolioSummary,
+  getPersonalizedRecommendations,
+  getProfileCompletion,
+  formatINR,
+} from "@/lib/api";
+import {
+  StudentDetail,
+  PortfolioSummary,
+  PersonalizedRecommendationsData,
+  ProfileCompletionData,
+  ScholarshipRecommendationItem,
+} from "@/types/student";
 import MetricCard from "@/components/MetricCard";
 import FundingProgressBar from "@/components/FundingProgressBar";
 import { useAuth } from "@/context/AuthContext";
+
+type RecCategoryTab = "likely" | "potentially" | "ineligible" | "window";
 
 export default function Dashboard() {
   const { displayName, student: authStudent } = useAuth();
   const [student, setStudent] = useState<StudentDetail | null>(authStudent);
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
+  const [recommendations, setRecommendations] = useState<PersonalizedRecommendationsData | null>(null);
+  const [completion, setCompletion] = useState<ProfileCompletionData | null>(null);
+  const [recTab, setRecTab] = useState<RecCategoryTab>("likely");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,12 +36,16 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [studentData, portfolioData] = await Promise.all([
+      const [studentData, portfolioData, recsData, compData] = await Promise.all([
         getCurrentStudent(),
         getPortfolioSummary(),
+        getPersonalizedRecommendations().catch(() => null),
+        getProfileCompletion().catch(() => null),
       ]);
       setStudent(studentData);
       setPortfolio(portfolioData);
+      if (recsData) setRecommendations(recsData);
+      if (compData) setCompletion(compData);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -91,8 +112,19 @@ export default function Dashboard() {
   const sharedBlocker = portfolio?.primary_shared_blocker;
   const topAction = portfolio?.top_next_best_action;
 
+  // Active list of recommendations depending on selected tab
+  const displayedRecs: ScholarshipRecommendationItem[] = recommendations
+    ? recTab === "likely"
+      ? recommendations.likely_eligible
+      : recTab === "potentially"
+      ? recommendations.potentially_eligible
+      : recTab === "ineligible"
+      ? recommendations.currently_ineligible
+      : recommendations.window_needs_verification
+    : [];
+
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-16">
       {/* Executive Intelligence Briefing Header */}
       <div className="bg-white dark:bg-[#191c20] rounded-2xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 sm:p-8 shadow-xs transition-colors">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -110,12 +142,19 @@ export default function Dashboard() {
                   <strong className="text-stone-800 dark:text-stone-200">{student.profile.institution}</strong> &bull; {student.profile.course} &bull; Domicile: {student.profile.state || "Tamil Nadu"}
                 </>
               ) : (
-                "Verified scholarship intelligence, deterministic eligibility scoring, and dependency risk management for autonomous college scholars."
+                "Verified scholarship intelligence, deterministic eligibility scoring, and dependency risk management for collegiate scholars."
               )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/profile"
+              className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-1.5"
+            >
+              <span>My Profile Settings</span>
+              <span>&rarr;</span>
+            </Link>
             <Link
               href="/assistant"
               className="px-4 py-2.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
@@ -129,18 +168,12 @@ export default function Dashboard() {
               href="/discover"
               className="px-3.5 py-2.5 bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 border border-[#e6dfd3] dark:border-[#2f343d] rounded-xl text-xs font-semibold hover:border-stone-400 transition-colors"
             >
-              Browse Intelligence Catalogue
-            </Link>
-            <Link
-              href="/evidence"
-              className="px-3.5 py-2.5 bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 border border-[#e6dfd3] dark:border-[#2f343d] rounded-xl text-xs font-semibold hover:border-stone-400 transition-colors"
-            >
-              Evidence Repository
+              Discover
             </Link>
           </div>
         </div>
 
-        {/* Trust Principle Banner */}
+        {/* Operating Principle Banner */}
         <div className="mt-6 p-3.5 rounded-xl bg-[#fbf9f5] dark:bg-[#121417] border border-[#e6dfd3] dark:border-[#2f343d] flex items-start space-x-3">
           <div className="w-6 h-6 rounded-md bg-[#fff1f2] dark:bg-rose-950/40 text-[#86192c] dark:text-[#fb7185] flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,6 +190,39 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Profile Incomplete Notification Banner (Post-Login Guidance) */}
+      {completion && completion.overall_percentage < 85 && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-mono">
+                  Profile Incomplete ({completion.overall_percentage}% Readiness)
+                </span>
+                <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                  Action Recommended: Complete Your Profile Attributes
+                </span>
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">
+                Certain official statutory schemes require specific profile attributes (e.g. Community category, annual family income, institution type, or school history). Complete your profile in <strong>Settings &rarr; My Profile</strong> to unlock all verified recommendations.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/profile"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-xs self-start sm:self-auto transition-colors flex items-center space-x-1.5 whitespace-nowrap"
+          >
+            <span>Complete My Profile</span>
+            <span>&rarr;</span>
+          </Link>
+        </div>
+      )}
 
       {/* Shared Blocker High-Priority Notification (if any) */}
       {sharedBlocker && sharedBlocker.blocked_applications_count > 0 && (
@@ -200,6 +266,252 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* =================================================================== */}
+      {/* RECOMMENDED SCHOLARSHIPS FOR YOU (Section 5) */}
+      {/* =================================================================== */}
+      <div className="bg-white dark:bg-[#121215] rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 sm:p-8 space-y-6 shadow-sm transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+              <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white">
+                Recommended Scholarships For You
+              </h2>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Personalized statutory recommendations evaluated deterministically against your saved profile attributes.
+            </p>
+          </div>
+
+          <Link
+            href="/discover"
+            className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline self-start sm:self-auto"
+          >
+            Explore Full Catalogue &rarr;
+          </Link>
+        </div>
+
+        {/* Category Tabs */}
+        {recommendations && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+            <button
+              onClick={() => setRecTab("likely")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 cursor-pointer ${
+                recTab === "likely"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <span>Likely Eligible</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                recTab === "likely" ? "bg-emerald-800 text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+              }`}>
+                {recommendations.likely_eligible.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setRecTab("potentially")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 cursor-pointer ${
+                recTab === "potentially"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <span>Potentially Eligible &bull; More Info Required</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                recTab === "potentially" ? "bg-amber-800 text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+              }`}>
+                {recommendations.potentially_eligible.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setRecTab("ineligible")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 cursor-pointer ${
+                recTab === "ineligible"
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <span>Currently Ineligible &bull; Explain Why</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                recTab === "ineligible" ? "bg-zinc-700 text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+              }`}>
+                {recommendations.currently_ineligible.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setRecTab("window")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 cursor-pointer ${
+                recTab === "window"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <span>Window Needs Verification</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                recTab === "window" ? "bg-purple-800 text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+              }`}>
+                {recommendations.window_needs_verification.length}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Recommendations Cards Grid */}
+        <div className="space-y-4">
+          {displayedRecs.length > 0 ? (
+            displayedRecs.map((rec) => (
+              <div
+                key={rec.id}
+                className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold">
+                        {rec.academic_year || "2024-2026 Cycle"}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        rec.recommendation_category === "LIKELY_ELIGIBLE"
+                          ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                          : rec.recommendation_category === "POTENTIALLY_ELIGIBLE"
+                          ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                          : rec.recommendation_category === "WINDOW_NEEDS_VERIFICATION"
+                          ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                          : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                      }`}>
+                        {rec.recommendation_category.replace(/_/g, " ")} ({rec.match_score}%)
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                      {rec.name}
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Awarding Authority: <strong className="text-zinc-700 dark:text-zinc-300">{rec.provider}</strong>
+                    </p>
+                  </div>
+
+                  <div className="text-left sm:text-right flex-shrink-0">
+                    <span className="text-lg font-bold font-mono text-zinc-900 dark:text-white block">
+                      {formatINR(rec.amount)}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">
+                      {rec.award_display || "Variable Statutory Aid"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Eligibility Summary & Match Rationale */}
+                <div className="p-3.5 rounded-xl bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800/80 text-xs space-y-2">
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                    <strong>Scheme Overview:</strong> {rec.eligibility_summary}
+                  </p>
+
+                  {/* Why it matches */}
+                  {rec.satisfied_requirements.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                        ✓ Why it Matches Your Saved Profile:
+                      </span>
+                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-zinc-600 dark:text-zinc-300">
+                        {rec.satisfied_requirements.map((r, idx) => (
+                          <li key={idx}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Missing information */}
+                  {rec.missing_information.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                        ⚠ Missing Profile Information to Confirm Fit:
+                      </span>
+                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-amber-800 dark:text-amber-300">
+                        {rec.missing_information.map((m, idx) => (
+                          <li key={idx}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Requirements needing document verification */}
+                  {rec.requirements_needing_verification.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                        📄 Document & Policy Verification Required:
+                      </span>
+                      <ul className="space-y-0.5 pl-4 list-disc text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {rec.requirements_needing_verification.map((v, idx) => (
+                          <li key={idx}>{v}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer with statutory links and assistant launcher */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {rec.official_source_url && (
+                      <a
+                        href={rec.official_source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-red-600 dark:text-red-400 hover:underline flex items-center space-x-1"
+                      >
+                        <span>Official Guidelines</span>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                    {rec.official_application_portal_url && (
+                      <a
+                        href={rec.official_application_portal_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-600 dark:text-zinc-300 hover:underline flex items-center space-x-1"
+                      >
+                        <span>Official Portal</span>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                    {rec.days_remaining !== null && rec.days_remaining !== undefined && (
+                      <span className="font-mono">
+                        Deadline: {rec.days_remaining}d remaining
+                      </span>
+                    )}
+                  </div>
+
+                  <Link
+                    href={`/discover/${rec.id}`}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all self-start sm:self-auto flex items-center space-x-1.5"
+                  >
+                    <span>Prepare with Assistant</span>
+                    <span>&rarr;</span>
+                  </Link>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center bg-zinc-50/50 dark:bg-zinc-900/30 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500">
+              No scholarships currently classified under this category. Update your profile in <strong>Settings &rarr; My Profile</strong> to refresh evaluations.
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2 text-[11px] text-zinc-500 dark:text-zinc-400 italic">
+          Disclaimer: SCHOLARAi recommendations are deterministically scored against official statutory scheme rules. A recommendation is not an official eligibility decision or guarantee of funding. Award determinations are conducted exclusively by awarding authorities.
+        </div>
+      </div>
 
       {/* 1. FINANCIAL GAP & PORTFOLIO METRICS */}
       <div>

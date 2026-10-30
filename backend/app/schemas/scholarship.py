@@ -64,6 +64,7 @@ class ScholarshipListItemResponse(BaseModel):
 
     # Computed fields for student
     match_status: Optional[str] = None  # eligible, possibly_eligible, ineligible, needs_verification
+    recommendation_category: Optional[str] = None  # LIKELY_ELIGIBLE, POTENTIALLY_ELIGIBLE, CURRENTLY_INELIGIBLE, WINDOW_NEEDS_VERIFICATION
     match_score: Optional[float] = None
     fit_reasons: Optional[List[str]] = None
     disqualification_reasons: Optional[List[str]] = None
@@ -171,3 +172,39 @@ class ScholarshipDetailResponse(BaseModel):
     official_dossier: Optional[OfficialDossierResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ScholarshipRecommendationItem(BaseModel):
+    id: int
+    name: str
+    provider: str
+    amount: float
+    currency: str = "INR"
+    award_display: Optional[str] = None
+    eligibility_summary: Optional[str] = None
+    recommendation_category: str  # LIKELY_ELIGIBLE | POTENTIALLY_ELIGIBLE | CURRENTLY_INELIGIBLE | WINDOW_NEEDS_VERIFICATION
+    match_score: float
+    why_matched: List[str]
+    satisfied_requirements: List[str]
+    missing_information: List[str]
+    requirements_needing_verification: List[str]
+    deadline: datetime
+    academic_year: Optional[str] = None
+    official_source_url: Optional[str] = None
+    official_application_portal_url: Optional[str] = None
+    last_verified_at: Optional[datetime] = None
+    days_remaining: Optional[int] = None
+    disclaimer: str = "AI assists. Official sources decide. Student approves. Never guaranteed."
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PersonalizedRecommendationsResponse(BaseModel):
+    student_name: str
+    student_profile_summary: Dict[str, Any]
+    total_recommendations: int
+    likely_eligible: List[ScholarshipRecommendationItem]
+    potentially_eligible: List[ScholarshipRecommendationItem]
+    currently_ineligible: List[ScholarshipRecommendationItem]
+    window_needs_verification: List[ScholarshipRecommendationItem]
+    disclaimer: str = "Recommendations are calculated deterministically against your saved student profile attributes. A recommendation is not an official decision."

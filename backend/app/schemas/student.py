@@ -1,22 +1,52 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.schemas.funding import FundingProfileResponse
 
 
 class StudentProfileBase(BaseModel):
-    institution: str = Field(..., min_length=1)
-    course: str = Field(..., min_length=1)
-    year: str = Field(..., min_length=1)
-    cgpa: float = Field(..., ge=0.0, le=10.0, description="CGPA on a 10.0 scale")
-    twelfth_percentage: float = Field(..., ge=0.0, le=100.0, description="12th grade percentage")
-    category: str = Field(..., min_length=1)
-    state: str = Field(..., min_length=1)
+    institution: Optional[str] = Field(None, min_length=1)
+    course: Optional[str] = Field(None, min_length=1)
+    year: Optional[str] = Field(None, min_length=1)
+    cgpa: Optional[float] = Field(None, ge=0.0, le=10.0, description="Optional CGPA (not mandatory)")
+    twelfth_percentage: Optional[float] = Field(None, ge=0.0, le=100.0, description="Optional 12th percentage")
+    category: Optional[str] = Field("BC", min_length=1)
+    state: Optional[str] = Field("Tamil Nadu", min_length=1)
     gender: Optional[str] = "Male"
 
-    # Institutional & Quota Attributes (Task 3)
+    # Personal Information Extensions
+    dob: Optional[str] = None
+    district: Optional[str] = None
+    native_state: Optional[str] = "Tamil Nadu"
+
+    # Academic Information Extensions
+    education_level: Optional[str] = "Undergraduate"
+    stream: Optional[str] = "Engineering & Technology"
+    university: Optional[str] = None
+    admission_year: Optional[str] = None
+    current_semester: Optional[str] = None
+    qualifying_exam: Optional[str] = None
+    qualifying_marks: Optional[float] = None
+    institution_type: Optional[str] = "Government-aided"
     admission_quota: Optional[str] = Field("GOVERNMENT_QUOTA", description="Admission Quota: GOVERNMENT_QUOTA or MANAGEMENT_QUOTA")
     hosteller_status: Optional[str] = Field("DAY_SCHOLAR", description="Residential Status: DAY_SCHOLAR or HOSTELLER")
     is_first_graduate: Optional[bool] = Field(False, description="First generation graduate in immediate family")
+    school_type: Optional[str] = None
+    school_study_history: Optional[str] = None
+
+    # Community & Sensitive Reservation Attributes
+    community_subcategory: Optional[str] = None
+
+    # Bank & Benefit Distribution
+    bank_readiness: Optional[str] = "NOT_CONFIGURED"
+    account_holder_name: Optional[str] = None
+    dbt_enabled: Optional[bool] = False
+    bank_name: Optional[str] = None
+    bank_branch: Optional[str] = None
+
+    # Identity & Aadhaar Status
+    aadhaar_verification_status: Optional[str] = "NOT_PROVIDED"
+    aadhaar_masked: Optional[str] = None
+    aadhaar_consent_given: Optional[bool] = False
 
     @field_validator("admission_quota", mode="before")
     @classmethod
@@ -72,26 +102,58 @@ class StudentUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
     email: Optional[str] = Field(None, min_length=3)
     phone: Optional[str] = None
+    dob: Optional[str] = None
+    district: Optional[str] = None
+    native_state: Optional[str] = None
+    gender: Optional[str] = None
+    state: Optional[str] = None
 
-    # Academic info
+    # Academic info (No CGPA requirement)
     institution: Optional[str] = Field(None, min_length=1)
     course: Optional[str] = Field(None, min_length=1)
     year: Optional[str] = Field(None, min_length=1)
-    cgpa: Optional[float] = Field(None, ge=0.0, le=10.0)
-    twelfth_percentage: Optional[float] = Field(None, ge=0.0, le=100.0)
-    category: Optional[str] = Field(None, min_length=1)
-    state: Optional[str] = Field(None, min_length=1)
-    gender: Optional[str] = None
-
-    # Institutional & Quota Attributes (Task 3)
+    education_level: Optional[str] = None
+    stream: Optional[str] = None
+    university: Optional[str] = None
+    admission_year: Optional[str] = None
+    current_semester: Optional[str] = None
+    qualifying_exam: Optional[str] = None
+    qualifying_marks: Optional[float] = None
+    institution_type: Optional[str] = None
     admission_quota: Optional[str] = None
     hosteller_status: Optional[str] = None
     is_first_graduate: Optional[bool] = None
+    school_type: Optional[str] = None
+    school_study_history: Optional[str] = None
+
+    # Optional legacy academic scores (for test compatibility)
+    cgpa: Optional[float] = Field(None, ge=0.0, le=10.0)
+    twelfth_percentage: Optional[float] = Field(None, ge=0.0, le=100.0)
+
+    # Community & Reservation
+    category: Optional[str] = None
+    community_subcategory: Optional[str] = None
 
     # Financial info
     annual_education_cost: Optional[float] = Field(None, ge=0.0)
     existing_support: Optional[float] = Field(None, ge=0.0)
     annual_family_income: Optional[float] = Field(None, ge=0.0)
+    funding_gap: Optional[float] = Field(None, ge=0.0)  # Direct funding gap override/sync
+    income_range: Optional[str] = None
+    financial_circumstances_notes: Optional[str] = None
+    income_certificate_status: Optional[str] = None
+
+    # Bank and Benefit info
+    bank_readiness: Optional[str] = None
+    account_holder_name: Optional[str] = None
+    dbt_enabled: Optional[bool] = None
+    bank_name: Optional[str] = None
+    bank_branch: Optional[str] = None
+
+    # Identity and Aadhaar info
+    aadhaar_verification_status: Optional[str] = None
+    aadhaar_masked: Optional[str] = None
+    aadhaar_consent_given: Optional[bool] = None
 
     @field_validator("admission_quota", mode="before")
     @classmethod
@@ -116,3 +178,16 @@ class StudentUpdate(BaseModel):
         if v_str in ["HOSTELLER", "HOSTEL"]:
             return "HOSTELLER"
         return v_str
+
+
+class ProfileCompletionSection(BaseModel):
+    status: str  # COMPLETE, INCOMPLETE, NEEDS_UPDATING, VERIFICATION_REQUIRED
+    percentage: int
+    missing_fields: List[str]
+    summary: str
+
+
+class ProfileCompletionResponse(BaseModel):
+    overall_percentage: int
+    overall_status: str
+    sections: Dict[str, ProfileCompletionSection]

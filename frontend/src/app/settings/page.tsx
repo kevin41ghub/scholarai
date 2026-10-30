@@ -19,10 +19,15 @@ export default function SettingsPage() {
     institution: "",
     course: "",
     year: "1st Year",
-    cgpa: 0,
+    state: "Tamil Nadu",
+    category: "BC",
+    stream: "Engineering & Technology",
+    institution_type: "Government-aided",
+    admission_quota: "GOVERNMENT_QUOTA",
     annual_education_cost: 0,
     existing_support: 0,
     annual_family_income: 0,
+    funding_gap: 0,
   });
 
   const [savingProfile, setSavingProfile] = useState(false);
@@ -40,10 +45,15 @@ export default function SettingsPage() {
           institution: student.profile?.institution || "",
           course: student.profile?.course || "",
           year: student.profile?.year || "1st Year",
-          cgpa: student.profile?.cgpa || 0,
+          state: student.profile?.state || "Tamil Nadu",
+          category: student.profile?.category || "BC",
+          stream: student.profile?.stream || "Engineering & Technology",
+          institution_type: student.profile?.institution_type || "Government-aided",
+          admission_quota: student.profile?.admission_quota || "GOVERNMENT_QUOTA",
           annual_education_cost: student.funding_profile?.annual_education_cost || 0,
           existing_support: student.funding_profile?.existing_support || 0,
           annual_family_income: student.funding_profile?.annual_family_income || 0,
+          funding_gap: student.funding_profile?.funding_gap || 0,
         });
       }, 0);
       return () => clearTimeout(timer);
@@ -63,7 +73,11 @@ export default function SettingsPage() {
         institution: profileForm.institution,
         course: profileForm.course,
         year: profileForm.year,
-        cgpa: profileForm.cgpa,
+        state: profileForm.state,
+        category: profileForm.category,
+        stream: profileForm.stream,
+        institution_type: profileForm.institution_type,
+        admission_quota: profileForm.admission_quota,
       });
       await refreshUser();
       setProfileSuccess("Student profile updated successfully.");
@@ -90,6 +104,7 @@ export default function SettingsPage() {
         annual_education_cost: profileForm.annual_education_cost,
         existing_support: profileForm.existing_support,
         annual_family_income: profileForm.annual_family_income,
+        funding_gap: profileForm.funding_gap,
       });
       await refreshUser();
       setFundingSuccess("Funding parameters updated. Gap recalculated.");
@@ -126,7 +141,7 @@ export default function SettingsPage() {
       <div className="flex items-center space-x-1 border-b border-slate-200 dark:border-slate-800 overflow-x-auto pb-px">
         {[
           { id: "appearance", label: "Appearance", icon: "🎨" },
-          { id: "profile", label: "Academic Profile", icon: "🎓" },
+          { id: "profile", label: "My Profile", icon: "👤" },
           { id: "funding", label: "Funding Preferences", icon: "💰" },
           { id: "notifications", label: "Alerts & Notifications", icon: "🔔" },
           { id: "account", label: "Account & Security", icon: "🔒" },
@@ -348,18 +363,57 @@ export default function SettingsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Cumulative CGPA (0 - 10)
+                State of Residence
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                value={profileForm.cgpa}
-                onChange={(e) => setProfileForm({ ...profileForm, cgpa: parseFloat(e.target.value) || 0 })}
+              <select
+                value={profileForm.state}
+                onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
                 className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
-              />
+              >
+                <option value="Tamil Nadu">Tamil Nadu (Default)</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Other State / UT">Other State / UT</option>
+              </select>
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Community Reservation Category
+              </label>
+              <select
+                value={profileForm.category}
+                onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
+                className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
+              >
+                <option value="BC">BC — Backward Classes</option>
+                <option value="MBC">MBC — Most Backward Classes</option>
+                <option value="OC">OC — Open Category / General</option>
+                <option value="SC">SC — Scheduled Castes</option>
+                <option value="SCA">SCA — Scheduled Caste Arunthathiyar</option>
+                <option value="ST">ST — Scheduled Tribes</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div>
+              <span className="font-bold text-zinc-900 dark:text-white block">
+                Looking for Full Statutory Profile Management?
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                Configure your complete profile sections: Personal Nativity, DBT Bank Details, and Identity Proofs.
+              </span>
+            </div>
+            <a
+              href="/profile"
+              className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 text-white rounded-lg font-semibold text-xs whitespace-nowrap self-start sm:self-auto"
+            >
+              Open Full My Profile &rarr;
+            </a>
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
@@ -436,20 +490,39 @@ export default function SettingsPage() {
                 className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white"
               />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Net Funding Gap (₹) (Editable)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={profileForm.funding_gap}
+                onChange={(e) => {
+                  const gap = parseFloat(e.target.value) || 0;
+                  setProfileForm({
+                    ...profileForm,
+                    funding_gap: gap,
+                    annual_education_cost: (profileForm.existing_support || 0) + gap,
+                  });
+                }}
+                className="w-full px-3.5 py-2 bg-red-50/50 dark:bg-red-950/30 border border-red-300 dark:border-red-900/60 rounded-lg text-sm font-bold text-red-600 dark:text-red-400"
+              />
+            </div>
           </div>
 
           {/* Dynamic Gap Preview */}
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Recalculated Gap Preview
+                Synchronized Gap Preview
               </span>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                Funding gap = Total Cost ({formatINR(profileForm.annual_education_cost)}) - Support ({formatINR(profileForm.existing_support)})
+                Funding gap = Total Cost ({formatINR(profileForm.annual_education_cost)}) &minus; Support ({formatINR(profileForm.existing_support)})
               </p>
             </div>
-            <span className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400">
-              {formatINR(calculatedGap)}
+            <span className="text-xl font-bold font-mono text-red-600 dark:text-red-400">
+              {formatINR(profileForm.funding_gap || calculatedGap)}
             </span>
           </div>
 

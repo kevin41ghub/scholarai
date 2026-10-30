@@ -78,6 +78,37 @@ export default function DiscoverPage() {
     setSortBy("recommended");
   };
 
+  const getRecommendationBadge = (category?: string) => {
+    switch (category) {
+      case "LIKELY_ELIGIBLE":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            ✓ Likely Eligible
+          </span>
+        );
+      case "POTENTIALLY_ELIGIBLE":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+            ⚠ Potentially Eligible
+          </span>
+        );
+      case "WINDOW_NEEDS_VERIFICATION":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+            ⏳ Window Verification
+          </span>
+        );
+      case "CURRENTLY_INELIGIBLE":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+            ✕ Ineligible
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   const getVerificationBadge = (status?: string) => {
     switch (status) {
       case "SOURCE_VERIFIED":
@@ -330,10 +361,11 @@ export default function DiscoverPage() {
               onChange={(e) => setEligibilityFilter(e.target.value)}
               className="px-3 py-2.5 rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-xs font-semibold bg-[#fbf9f5] dark:bg-[#121417] text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-[#86192c]"
             >
-              <option value="all">All Eligibility Standings</option>
-              <option value="eligible">Profile Match (Likely Eligible)</option>
-              <option value="needs_verification">Requires Quota / Doc Verification</option>
-              <option value="ineligible">Boundary Ineligible</option>
+              <option value="all">All Eligibility Categories</option>
+              <option value="LIKELY_ELIGIBLE">✓ Likely Eligible (Full Match)</option>
+              <option value="POTENTIALLY_ELIGIBLE">⚠ Potentially Eligible (Info/Docs Needed)</option>
+              <option value="WINDOW_NEEDS_VERIFICATION">⏳ Window / Cycle Verification</option>
+              <option value="CURRENTLY_INELIGIBLE">✕ Currently Ineligible</option>
             </select>
 
             <select
@@ -434,7 +466,8 @@ export default function DiscoverPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {getRecommendationBadge(s.recommendation_category)}
                     {getVerificationBadge(s.source_verification_status || s.verification_status)}
                     <span className="text-[11px] font-mono text-stone-500 dark:text-stone-400">
                       Cycle: {s.application_window_status || "Annual Cycle"}

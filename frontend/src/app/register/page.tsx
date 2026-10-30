@@ -16,10 +16,6 @@ export default function RegisterPage() {
     institution: "",
     course: "",
     year: "1st Year",
-    cgpa: "",
-    annual_family_income: "",
-    annual_education_cost: "",
-    existing_support: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,16 +33,7 @@ export default function RegisterPage() {
         institution: formData.institution.trim() || undefined,
         course: formData.course.trim() || undefined,
         year: formData.year,
-        cgpa: formData.cgpa ? parseFloat(formData.cgpa) : undefined,
-        annual_family_income: formData.annual_family_income
-          ? parseFloat(formData.annual_family_income)
-          : undefined,
-        annual_education_cost: formData.annual_education_cost
-          ? parseFloat(formData.annual_education_cost)
-          : undefined,
-        existing_support: formData.existing_support
-          ? parseFloat(formData.existing_support)
-          : 0,
+        state: "Tamil Nadu",
       };
 
       await registerUser(payload);
@@ -56,7 +43,7 @@ export default function RegisterPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Registration could not be completed. Please check your inputs.");
+        setError("Registration could not be completed. Please check your credentials.");
       }
     } finally {
       setLoading(false);
@@ -64,7 +51,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto my-6">
+    <div className="w-full max-w-lg mx-auto my-6">
       <div className="bg-white dark:bg-[#121215] rounded-2xl border border-zinc-200 dark:border-zinc-800 p-8 sm:p-10 shadow-xl transition-colors">
         {/* Brand Header */}
         <div className="text-center">
@@ -139,127 +126,74 @@ export default function RegisterPage() {
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-3">
-              Academic & Institutional Profile
+              Collegiate Standing (Optional &bull; Complete anytime in My Profile)
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
+            <div className="space-y-3">
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Institution / College
+                  Institution / College Name
                 </label>
                 <input
                   type="text"
                   value={formData.institution}
                   onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                  placeholder="e.g. National Institute of Technology"
-                  className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  placeholder="e.g. Loyola College (Autonomous), Chennai"
+                  className="w-full px-3.5 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Academic Year
-                </label>
-                <select
-                  value={formData.year}
-                  onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                >
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                  <option value="Postgraduate">Postgraduate</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Degree / Course
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.course}
+                    onChange={(e) => setFormData({ ...formData, course: e.target.value })}
+                    placeholder="e.g. B.Sc Computer Science"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  />
+                </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Degree / Program
-                </label>
-                <input
-                  type="text"
-                  value={formData.course}
-                  onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                  placeholder="e.g. B.Tech Computer Science"
-                  className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Current CGPA (0 - 10)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="10"
-                  value={formData.cgpa}
-                  onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                  placeholder="e.g. 8.4"
-                  className="w-full px-3.5 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Academic Year
+                  </label>
+                  <select
+                    value={formData.year}
+                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  >
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="Postgraduate">Postgraduate</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-3">
-              Annual Financial Planning & Eligibility
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Annual Tuition & Cost (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.annual_education_cost}
-                  onChange={(e) => setFormData({ ...formData, annual_education_cost: e.target.value })}
-                  placeholder="e.g. 120000"
-                  className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Existing Secured Funds (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.existing_support}
-                  onChange={(e) => setFormData({ ...formData, existing_support: e.target.value })}
-                  placeholder="e.g. 40000"
-                  className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Family Gross Income (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.annual_family_income}
-                  onChange={(e) => setFormData({ ...formData, annual_family_income: e.target.value })}
-                  placeholder="e.g. 250000"
-                  className="w-full px-3 py-2 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                />
-              </div>
-            </div>
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200/60 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">Privacy & Focus:</span> Financial parameters, community reservation category, and document proofs are managed securely in <strong className="text-zinc-800 dark:text-zinc-200">Settings → My Profile</strong> after account initialization.
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-4 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-red-950/30 disabled:opacity-50 transition-all cursor-pointer"
+            className="w-full mt-4 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-red-950/30 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center space-x-2"
           >
-            {loading ? "Creating Profile..." : "Complete Registration & Enter SCHOLARAi"}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <span>Create Account & Enter SCHOLARAi</span>
+            )}
           </button>
         </form>
 

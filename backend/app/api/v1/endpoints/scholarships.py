@@ -20,6 +20,8 @@ from app.schemas.scholarship import (
     FundingImpactAnalysis,
     OfficialDossierChunk,
     OfficialDossierResponse,
+    ScholarshipRecommendationItem,
+    PersonalizedRecommendationsResponse,
 )
 from app.schemas.scholarship_import import (
     ScholarshipImportRequest,
@@ -145,6 +147,7 @@ def list_scholarships(
             application_effort=s.application_effort,
             status=s.status,
             match_status=eval_res["status"],
+            recommendation_category=eval_res.get("recommendation_category", "POTENTIALLY_ELIGIBLE"),
             match_score=eval_res["score"],
             fit_reasons=fit_reasons,
             days_remaining=risk_info["days_remaining"],
@@ -173,12 +176,16 @@ def list_scholarships(
         )
         items.append(item)
 
-    # Filter by eligibility if requested
+    # Filter by eligibility or recommendation category if requested
     elig_str = eligibility_filter if isinstance(eligibility_filter, str) else None
     sort_str = sort_by if isinstance(sort_by, str) else "recommended"
 
     if elig_str and elig_str != "all":
-        items = [i for i in items if i.match_status == elig_str.lower()]
+        elig_upper = elig_str.upper()
+        if elig_upper in ["LIKELY_ELIGIBLE", "POTENTIALLY_ELIGIBLE", "CURRENTLY_INELIGIBLE", "WINDOW_NEEDS_VERIFICATION"]:
+            items = [i for i in items if i.recommendation_category == elig_upper]
+        else:
+            items = [i for i in items if i.match_status == elig_str.lower()]
 
     # Sort items
     if sort_str == "deadline":
@@ -214,6 +221,96 @@ def get_recommended_scholarships(
         sort_by="recommended",
         current_student=current_student,
         db=db,
+    )
+
+
+@router.get("/recommendations", response_model=PersonalizedRecommendationsResponse, summary="Get Categorized Personalized Recommendations")
+def get_personalized_recommendations(
+    current_student: Student = Depends(get_current_student),
+    db: Session = Depends(get_db),
+):
+    """
+    Evaluates active scholarships deterministically against student's saved profile.
+    Classifies results into 4 explicit categories:
+    1. Likely Eligible
+    2. Potentially Eligible — More Information Required
+    3. Currently Ineligible — Explain Why
+    4. Deadline or Application Window Needs Verification
+    """
+    scholarships = db.query(Scholarship).filter(
+        Scholarship.status == "ACTIVE",
+        Scholarship.verification_status.notin_(RETIRED_DEMO_STATUSES),
+        ~Scholarship.name.in_(KNOWN_FICTIONAL_DEMO_NAMES),
+        ~Scholarship.provider.ilike("%(Demo)%"),
+    ).all()
+
+    likely_eligible = []
+    potentially_eligible = []
+    currently_ineligible = []
+    window_needs_verification = []
+
+    for s in scholarships:
+        eval_res = eligibility_service.evaluate_scholarship(current_student, s)
+        risk_info = deadline_risk_service.calculate_risk(s.deadline)
+
+        category = eval_res.get("recommendation_category", "POTENTIALLY_ELIGIBLE")
+
+        item = ScholarshipRecommendationItem(
+            id=s.id,
+            name=s.name,
+            provider=s.provider,
+            amount=s.amount,
+            currency=s.currency,
+            award_display=s.award_display or f"Up to ₹{int(s.amount):,} funding",
+            eligibility_summary=s.eligibility_summary or "Official guidelines specify criteria for this scheme.",
+            recommendation_category=category,
+            match_score=eval_res["score"],
+            why_matched=eval_res["matched_rules"],
+            satisfied_requirements=eval_res["matched_rules"],
+            missing_information=eval_res.get("missing_information", []),
+            requirements_needing_verification=eval_res.get("requirements_needing_verification", []),
+            deadline=s.deadline,
+            academic_year=s.academic_year or "2024-2025 / 2025-2026",
+            official_source_url=s.source_url or s.official_guideline_url,
+            official_application_portal_url=s.application_url,
+            last_verified_at=s.last_verified_at or s.updated_at,
+            days_remaining=risk_info["days_remaining"],
+            disclaimer="AI assists. Official sources decide. Student approves. Never guaranteed."
+        )
+
+        if category == "LIKELY_ELIGIBLE":
+            likely_eligible.append(item)
+        elif category == "CURRENTLY_INELIGIBLE":
+            currently_ineligible.append(item)
+        elif category == "WINDOW_NEEDS_VERIFICATION":
+            window_needs_verification.append(item)
+        else:
+            potentially_eligible.append(item)
+
+    # Sort within categories
+    likely_eligible.sort(key=lambda x: (x.match_score, x.amount), reverse=True)
+    potentially_eligible.sort(key=lambda x: (x.match_score, x.amount), reverse=True)
+    window_needs_verification.sort(key=lambda x: x.deadline)
+
+    prof = current_student.profile
+    fund = current_student.funding_profile
+
+    return PersonalizedRecommendationsResponse(
+        student_name=current_student.name,
+        student_profile_summary={
+            "course": prof.course if prof else "Not declared",
+            "stream": getattr(prof, "stream", "Engineering & Technology") if prof else "Not declared",
+            "year": prof.year if prof else "Not declared",
+            "category": prof.category if prof else "BC",
+            "state": prof.state if prof else "Tamil Nadu",
+            "annual_family_income": fund.annual_family_income if fund else 0.0,
+            "funding_gap": fund.funding_gap if fund else 0.0,
+        },
+        total_recommendations=len(likely_eligible) + len(potentially_eligible) + len(currently_ineligible) + len(window_needs_verification),
+        likely_eligible=likely_eligible,
+        potentially_eligible=potentially_eligible,
+        currently_ineligible=currently_ineligible,
+        window_needs_verification=window_needs_verification,
     )
 
 

@@ -44,30 +44,38 @@ def register(req: UserRegisterRequest, response: Response, db: Session = Depends
     # 2. Create StudentProfile
     profile = StudentProfile(
         student_id=student.id,
-        institution=req.institution or "Engineering College",
-        course=req.course or "B.Tech Computer Science",
-        year=req.year or "2nd Year",
-        cgpa=req.cgpa or 8.0,
-        twelfth_percentage=req.twelfth_percentage or 85.0,
-        category=req.category or "General",
-        state=req.state or "Karnataka",
+        institution=req.institution or "Collegiate Institution",
+        course=req.course or "Undergraduate Degree",
+        year=req.year or "1st Year",
+        cgpa=req.cgpa,
+        twelfth_percentage=req.twelfth_percentage,
+        category=req.category or "BC",
+        state=req.state or "Tamil Nadu",
+        native_state="Tamil Nadu",
         gender=req.gender or "Other",
+        education_level="Undergraduate",
+        stream="Engineering & Technology",
+        institution_type="Government-aided",
+        bank_readiness="NOT_CONFIGURED",
+        aadhaar_verification_status="NOT_PROVIDED",
     )
     db.add(profile)
 
-    # 3. Create FundingProfile
+    # 3. Create FundingProfile (initialized with safe defaults without requiring during registration)
     funding = FundingProfile(
         student_id=student.id,
-        annual_education_cost=req.annual_education_cost or 120000.0,
-        existing_support=req.existing_support or 60000.0,
-        annual_family_income=req.annual_family_income or 250000.0,
+        annual_education_cost=req.annual_education_cost or 0.0,
+        existing_support=req.existing_support or 0.0,
+        annual_family_income=req.annual_family_income or 0.0,
+        income_certificate_status="NOT_UPLOADED",
     )
     db.add(funding)
 
     # 4. Create PlannerGoal
+    goal_target = max(0.0, (req.annual_education_cost or 0.0) - (req.existing_support or 0.0))
     goal = PlannerGoal(
         student_id=student.id,
-        target_funding=max(0.0, (req.annual_education_cost or 120000.0) - (req.existing_support or 60000.0)),
+        target_funding=goal_target,
         purpose="Tuition and educational expenses",
         timeline="Current Academic Year",
         available_hours_per_week=5.0

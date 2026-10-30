@@ -38,6 +38,8 @@ import {
   ApplicationAssistantWorkspace,
   RecordExternalSubmissionPayload,
   OfficialApiSubmissionPayload,
+  ProfileCompletionData,
+  PersonalizedRecommendationsData,
 } from "@/types/student";
 
 const API_BASE_URL =
@@ -687,4 +689,13 @@ export async function submitApplicationViaApi(
 
 export async function exportApplicationDossier(id: number): Promise<Record<string, unknown>> {
   return request<Record<string, unknown>>(`/api/v1/applications/${id}/assistant/export-dossier`, { cache: "no-store" });
+}
+
+// Student Profile Completion and Personalized Recommendations
+export async function getProfileCompletion(): Promise<ProfileCompletionData> {
+  return request<ProfileCompletionData>("/api/v1/student/me/completion", { cache: "no-store" });
+}
+
+export async function getPersonalizedRecommendations(): Promise<PersonalizedRecommendationsData> {
+  return request<PersonalizedRecommendationsData>("/api/v1/scholarships/recommendations", { cache: "no-store" });
 }

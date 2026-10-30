@@ -136,6 +136,28 @@ def run_schema_migrations(db_engine_or_conn):
                 ("admission_quota", "VARCHAR(50) DEFAULT 'GOVERNMENT_QUOTA'", "VARCHAR(50) DEFAULT 'GOVERNMENT_QUOTA'"),
                 ("hosteller_status", "VARCHAR(50) DEFAULT 'DAY_SCHOLAR'", "VARCHAR(50) DEFAULT 'DAY_SCHOLAR'"),
                 ("is_first_graduate", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("dob", "VARCHAR(50)", "VARCHAR(50)"),
+                ("district", "VARCHAR(100)", "VARCHAR(100)"),
+                ("native_state", "VARCHAR(100) DEFAULT 'Tamil Nadu'", "VARCHAR(100) DEFAULT 'Tamil Nadu'"),
+                ("education_level", "VARCHAR(50) DEFAULT 'Undergraduate'", "VARCHAR(50) DEFAULT 'Undergraduate'"),
+                ("stream", "VARCHAR(100) DEFAULT 'Engineering & Technology'", "VARCHAR(100) DEFAULT 'Engineering & Technology'"),
+                ("university", "VARCHAR(255)", "VARCHAR(255)"),
+                ("admission_year", "VARCHAR(20)", "VARCHAR(20)"),
+                ("current_semester", "VARCHAR(20)", "VARCHAR(20)"),
+                ("qualifying_exam", "VARCHAR(100)", "VARCHAR(100)"),
+                ("qualifying_marks", "FLOAT", "DOUBLE PRECISION"),
+                ("institution_type", "VARCHAR(50) DEFAULT 'Government-aided'", "VARCHAR(50) DEFAULT 'Government-aided'"),
+                ("school_type", "VARCHAR(100)", "VARCHAR(100)"),
+                ("school_study_history", "TEXT", "TEXT"),
+                ("community_subcategory", "VARCHAR(100)", "VARCHAR(100)"),
+                ("bank_readiness", "VARCHAR(50) DEFAULT 'NOT_CONFIGURED'", "VARCHAR(50) DEFAULT 'NOT_CONFIGURED'"),
+                ("account_holder_name", "VARCHAR(255)", "VARCHAR(255)"),
+                ("dbt_enabled", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
+                ("bank_name", "VARCHAR(100)", "VARCHAR(100)"),
+                ("bank_branch", "VARCHAR(100)", "VARCHAR(100)"),
+                ("aadhaar_verification_status", "VARCHAR(50) DEFAULT 'NOT_PROVIDED'", "VARCHAR(50) DEFAULT 'NOT_PROVIDED'"),
+                ("aadhaar_masked", "VARCHAR(50)", "VARCHAR(50)"),
+                ("aadhaar_consent_given", "BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"),
             ]
             for col_name, sqlite_type, pg_type in new_sp_columns:
                 if col_name not in sp_columns:
@@ -147,6 +169,25 @@ def run_schema_migrations(db_engine_or_conn):
                             conn.execute(text(f"ALTER TABLE student_profiles ADD COLUMN {col_name} {sqlite_type}"))
                     except Exception as sp_err:
                         logger.warning(f"Could not add column {col_name} to student_profiles: {sp_err}")
+
+        # 5b. Update funding_profiles table if it exists
+        if "funding_profiles" in existing_tables:
+            fp_columns = {col["name"] for col in inspector.get_columns("funding_profiles")}
+            new_fp_columns = [
+                ("income_range", "VARCHAR(50)", "VARCHAR(50)"),
+                ("income_certificate_status", "VARCHAR(50) DEFAULT 'NOT_UPLOADED'", "VARCHAR(50) DEFAULT 'NOT_UPLOADED'"),
+                ("financial_circumstances_notes", "TEXT", "TEXT"),
+            ]
+            for col_name, sqlite_type, pg_type in new_fp_columns:
+                if col_name not in fp_columns:
+                    logger.info(f"Adding column '{col_name}' to 'funding_profiles' table...")
+                    try:
+                        if dialect_name == "postgresql":
+                            conn.execute(text(f"ALTER TABLE funding_profiles ADD COLUMN IF NOT EXISTS {col_name} {pg_type}"))
+                        else:
+                            conn.execute(text(f"ALTER TABLE funding_profiles ADD COLUMN {col_name} {sqlite_type}"))
+                    except Exception as fp_err:
+                        logger.warning(f"Could not add column {col_name} to funding_profiles: {fp_err}")
 
         # 6. Update applications table if it exists
         if "applications" in existing_tables:
@@ -189,6 +230,10 @@ def run_schema_migrations(db_engine_or_conn):
             ("scholarships", "ix_scholarships_application_window_status", "scholarships(application_window_status)"),
             ("student_profiles", "ix_student_profiles_admission_quota", "student_profiles(admission_quota)"),
             ("student_profiles", "ix_student_profiles_hosteller_status", "student_profiles(hosteller_status)"),
+            ("student_profiles", "ix_student_profiles_district", "student_profiles(district)"),
+            ("student_profiles", "ix_student_profiles_education_level", "student_profiles(education_level)"),
+            ("student_profiles", "ix_student_profiles_stream", "student_profiles(stream)"),
+            ("student_profiles", "ix_student_profiles_institution_type", "student_profiles(institution_type)"),
             ("applications", "ix_applications_preparation_status", "applications(preparation_status)"),
             ("applications", "ix_applications_submission_status", "applications(submission_status)"),
             ("applications", "ix_applications_submission_mode", "applications(submission_mode)"),
@@ -220,6 +265,14 @@ def run_schema_migrations(db_engine_or_conn):
             ("student_profiles", "admission_quota = 'GOVERNMENT_QUOTA' WHERE admission_quota IS NULL"),
             ("student_profiles", "hosteller_status = 'DAY_SCHOLAR' WHERE hosteller_status IS NULL"),
             ("student_profiles", first_grad_backfill),
+            ("student_profiles", "state = 'Tamil Nadu' WHERE state IS NULL"),
+            ("student_profiles", "native_state = 'Tamil Nadu' WHERE native_state IS NULL"),
+            ("student_profiles", "education_level = 'Undergraduate' WHERE education_level IS NULL"),
+            ("student_profiles", "stream = 'Engineering & Technology' WHERE stream IS NULL"),
+            ("student_profiles", "institution_type = 'Government-aided' WHERE institution_type IS NULL"),
+            ("student_profiles", "bank_readiness = 'NOT_CONFIGURED' WHERE bank_readiness IS NULL"),
+            ("student_profiles", "aadhaar_verification_status = 'NOT_PROVIDED' WHERE aadhaar_verification_status IS NULL"),
+            ("funding_profiles", "income_certificate_status = 'NOT_UPLOADED' WHERE income_certificate_status IS NULL"),
             ("applications", "status_history = '[]' WHERE status_history IS NULL"),
             ("applications", "preparation_status = 'READY_TO_SUBMIT' WHERE status = 'SUBMITTED' AND preparation_status IS NULL"),
             ("applications", "preparation_status = 'READY_FOR_REVIEW' WHERE status = 'READY' AND preparation_status IS NULL"),

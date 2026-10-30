@@ -1,17 +1,39 @@
 export interface StudentProfile {
   id: number;
   student_id: number;
-  institution: string;
-  course: string;
-  year: string;
-  cgpa: number;
-  twelfth_percentage: number;
+  institution?: string;
+  course?: string;
+  year?: string;
+  cgpa?: number | null;
+  twelfth_percentage?: number | null;
   category: string;
   state: string;
   gender?: string;
+  dob?: string | null;
+  district?: string | null;
+  native_state?: string | null;
+  education_level?: string | null;
+  stream?: string | null;
+  university?: string | null;
+  admission_year?: string | null;
+  current_semester?: string | null;
+  qualifying_exam?: string | null;
+  qualifying_marks?: number | null;
+  institution_type?: string | null;
   admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
   hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
   is_first_graduate?: boolean | null;
+  school_type?: string | null;
+  school_study_history?: string | null;
+  community_subcategory?: string | null;
+  bank_readiness?: string | null;
+  account_holder_name?: string | null;
+  dbt_enabled?: boolean | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+  aadhaar_verification_status?: string | null;
+  aadhaar_masked?: string | null;
+  aadhaar_consent_given?: boolean | null;
 }
 
 export interface FundingProfile {
@@ -22,6 +44,9 @@ export interface FundingProfile {
   annual_family_income: number;
   funding_gap: number;
   funding_progress_percentage: number;
+  income_range?: string | null;
+  income_certificate_status?: string | null;
+  financial_circumstances_notes?: string | null;
 }
 
 export interface StudentDetail {
@@ -42,23 +67,109 @@ export interface FundingOverview {
 }
 
 export interface StudentUpdatePayload {
-  name?: string;
-  email?: string;
+  name?: string | null;
+  email?: string | null;
   phone?: string | null;
-  institution?: string;
-  course?: string;
-  year?: string;
-  cgpa?: number;
-  twelfth_percentage?: number;
-  category?: string;
-  state?: string;
-  gender?: string;
+  dob?: string | null;
+  district?: string | null;
+  native_state?: string | null;
+  gender?: string | null;
+  state?: string | null;
+
+  institution?: string | null;
+  course?: string | null;
+  year?: string | null;
+  education_level?: string | null;
+  stream?: string | null;
+  university?: string | null;
+  admission_year?: string | null;
+  current_semester?: string | null;
+  qualifying_exam?: string | null;
+  qualifying_marks?: number | null;
+  institution_type?: string | null;
   admission_quota?: "GOVERNMENT_QUOTA" | "MANAGEMENT_QUOTA" | string | null;
   hosteller_status?: "DAY_SCHOLAR" | "HOSTELLER" | string | null;
   is_first_graduate?: boolean | null;
-  annual_education_cost?: number;
-  existing_support?: number;
-  annual_family_income?: number;
+  school_type?: string | null;
+  school_study_history?: string | null;
+
+  cgpa?: number | null;
+  twelfth_percentage?: number | null;
+
+  category?: string | null;
+  community_subcategory?: string | null;
+
+  annual_education_cost?: number | null;
+  existing_support?: number | null;
+  annual_family_income?: number | null;
+  funding_gap?: number | null;
+  income_range?: string | null;
+  financial_circumstances_notes?: string | null;
+  income_certificate_status?: string | null;
+
+  bank_readiness?: string | null;
+  account_holder_name?: string | null;
+  dbt_enabled?: boolean | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+
+  aadhaar_verification_status?: string | null;
+  aadhaar_masked?: string | null;
+  aadhaar_consent_given?: boolean | null;
+}
+
+export interface ProfileCompletionSectionItem {
+  status: "COMPLETE" | "INCOMPLETE" | "NEEDS_UPDATING" | "VERIFICATION_REQUIRED";
+  percentage: number;
+  missing_fields: string[];
+  summary: string;
+}
+
+export interface ProfileCompletionData {
+  overall_percentage: number;
+  overall_status: string;
+  sections: {
+    personal: ProfileCompletionSectionItem;
+    academic: ProfileCompletionSectionItem;
+    community: ProfileCompletionSectionItem;
+    financial: ProfileCompletionSectionItem;
+    bank_benefit: ProfileCompletionSectionItem;
+    identity: ProfileCompletionSectionItem;
+  };
+}
+
+export interface ScholarshipRecommendationItem {
+  id: number;
+  name: string;
+  provider: string;
+  amount: number;
+  currency: string;
+  award_display?: string | null;
+  eligibility_summary?: string | null;
+  recommendation_category: "LIKELY_ELIGIBLE" | "POTENTIALLY_ELIGIBLE" | "CURRENTLY_INELIGIBLE" | "WINDOW_NEEDS_VERIFICATION";
+  match_score: number;
+  why_matched: string[];
+  satisfied_requirements: string[];
+  missing_information: string[];
+  requirements_needing_verification: string[];
+  deadline: string;
+  academic_year?: string | null;
+  official_source_url?: string | null;
+  official_application_portal_url?: string | null;
+  last_verified_at?: string | null;
+  days_remaining?: number | null;
+  disclaimer: string;
+}
+
+export interface PersonalizedRecommendationsData {
+  student_name: string;
+  student_profile_summary: Record<string, unknown>;
+  total_recommendations: number;
+  likely_eligible: ScholarshipRecommendationItem[];
+  potentially_eligible: ScholarshipRecommendationItem[];
+  currently_ineligible: ScholarshipRecommendationItem[];
+  window_needs_verification: ScholarshipRecommendationItem[];
+  disclaimer: string;
 }
 
 export interface HealthResponse {
@@ -103,6 +214,7 @@ export interface ScholarshipListItem {
   application_effort?: string;
   status: string;
   match_status?: "eligible" | "possibly_eligible" | "ineligible" | "needs_verification";
+  recommendation_category?: string;
   match_score?: number;
   fit_reasons?: string[];
   days_remaining?: number;

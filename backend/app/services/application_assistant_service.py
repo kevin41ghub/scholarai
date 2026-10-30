@@ -209,20 +209,47 @@ class ApplicationAssistantService:
             )
         )
 
-        cgpa_val = saved_form.get("cgpa_score", {}).get("value") or (str(profile.cgpa) if profile and profile.cgpa else "8.4")
+        cgpa_val = saved_form.get("cgpa_score", {}).get("value") or (
+            str(profile.cgpa) if profile and profile.cgpa
+            else (str(profile.qualifying_marks) if profile and getattr(profile, "qualifying_marks", None)
+            else (str(profile.twelfth_percentage) if profile and getattr(profile, "twelfth_percentage", None) else ""))
+        )
+        suggested_cgpa = (
+            str(profile.cgpa) if profile and profile.cgpa
+            else (str(profile.qualifying_marks) if profile and getattr(profile, "qualifying_marks", None)
+            else (str(profile.twelfth_percentage) if profile and getattr(profile, "twelfth_percentage", None) else ""))
+        )
         marksheet_doc = docs_by_type.get("MARKSHEET") or docs_by_type.get("ACADEMIC_TRANSCRIPT")
         fields.append(
             ApplicationFormFieldItem(
                 key="cgpa_score",
-                label="Cumulative Grade Point Average (CGPA) / Percentage",
+                label="Qualifying Examination Score / Percentage",
                 field_group="academic",
                 value=cgpa_val,
-                suggested_value=str(profile.cgpa) if profile and profile.cgpa else "8.4",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
+                suggested_value=suggested_cgpa,
+                source="STUDENT_PROFILE" if suggested_cgpa else "MANUAL_ENTRY",
                 verification_status="OFFICIALLY_VERIFIED" if marksheet_doc and marksheet_doc.status in ["AVAILABLE", "VERIFIED"] else "STUDENT_PROVIDED",
-                is_required=True,
+                is_required=False,
                 is_confirmed=saved_form.get("cgpa_score", {}).get("is_confirmed", bool(cgpa_val)),
-                guidance="Cumulative score across completed semesters on a 10.0 scale or percentage.",
+                guidance="Cumulative semester score or qualifying exam marks as supported by official marksheets.",
+            )
+        )
+
+        inst_type_val = saved_form.get("institution_type", {}).get("value") or (
+            getattr(profile, "institution_type", "Government-aided") if profile else "Government-aided"
+        )
+        fields.append(
+            ApplicationFormFieldItem(
+                key="institution_type",
+                label="Institution Classification Type",
+                field_group="academic",
+                value=inst_type_val,
+                suggested_value=getattr(profile, "institution_type", "Government-aided") if profile else "Government-aided",
+                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
+                verification_status="STUDENT_PROVIDED",
+                is_required=True,
+                is_confirmed=saved_form.get("institution_type", {}).get("is_confirmed", bool(inst_type_val)),
+                guidance="Government, Government-aided, or Private autonomous collegiate standing.",
             )
         )
 
