@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SCHOLARAi API"
-    VERSION: str = "0.4.0"
+    VERSION: str = "0.4.1"
     PHASE: str = "Phase 1 — Foundation"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

@@ -28,6 +28,7 @@ from app.schemas.application import (
 )
 from app.services.external_submission_service import external_submission_service
 from app.services.application_status_service import application_status_service
+from app.services.portal_mapping_service import portal_mapping_service
 
 logger = logging.getLogger("scholarai.application_assistant")
 
@@ -77,387 +78,433 @@ class ApplicationAssistantService:
         missing_mandatory: List[str] = []
         unconfirmed: List[str] = []
 
+        def _make_field(
+            key: str,
+            label: str,
+            field_group: str,
+            profile_val: Optional[Any],
+            matching_doc: Optional[Document] = None,
+            is_required: bool = True,
+            guidance: Optional[str] = None,
+            warning: Optional[str] = None,
+            placeholder: Optional[str] = None,
+        ) -> ApplicationFormFieldItem:
+            saved_entry = saved_form.get(key)
+            saved_val = None
+            saved_confirmed = None
+            if isinstance(saved_entry, dict):
+                saved_val = saved_entry.get("value")
+                saved_confirmed = saved_entry.get("is_confirmed")
+            elif saved_entry is not None:
+                saved_val = saved_entry
+
+            has_saved = saved_val is not None and str(saved_val).strip() != ""
+            has_profile = profile_val is not None and str(profile_val).strip() != ""
+
+            if has_saved:
+                final_val = saved_val
+                if has_profile and str(saved_val).strip() == str(profile_val).strip():
+                    source = "STUDENT_PROFILE"
+                else:
+                    source = "STUDENT_ENTERED"
+            elif has_profile:
+                final_val = profile_val
+                source = "STUDENT_PROFILE"
+            else:
+                final_val = None
+                source = "NOT_PROVIDED"
+
+            suggested_val = profile_val if has_profile else None
+
+            # Confirmation:
+            # An empty field can NEVER be confirmed.
+            # Prefilled profile values start unconfirmed until student reviews & confirms.
+            if final_val is None or str(final_val).strip() == "":
+                is_confirmed = False
+            elif saved_confirmed is not None:
+                is_confirmed = bool(saved_confirmed)
+            else:
+                is_confirmed = False
+
+            # Verification Status:
+            # Distinguish between profile-provided, student-entered, document-verified, and unverified.
+            # Merely uploading a document does NOT make it officially verified.
+            if final_val is None or str(final_val).strip() == "":
+                verification_status = "NOT_PROVIDED"
+            elif matching_doc and (
+                matching_doc.verification_status == "OFFICIALLY_VERIFIED"
+                or matching_doc.status == "VERIFIED"
+            ):
+                verification_status = "DOCUMENT_VERIFIED"
+            elif source == "STUDENT_PROFILE":
+                verification_status = "PROFILE_PROVIDED"
+            else:
+                verification_status = "STUDENT_PROVIDED"
+
+            item = ApplicationFormFieldItem(
+                key=key,
+                label=label,
+                field_group=field_group,
+                value=final_val,
+                suggested_value=suggested_val,
+                source=source,
+                verification_status=verification_status,
+                is_required=is_required,
+                is_confirmed=is_confirmed,
+                guidance=guidance,
+                warning=warning,
+                placeholder=placeholder,
+            )
+            fields.append(item)
+            return item
+
         # ----------------------------------------------------------------------
         # Group 1: Personal Identification
         # ----------------------------------------------------------------------
-        name_val = saved_form.get("full_name", {}).get("value") or (student.name if student else "")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="full_name",
-                label="Full Legal Name (as per Certificate)",
-                field_group="personal",
-                value=name_val,
-                suggested_value=student.name if student else "",
-                source="STUDENT_PROFILE" if student and student.name else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "ID_PROOF" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("full_name", {}).get("is_confirmed", bool(name_val)),
-                guidance="Must match official school mark sheets and government identity records.",
-            )
+        name_profile = student.name if student and student.name and str(student.name).strip() else None
+        _make_field(
+            key="full_name",
+            label="Full Legal Name (as per Certificate)",
+            field_group="personal",
+            profile_val=name_profile,
+            matching_doc=docs_by_type.get("ID_PROOF"),
+            is_required=True,
+            guidance="Must match official school mark sheets and government identity records.",
+            placeholder="Enter your full legal name as per certificate",
         )
 
         dob_raw = getattr(profile, "dob", None) if profile else None
-        dob_str = dob_raw.isoformat() if hasattr(dob_raw, "isoformat") else (str(dob_raw) if dob_raw else "")
-        dob_val = saved_form.get("date_of_birth", {}).get("value") or dob_str
-        fields.append(
-            ApplicationFormFieldItem(
-                key="date_of_birth",
-                label="Date of Birth",
-                field_group="personal",
-                value=dob_val,
-                suggested_value=dob_str,
-                source="STUDENT_PROFILE" if dob_str else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "10TH_MARKSHEET" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("date_of_birth", {}).get("is_confirmed", bool(dob_val)),
-                guidance="Corroborated by Class X Marksheet or Secondary School Leaving Certificate (SSLC).",
-            )
+        dob_str = dob_raw.isoformat() if hasattr(dob_raw, "isoformat") else (str(dob_raw).strip() if dob_raw else None)
+        if dob_str == "":
+            dob_str = None
+        _make_field(
+            key="date_of_birth",
+            label="Date of Birth",
+            field_group="personal",
+            profile_val=dob_str,
+            matching_doc=docs_by_type.get("10TH_MARKSHEET"),
+            is_required=True,
+            guidance="Corroborated by Class X Marksheet or Secondary School Leaving Certificate (SSLC).",
+            placeholder="YYYY-MM-DD",
         )
 
-        gender_val = saved_form.get("gender", {}).get("value") or (profile.gender if profile else "Male")
-        # Check gender discrepancy if scheme is for girls (e.g. Pragati / Pudhumai Penn)
+        # Gender: No fabricated fallback to 'Male'
+        gender_profile = profile.gender.strip() if profile and profile.gender and str(profile.gender).strip() else None
+        saved_gender_val = saved_form.get("gender", {}).get("value") if isinstance(saved_form.get("gender"), dict) else None
+        current_gender_candidate = saved_gender_val or gender_profile
         gender_warning = None
         if "female" in (scholarship.eligibility_summary or "").lower() or "girl" in (scholarship.name or "").lower():
-            if str(gender_val).lower() not in ["female", "girl"]:
-                gender_warning = f"Warning: {scholarship.name} is designated for female applicants. Your profile indicates '{gender_val}'."
+            if current_gender_candidate and str(current_gender_candidate).lower() not in ["female", "girl"]:
+                gender_warning = f"Warning: {scholarship.name} is designated for female applicants. Your profile indicates '{current_gender_candidate}'."
                 discrepancies.append(gender_warning)
+            elif not current_gender_candidate:
+                gender_warning = f"Notice: {scholarship.name} is designated for female applicants. Please provide your statutory gender."
 
-        fields.append(
-            ApplicationFormFieldItem(
-                key="gender",
-                label="Gender",
-                field_group="personal",
-                value=gender_val,
-                suggested_value=profile.gender if profile else "Male",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("gender", {}).get("is_confirmed", bool(gender_val)),
-                guidance="Statutory gender as recorded on government identification documents.",
-                warning=gender_warning,
-            )
+        _make_field(
+            key="gender",
+            label="Gender",
+            field_group="personal",
+            profile_val=gender_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Statutory gender as recorded on government identification documents.",
+            warning=gender_warning,
+            placeholder="Select statutory gender (Male, Female, Transgender)",
         )
 
-        community_val = saved_form.get("community_category", {}).get("value") or (profile.category if profile else "BC")
+        # Community Category: No fabricated fallback to 'BC'
+        community_profile = profile.category.strip() if profile and profile.category and str(profile.category).strip() else None
         comm_doc = docs_by_type.get("COMMUNITY_CERTIFICATE") or docs_by_type.get("CASTE_CERTIFICATE")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="community_category",
-                label="Community Category",
-                field_group="personal",
-                value=community_val,
-                suggested_value=profile.category if profile else "BC",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if comm_doc and comm_doc.status in ["AVAILABLE", "VERIFIED"] else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("community_category", {}).get("is_confirmed", bool(community_val)),
-                guidance="Statutory community category recognized by Tamil Nadu Revenue Department (BC, MBC/DNC, SC, SCA, ST, OC).",
-            )
+        _make_field(
+            key="community_category",
+            label="Community Category",
+            field_group="personal",
+            profile_val=community_profile,
+            matching_doc=comm_doc,
+            is_required=True,
+            guidance="Statutory community category recognized by Tamil Nadu Revenue Department (BC, MBC/DNC, SC, SCA, ST, OC).",
+            placeholder="Select statutory community category (BC, MBC/DNC, SC, SCA, ST, OC)",
         )
 
         # ----------------------------------------------------------------------
         # Group 2: Academic Institution & Course
         # ----------------------------------------------------------------------
-        inst_val = saved_form.get("institution_name", {}).get("value") or (profile.institution if profile else "")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="institution_name",
-                label="Current Enrolled Institution",
-                field_group="academic",
-                value=inst_val,
-                suggested_value=profile.institution if profile else "",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "BONAFIDE_CERTIFICATE" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("institution_name", {}).get("is_confirmed", bool(inst_val)),
-                guidance="Full official name of your college or university as recognized by UGC/AICTE.",
-            )
+        inst_profile = profile.institution.strip() if profile and profile.institution and str(profile.institution).strip() else None
+        _make_field(
+            key="institution_name",
+            label="Current Enrolled Institution",
+            field_group="academic",
+            profile_val=inst_profile,
+            matching_doc=docs_by_type.get("BONAFIDE_CERTIFICATE"),
+            is_required=True,
+            guidance="Full official name of your college or university as recognized by UGC/AICTE.",
+            placeholder="Enter your enrolled institution name",
         )
 
-        course_val = saved_form.get("course_program", {}).get("value") or (profile.course if profile else "")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="course_program",
-                label="Degree Course & Branch of Study",
-                field_group="academic",
-                value=course_val,
-                suggested_value=profile.course if profile else "",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "BONAFIDE_CERTIFICATE" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("course_program", {}).get("is_confirmed", bool(course_val)),
-                guidance="Specific branch of study (e.g. B.Tech Computer Science and Engineering).",
-            )
+        course_profile = profile.course.strip() if profile and profile.course and str(profile.course).strip() else None
+        _make_field(
+            key="course_program",
+            label="Degree Course & Branch of Study",
+            field_group="academic",
+            profile_val=course_profile,
+            matching_doc=docs_by_type.get("BONAFIDE_CERTIFICATE"),
+            is_required=True,
+            guidance="Specific branch of study (e.g. B.Tech Computer Science and Engineering).",
+            placeholder="Enter your degree course and branch (e.g. B.Tech Mechanical)",
         )
 
-        year_str = profile.year if profile and profile.year else "2"
-        if not str(year_str).lower().startswith("year"):
-            year_str = f"Year {year_str}"
-        year_val = saved_form.get("academic_year", {}).get("value") or year_str
-        fields.append(
-            ApplicationFormFieldItem(
-                key="academic_year",
-                label="Current Year of Study",
-                field_group="academic",
-                value=year_val,
-                suggested_value=year_str,
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("academic_year", {}).get("is_confirmed", bool(year_val)),
-                guidance="Active progression year in the enrolled program curriculum.",
-            )
+        # Academic Year: No fabricated fallback to 'Year 2' or '2'
+        year_raw = str(profile.year).strip() if profile and profile.year and str(profile.year).strip() else None
+        year_profile = None
+        if year_raw:
+            year_profile = year_raw if year_raw.lower().startswith("year") else f"Year {year_raw}"
+        _make_field(
+            key="academic_year",
+            label="Current Year of Study",
+            field_group="academic",
+            profile_val=year_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Active progression year in the enrolled program curriculum.",
+            placeholder="Enter current year of study (e.g. Year 1, Year 2)",
         )
 
-        cgpa_val = saved_form.get("cgpa_score", {}).get("value") or (
-            str(profile.cgpa) if profile and profile.cgpa
-            else (str(profile.qualifying_marks) if profile and getattr(profile, "qualifying_marks", None)
-            else (str(profile.twelfth_percentage) if profile and getattr(profile, "twelfth_percentage", None) else ""))
-        )
-        suggested_cgpa = (
-            str(profile.cgpa) if profile and profile.cgpa
-            else (str(profile.qualifying_marks) if profile and getattr(profile, "qualifying_marks", None)
-            else (str(profile.twelfth_percentage) if profile and getattr(profile, "twelfth_percentage", None) else ""))
-        )
+        # CGPA / Qualifying Marks: No fabricated fallback
+        cgpa_profile = None
+        if profile:
+            if profile.cgpa is not None:
+                cgpa_profile = str(profile.cgpa)
+            elif getattr(profile, "qualifying_marks", None) is not None:
+                cgpa_profile = str(profile.qualifying_marks)
+            elif getattr(profile, "twelfth_percentage", None) is not None:
+                cgpa_profile = str(profile.twelfth_percentage)
         marksheet_doc = docs_by_type.get("MARKSHEET") or docs_by_type.get("ACADEMIC_TRANSCRIPT")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="cgpa_score",
-                label="Qualifying Examination Score / Percentage",
-                field_group="academic",
-                value=cgpa_val,
-                suggested_value=suggested_cgpa,
-                source="STUDENT_PROFILE" if suggested_cgpa else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if marksheet_doc and marksheet_doc.status in ["AVAILABLE", "VERIFIED"] else "STUDENT_PROVIDED",
-                is_required=False,
-                is_confirmed=saved_form.get("cgpa_score", {}).get("is_confirmed", bool(cgpa_val)),
-                guidance="Cumulative semester score or qualifying exam marks as supported by official marksheets.",
-            )
+        _make_field(
+            key="cgpa_score",
+            label="Qualifying Examination Score / Percentage",
+            field_group="academic",
+            profile_val=cgpa_profile,
+            matching_doc=marksheet_doc,
+            is_required=False,
+            guidance="Cumulative semester score or qualifying exam marks as supported by official marksheets.",
+            placeholder="Enter cumulative GPA or qualifying percentage score",
         )
 
-        inst_type_val = saved_form.get("institution_type", {}).get("value") or (
-            getattr(profile, "institution_type", "Government-aided") if profile else "Government-aided"
-        )
-        fields.append(
-            ApplicationFormFieldItem(
-                key="institution_type",
-                label="Institution Classification Type",
-                field_group="academic",
-                value=inst_type_val,
-                suggested_value=getattr(profile, "institution_type", "Government-aided") if profile else "Government-aided",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("institution_type", {}).get("is_confirmed", bool(inst_type_val)),
-                guidance="Government, Government-aided, or Private autonomous collegiate standing.",
-            )
+        # Institution Classification Type: No fabricated fallback to 'Government-aided'
+        inst_type_profile = getattr(profile, "institution_type", None)
+        if inst_type_profile:
+            inst_type_profile = str(inst_type_profile).strip() or None
+        _make_field(
+            key="institution_type",
+            label="Institution Classification Type",
+            field_group="academic",
+            profile_val=inst_type_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Government, Government-aided, or Private autonomous collegiate standing.",
+            placeholder="Select classification (Government, Government-aided, Private)",
         )
 
         # ----------------------------------------------------------------------
         # Group 3: Financial Criteria & Income
         # ----------------------------------------------------------------------
+        # Annual Family Income: No fabricated fallback to '180000'
         family_income = None
-        if student and student.funding_profile and student.funding_profile.annual_family_income:
+        if student and student.funding_profile and student.funding_profile.annual_family_income is not None:
             family_income = student.funding_profile.annual_family_income
-        suggested_income = str(int(family_income)) if family_income else "180000"
-        income_val = saved_form.get("annual_income", {}).get("value") or suggested_income
-        income_doc = docs_by_type.get("INCOME_CERTIFICATE")
-        income_warning = None
-        try:
-            inc_numeric = float(income_val)
-            if scholarship.income_ceiling and inc_numeric > scholarship.income_ceiling:
-                income_warning = (
-                    f"Income Discrepancy: Annual income of ₹{int(inc_numeric):,} exceeds the "
-                    f"official scheme limit of ₹{int(scholarship.income_ceiling):,}."
-                )
-                discrepancies.append(income_warning)
-        except (ValueError, TypeError):
-            pass
+        income_profile = str(int(family_income)) if family_income is not None else None
 
-        fields.append(
-            ApplicationFormFieldItem(
-                key="annual_income",
-                label="Annual Family Income (INR)",
-                field_group="financial",
-                value=income_val,
-                suggested_value=suggested_income,
-                source="STUDENT_PROFILE" if family_income else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if income_doc and income_doc.status in ["AVAILABLE", "VERIFIED"] else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("annual_income", {}).get("is_confirmed", bool(income_val)),
-                guidance="Total gross income from all family sources as certified by the Tahsildar / Revenue Authority.",
-                warning=income_warning,
-            )
+        saved_inc_entry = saved_form.get("annual_income")
+        saved_inc_val = saved_inc_entry.get("value") if isinstance(saved_inc_entry, dict) else None
+        current_inc_candidate = saved_inc_val if (saved_inc_val is not None and str(saved_inc_val).strip() != "") else income_profile
+
+        income_warning = None
+        if current_inc_candidate:
+            try:
+                inc_numeric = float(current_inc_candidate)
+                if scholarship.income_ceiling and inc_numeric > scholarship.income_ceiling:
+                    income_warning = (
+                        f"Income Discrepancy: Annual income of ₹{int(inc_numeric):,} exceeds the "
+                        f"official scheme limit of ₹{int(scholarship.income_ceiling):,}."
+                    )
+                    discrepancies.append(income_warning)
+            except (ValueError, TypeError):
+                pass
+
+        _make_field(
+            key="annual_income",
+            label="Annual Family Income (INR)",
+            field_group="financial",
+            profile_val=income_profile,
+            matching_doc=docs_by_type.get("INCOME_CERTIFICATE"),
+            is_required=True,
+            guidance="Total gross income from all family sources as certified by the Tahsildar / Revenue Authority.",
+            warning=income_warning,
+            placeholder="Enter your annual family income in INR",
         )
 
         # ----------------------------------------------------------------------
         # Group 4: Eligibility & Residency Specifics
         # ----------------------------------------------------------------------
-        state_val = saved_form.get("state_residence", {}).get("value") or (profile.state if profile else "Tamil Nadu")
+        # State Residence: No fabricated fallback to 'Tamil Nadu'
+        state_profile = profile.state.strip() if profile and profile.state and str(profile.state).strip() else None
+        saved_state_entry = saved_form.get("state_residence")
+        saved_state_val = saved_state_entry.get("value") if isinstance(saved_state_entry, dict) else None
+        current_state_candidate = saved_state_val if (saved_state_val is not None and str(saved_state_val).strip() != "") else state_profile
+
         state_warning = None
-        if scholarship.tn_residency_required == "YES" and str(state_val).lower() != "tamil nadu":
-            state_warning = f"Residency Discrepancy: {scholarship.name} requires permanent Tamil Nadu domicile."
-            discrepancies.append(state_warning)
+        if scholarship.tn_residency_required == "YES":
+            if current_state_candidate and str(current_state_candidate).lower() != "tamil nadu":
+                state_warning = f"Residency Discrepancy: {scholarship.name} requires permanent Tamil Nadu domicile. Your specified residence is '{current_state_candidate}'."
+                discrepancies.append(state_warning)
+            elif not current_state_candidate:
+                state_warning = f"Notice: {scholarship.name} requires permanent Tamil Nadu domicile. Please provide your state of residence."
 
-        fields.append(
-            ApplicationFormFieldItem(
-                key="state_residence",
-                label="Permanent State of Domicile",
-                field_group="eligibility",
-                value=state_val,
-                suggested_value=profile.state if profile else "Tamil Nadu",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "DOMICILE_CERTIFICATE" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("state_residence", {}).get("is_confirmed", bool(state_val)),
-                guidance="State where the student holds permanent domicile or nativity status.",
-                warning=state_warning,
-            )
-        )
-
-        quota_val = saved_form.get("admission_quota", {}).get("value") or (
-            profile.admission_quota if profile else "GOVERNMENT_QUOTA"
-        )
-        fields.append(
-            ApplicationFormFieldItem(
-                key="admission_quota",
-                label="College Admission Quota",
-                field_group="eligibility",
-                value=quota_val,
-                suggested_value=profile.admission_quota if profile else "GOVERNMENT_QUOTA",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("admission_quota", {}).get("is_confirmed", bool(quota_val)),
-                guidance="Government Single Window Counseling vs Management / Institutional Quota.",
-            )
+        _make_field(
+            key="state_residence",
+            label="Permanent State of Domicile",
+            field_group="eligibility",
+            profile_val=state_profile,
+            matching_doc=docs_by_type.get("DOMICILE_CERTIFICATE"),
+            is_required=True,
+            guidance="State where the student holds permanent domicile or nativity status.",
+            warning=state_warning,
+            placeholder="Enter state of permanent domicile (e.g. Tamil Nadu)",
         )
 
-        hostel_val = saved_form.get("hosteller_status", {}).get("value") or (
-            profile.hosteller_status if profile else "DAY_SCHOLAR"
-        )
-        fields.append(
-            ApplicationFormFieldItem(
-                key="hosteller_status",
-                label="Residential Accommodation Status",
-                field_group="eligibility",
-                value=hostel_val,
-                suggested_value=profile.hosteller_status if profile else "DAY_SCHOLAR",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("hosteller_status", {}).get("is_confirmed", bool(hostel_val)),
-                guidance="Day Scholar or College-Approved Resident Hosteller.",
-            )
+        # Admission Quota: No fabricated fallback to 'GOVERNMENT_QUOTA'
+        quota_profile = profile.admission_quota.strip() if profile and profile.admission_quota and str(profile.admission_quota).strip() else None
+        _make_field(
+            key="admission_quota",
+            label="College Admission Quota",
+            field_group="eligibility",
+            profile_val=quota_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Government Single Window Counseling vs Management / Institutional Quota.",
+            placeholder="Select admission quota (Government Quota / Management Quota)",
         )
 
-        first_grad_val = saved_form.get("first_graduate", {}).get("value") or (
-            "Yes" if profile and profile.is_first_graduate else "No"
+        # Hosteller Status: No fabricated fallback to 'DAY_SCHOLAR'
+        hostel_profile = profile.hosteller_status.strip() if profile and profile.hosteller_status and str(profile.hosteller_status).strip() else None
+        _make_field(
+            key="hosteller_status",
+            label="Residential Accommodation Status",
+            field_group="eligibility",
+            profile_val=hostel_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Day Scholar or College-Approved Resident Hosteller.",
+            placeholder="Select accommodation status (Day Scholar / Resident Hosteller)",
         )
-        fields.append(
-            ApplicationFormFieldItem(
-                key="first_graduate",
-                label="First Graduate in Family",
-                field_group="eligibility",
-                value=first_grad_val,
-                suggested_value="Yes" if profile and profile.is_first_graduate else "No",
-                source="STUDENT_PROFILE" if profile else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if "SPECIAL_CATEGORY_CERTIFICATE" in docs_by_type else "STUDENT_PROVIDED",
-                is_required=False,
-                is_confirmed=saved_form.get("first_graduate", {}).get("is_confirmed", bool(first_grad_val)),
-                guidance="Applicable for Tamil Nadu First Graduate tuition fee concession.",
-            )
+
+        # First Graduate: No fabricated fallback to 'No'
+        first_grad_profile = None
+        if profile and profile.is_first_graduate is not None:
+            first_grad_profile = "Yes" if profile.is_first_graduate is True else "No"
+        _make_field(
+            key="first_graduate",
+            label="First Graduate in Family",
+            field_group="eligibility",
+            profile_val=first_grad_profile,
+            matching_doc=docs_by_type.get("SPECIAL_CATEGORY_CERTIFICATE"),
+            is_required=False,
+            guidance="Applicable for Tamil Nadu First Graduate tuition fee concession.",
+            placeholder="Select First Graduate status (Yes / No)",
         )
 
         # ----------------------------------------------------------------------
         # Group 5: Banking Information (Direct Benefit Transfer)
         # ----------------------------------------------------------------------
-        bank_holder_val = saved_form.get("bank_account_holder", {}).get("value") or (student.name if student else "")
-        fields.append(
-            ApplicationFormFieldItem(
-                key="bank_account_holder",
-                label="Bank Account Holder Name (Must match Student)",
-                field_group="bank",
-                value=bank_holder_val,
-                suggested_value=student.name if student else "",
-                source="STUDENT_PROFILE" if student else "MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("bank_account_holder", {}).get("is_confirmed", bool(bank_holder_val)),
-                guidance="Account must be an active single (savings) account in the applicant's name with Aadhaar seeding.",
-            )
+        # Bank Account Holder:
+        holder_profile = getattr(profile, "account_holder_name", None) or (student.name if student and student.name and str(student.name).strip() else None)
+        _make_field(
+            key="bank_account_holder",
+            label="Bank Account Holder Name (Must match Student)",
+            field_group="bank",
+            profile_val=holder_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Account must be an active single (savings) account in the applicant's name with Aadhaar seeding.",
+            placeholder="Enter bank account holder name (must match student legal name)",
         )
 
-        bank_name_val = saved_form.get("bank_name", {}).get("value") or "State Bank of India"
-        fields.append(
-            ApplicationFormFieldItem(
-                key="bank_name",
-                label="Bank Institution Name",
-                field_group="bank",
-                value=bank_name_val,
-                suggested_value="State Bank of India",
-                source="MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("bank_name", {}).get("is_confirmed", bool(bank_name_val)),
-                guidance="Scheduled public or commercial bank holding your scholarship disbursement account.",
-            )
+        # Bank Name: No fabricated fallback to 'State Bank of India'
+        bank_name_profile = getattr(profile, "bank_name", None)
+        if bank_name_profile:
+            bank_name_profile = str(bank_name_profile).strip() or None
+        _make_field(
+            key="bank_name",
+            label="Bank Institution Name",
+            field_group="bank",
+            profile_val=bank_name_profile,
+            matching_doc=None,
+            is_required=True,
+            guidance="Scheduled public or commercial bank holding your scholarship disbursement account.",
+            placeholder="Enter bank institution name (e.g. State Bank of India, Canara Bank)",
         )
 
-        bank_acc_val = saved_form.get("bank_account_number", {}).get("value") or "XXXX-XXXX-4819"
-        fields.append(
-            ApplicationFormFieldItem(
-                key="bank_account_number",
-                label="Bank Account Number",
-                field_group="bank",
-                value=bank_acc_val,
-                suggested_value="XXXX-XXXX-4819",
-                source="MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("bank_account_number", {}).get("is_confirmed", bool(bank_acc_val)),
-                guidance="Account number for direct DBT electronic credit.",
-            )
+        # Bank Account Number: No fabricated fallback to 'XXXX-XXXX-4819'
+        _make_field(
+            key="bank_account_number",
+            label="Bank Account Number",
+            field_group="bank",
+            profile_val=None,
+            matching_doc=None,
+            is_required=True,
+            guidance="Account number for direct DBT electronic credit.",
+            placeholder="Enter your bank account number for direct electronic credit",
         )
 
-        bank_ifsc_val = saved_form.get("bank_ifsc_code", {}).get("value") or "SBIN0000800"
-        fields.append(
-            ApplicationFormFieldItem(
-                key="bank_ifsc_code",
-                label="Bank Branch IFSC Code",
-                field_group="bank",
-                value=bank_ifsc_val,
-                suggested_value="SBIN0000800",
-                source="MANUAL_ENTRY",
-                verification_status="STUDENT_PROVIDED",
-                is_required=True,
-                is_confirmed=saved_form.get("bank_ifsc_code", {}).get("is_confirmed", bool(bank_ifsc_val)),
-                guidance="11-character Indian Financial System Code identifying the branch.",
-            )
+        # Bank IFSC Code: No fabricated fallback to 'SBIN0000800'
+        _make_field(
+            key="bank_ifsc_code",
+            label="Bank Branch IFSC Code",
+            field_group="bank",
+            profile_val=None,
+            matching_doc=None,
+            is_required=True,
+            guidance="11-character Indian Financial System Code identifying the branch.",
+            placeholder="Enter 11-character Indian Financial System Code (e.g. SBIN0000800)",
         )
 
         # ----------------------------------------------------------------------
         # Group 6: Personal Statement / Purpose
         # ----------------------------------------------------------------------
-        statement_val = saved_form.get("personal_statement", {}).get("value") or (application.personal_statement or "")
+        statement_val = None
+        saved_stmt_entry = saved_form.get("personal_statement")
+        if isinstance(saved_stmt_entry, dict):
+            statement_val = saved_stmt_entry.get("value")
+        elif saved_stmt_entry is not None:
+            statement_val = saved_stmt_entry
+
+        if not statement_val and application.personal_statement and application.personal_statement.strip():
+            statement_val = application.personal_statement.strip()
+
+        has_stmt = statement_val is not None and str(statement_val).strip() != ""
+        stmt_confirmed = False
+        if isinstance(saved_stmt_entry, dict) and saved_stmt_entry.get("is_confirmed") is not None:
+            stmt_confirmed = bool(saved_stmt_entry.get("is_confirmed"))
+
         fields.append(
             ApplicationFormFieldItem(
                 key="personal_statement",
                 label="Personal Statement & Financial Need Justification",
                 field_group="statement",
-                value=statement_val,
-                suggested_value=application.personal_statement or "",
-                source="ACHIEVEMENTS_VAULT" if application.personal_statement else "MANUAL_ENTRY",
-                verification_status="OFFICIALLY_VERIFIED" if len(statement_val.strip()) > 30 else "UNVERIFIED",
+                value=statement_val if has_stmt else None,
+                suggested_value=application.personal_statement if application.personal_statement else None,
+                source="ACHIEVEMENTS_VAULT" if application.personal_statement else ("STUDENT_ENTERED" if has_stmt else "NOT_PROVIDED"),
+                verification_status="STUDENT_PROVIDED" if has_stmt else "NOT_PROVIDED",
                 is_required=True,
-                is_confirmed=saved_form.get("personal_statement", {}).get("is_confirmed", bool(statement_val)),
+                is_confirmed=stmt_confirmed,
                 guidance="Factual summary of academic focus, project credentials, and financial necessity.",
+                placeholder="Write or generate your personal statement explaining your academic focus and financial need",
             )
         )
 
         # Audit checklist completion
         for f in fields:
-            if f.is_required and (not f.value or not str(f.value).strip()):
+            if f.is_required and (f.value is None or not str(f.value).strip()):
                 missing_mandatory.append(f.label)
             if f.is_required and not f.is_confirmed:
                 unconfirmed.append(f.label)
@@ -512,6 +559,20 @@ class ApplicationAssistantService:
         # Determine instructions
         instructions = external_submission_service.get_submission_instructions(scholarship)
 
+        # Detect portal type and build structured section mappings
+        portal_type = portal_mapping_service.detect_portal_type(scholarship)
+        portal_sections = portal_mapping_service.build_portal_mappings(
+            scholarship=scholarship,
+            fields=fields,
+            requirements=application.requirements,
+        )
+        is_portal_supported = portal_type not in ["UNSUPPORTED"]
+        portal_guidance_notes = [
+            f"Statutory Portal Classification: {portal_type}",
+            "AI assists with verified field mappings and one-click copy helpers. Form submission, OTP, and CAPTCHA must be completed by you on the official portal.",
+            "Verify all prefilled answers against official certificates before completing portal submission.",
+        ]
+
         return ApplicationAssistantWorkspaceResponse(
             application_id=application.id,
             scholarship_id=scholarship.id,
@@ -543,6 +604,10 @@ class ApplicationAssistantService:
             is_ready_for_student_approval=(docs_ready and fields_ready and not discrepancies),
             is_ready_for_external_submission=(docs_ready and fields_ready and all_confirmed and student_consented),
             status_history=list(application.status_history or []),
+            portal_type=portal_type,
+            is_portal_supported=is_portal_supported,
+            portal_sections=portal_sections,
+            portal_guidance_notes=portal_guidance_notes,
         )
 
     def update_form_fields(
@@ -625,6 +690,34 @@ class ApplicationAssistantService:
             "actor": actor_email,
             "timestamp": now.isoformat(),
             "consent": True,
+        })
+        application.status_history = history
+
+        db.commit()
+        db.refresh(application)
+        return self.get_or_build_workspace(db, application)
+
+
+    def record_portal_launch(
+        self,
+        db: Session,
+        application: Application,
+        actor_email: str,
+    ) -> ApplicationAssistantWorkspaceResponse:
+        """
+        Records that the student opened the official scholarship portal in an external tab.
+        Transitions submission_status to SUBMISSION_IN_PROGRESS to reflect active portal engagement.
+        """
+        if application.submission_status not in ["SUBMITTED_EXTERNALLY", "SUBMISSION_IN_PROGRESS"]:
+            application.submission_status = "SUBMISSION_IN_PROGRESS"
+
+        history = list(application.status_history or [])
+        history.append({
+            "event_type": "OFFICIAL_PORTAL_LAUNCHED",
+            "actor": actor_email,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "portal_url": application.scholarship.application_url if application.scholarship else None,
+            "status": application.submission_status,
         })
         application.status_history = history
 

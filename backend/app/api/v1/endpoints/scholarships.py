@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.core.auth import get_current_student, get_current_admin_user
+from app.core.auth import get_current_student, get_optional_current_student, get_current_admin_user
 from app.models.student import Student
 from app.models.user import User
 from app.services.eligibility_service import eligibility_service
@@ -45,7 +45,7 @@ def list_scholarships(
     source_status: Optional[str] = Query(None, description="Filter by source status: SOURCE_VERIFIED, PARTIALLY_VERIFIED, etc."),
     verification_filter: Optional[str] = Query(None, description="Filter by verification status"),
     sort_by: Optional[str] = Query("recommended", description="Sort by: recommended, deadline, amount_high, amount_low, best_match"),
-    current_student: Student = Depends(get_current_student),
+    current_student: Optional[Student] = Depends(get_optional_current_student),
     db: Session = Depends(get_db),
 ):
     student = current_student
@@ -103,37 +103,66 @@ def list_scholarships(
 
     all_scholarships = scholarships_query.all()
 
-    # Fetch active applications of this student to map application_status
-    existing_apps = {
-        app.scholarship_id: app
-        for app in db.query(Application).filter(Application.student_id == student.id).all()
-    }
+    # Fetch active applications of this student to map application_status (if authenticated)
+    existing_apps = (
+        {
+            app.scholarship_id: app
+            for app in db.query(Application).filter(Application.student_id == student.id).all()
+        }
+        if student
+        else {}
+    )
 
     # Evaluate intelligence for each scholarship
     items = []
-    funding_gap = student.funding_profile.funding_gap if student.funding_profile else 65000.0
+    funding_gap = (
+        student.funding_profile.funding_gap
+        if (student and student.funding_profile)
+        else 65000.0
+    )
 
     for s in all_scholarships:
-        eval_res = eligibility_service.evaluate_scholarship(student, s)
         risk_info = deadline_risk_service.calculate_risk(s.deadline)
         linked_app = existing_apps.get(s.id)
 
-        # Generate "Why this may fit" transparent bullets
-        fit_reasons = []
-        coverage_pct = round((s.amount / funding_gap * 100), 0) if funding_gap > 0 else 100
-        if coverage_pct > 0:
-            fit_reasons.append(f"Could cover approximately {int(coverage_pct)}% of your estimated ₹{int(funding_gap):,} funding gap")
+        if student:
+            eval_res = eligibility_service.evaluate_scholarship(student, s)
+            fit_reasons = []
+            coverage_pct = round((s.amount / funding_gap * 100), 0) if funding_gap > 0 else 100
+            if coverage_pct > 0:
+                fit_reasons.append(f"Could cover approximately {int(coverage_pct)}% of your estimated ₹{int(funding_gap):,} funding gap")
 
-        if eval_res["status"] == "eligible":
-            fit_reasons.append("Your current profile meets verified academic, stream, and income criteria")
-        elif eval_res["status"] == "needs_verification":
-            fit_reasons.append("Potential match; college allotment or category documentation requires verification")
-        elif eval_res["status"] == "ineligible":
-            if eval_res["unmatched_rules"]:
-                fit_reasons.append(f"Ineligible: {eval_res['unmatched_rules'][0]}")
+            if eval_res["status"] == "eligible":
+                fit_reasons.append("Your current profile meets verified academic, stream, and income criteria")
+            elif eval_res["status"] == "needs_verification":
+                fit_reasons.append("Potential match; college allotment or category documentation requires verification")
+            elif eval_res["status"] == "ineligible":
+                if eval_res["unmatched_rules"]:
+                    fit_reasons.append(f"Ineligible: {eval_res['unmatched_rules'][0]}")
 
-        if risk_info["risk_level"] in ["URGENT", "HIGH"]:
-            fit_reasons.append(f"Application cycle closing soon ({risk_info['days_remaining']} days remaining)")
+            if risk_info["risk_level"] in ["URGENT", "HIGH"]:
+                fit_reasons.append(f"Application cycle closing soon ({risk_info['days_remaining']} days remaining)")
+
+            match_status = eval_res["status"]
+            recommendation_category = eval_res.get("recommendation_category", "POTENTIALLY_ELIGIBLE")
+            match_score = eval_res["score"]
+            disqualification_reasons = eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else []
+        else:
+            # Unauthenticated guest discovery: Provide neutral guidance and encourage authentication to personalize
+            fit_reasons = [
+                "Official statutory scheme open to eligible students. Sign in to evaluate personal criteria against your profile."
+            ]
+            if risk_info["risk_level"] in ["URGENT", "HIGH"]:
+                fit_reasons.append(f"Application cycle closing soon ({risk_info['days_remaining']} days remaining)")
+
+            match_status = "needs_verification"
+            recommendation_category = (
+                "WINDOW_NEEDS_VERIFICATION"
+                if risk_info["risk_level"] in ["URGENT", "HIGH"]
+                else "POTENTIALLY_ELIGIBLE"
+            )
+            match_score = 50.0
+            disqualification_reasons = []
 
         item = ScholarshipListItemResponse(
             id=s.id,
@@ -147,9 +176,9 @@ def list_scholarships(
             eligibility_summary=s.eligibility_summary,
             application_effort=s.application_effort,
             status=s.status,
-            match_status=eval_res["status"],
-            recommendation_category=eval_res.get("recommendation_category", "POTENTIALLY_ELIGIBLE"),
-            match_score=eval_res["score"],
+            match_status=match_status,
+            recommendation_category=recommendation_category,
+            match_score=match_score,
             fit_reasons=fit_reasons,
             days_remaining=risk_info["days_remaining"],
             deadline_risk=risk_info["risk_level"],
@@ -173,7 +202,7 @@ def list_scholarships(
             source_verification_status=s.source_verification_status or s.verification_status,
             application_window_status=s.application_window_status,
             unresolved_questions=s.unresolved_questions,
-            disqualification_reasons=eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else [],
+            disqualification_reasons=disqualification_reasons,
         )
         items.append(item)
 
@@ -204,7 +233,7 @@ def list_scholarships(
 
 @router.get("/recommended", response_model=List[ScholarshipListItemResponse], summary="Get Recommended Scholarships")
 def get_recommended_scholarships(
-    current_student: Student = Depends(get_current_student),
+    current_student: Optional[Student] = Depends(get_optional_current_student),
     db: Session = Depends(get_db),
 ):
     """
@@ -393,7 +422,7 @@ def _build_official_dossier(db: Session, scholarship: Scholarship) -> OfficialDo
 @router.get("/{id}", response_model=ScholarshipDetailResponse, summary="Get Scholarship Detail")
 def get_scholarship_detail(
     id: int,
-    current_student: Student = Depends(get_current_student),
+    current_student: Optional[Student] = Depends(get_optional_current_student),
     db: Session = Depends(get_db),
 ):
     scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()
@@ -401,28 +430,35 @@ def get_scholarship_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scholarship not found")
 
     student = current_student
-    linked_app = (
-        db.query(Application)
-        .filter(Application.student_id == student.id, Application.scholarship_id == scholarship.id)
-        .first()
-    )
+    linked_app = None
+    if student:
+        linked_app = (
+            db.query(Application)
+            .filter(Application.student_id == student.id, Application.scholarship_id == scholarship.id)
+            .first()
+        )
 
-    # Evaluate deterministic eligibility (retired/inactive schemes return ineligible with score 0)
-    eval_res = eligibility_service.evaluate_scholarship(student, scholarship)
     risk_info = deadline_risk_service.calculate_risk(scholarship.deadline)
 
-    # Funding Impact Analysis
-    current_gap = student.funding_profile.funding_gap if student.funding_profile else 60000.0
-    potential_rem_gap = max(0.0, current_gap - scholarship.amount)
-    coverage_pct = round((scholarship.amount / current_gap * 100), 1) if current_gap > 0 else 100.0
+    if student:
+        # Evaluate deterministic eligibility (retired/inactive schemes return ineligible with score 0)
+        eval_res = eligibility_service.evaluate_scholarship(student, scholarship)
+        current_gap = student.funding_profile.funding_gap if student.funding_profile else 60000.0
+        potential_rem_gap = max(0.0, current_gap - scholarship.amount)
+        coverage_pct = round((scholarship.amount / current_gap * 100), 1) if current_gap > 0 else 100.0
 
-    funding_impact = FundingImpactAnalysis(
-        current_funding_gap=current_gap,
-        scholarship_amount=scholarship.amount,
-        potential_remaining_gap=potential_rem_gap,
-        gap_coverage_percentage=coverage_pct,
-        disclaimer="Potential funding impact only. Does not assume receipt of award. Awards are determined exclusively by official providers."
-    )
+        funding_impact = FundingImpactAnalysis(
+            current_funding_gap=current_gap,
+            scholarship_amount=scholarship.amount,
+            potential_remaining_gap=potential_rem_gap,
+            gap_coverage_percentage=coverage_pct,
+            disclaimer="Potential funding impact only. Does not assume receipt of award. Awards are determined exclusively by official providers."
+        )
+        disqualification_reasons = eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else []
+    else:
+        eval_res = None
+        funding_impact = None
+        disqualification_reasons = []
 
     current_app_data = None
     if linked_app:
@@ -476,14 +512,14 @@ def get_scholarship_detail(
         source_verification_status=scholarship.source_verification_status or scholarship.verification_status,
         application_window_status=scholarship.application_window_status,
         unresolved_questions=scholarship.unresolved_questions,
-        disqualification_reasons=eval_res["unmatched_rules"] if eval_res["status"] == "ineligible" else [],
+        disqualification_reasons=disqualification_reasons,
     )
 
 
 @router.get("/{id}/dossier", response_model=OfficialDossierResponse, summary="Get Official Verification Dossier")
 def get_scholarship_dossier(
     id: int,
-    current_student: Student = Depends(get_current_student),
+    current_student: Optional[Student] = Depends(get_optional_current_student),
     db: Session = Depends(get_db),
 ):
     scholarship = db.query(Scholarship).filter(Scholarship.id == id).first()

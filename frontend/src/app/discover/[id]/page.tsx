@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { getScholarshipDetail, applyToScholarship, formatINR } from "@/lib/api";
 import { ScholarshipDetail } from "@/types/student";
@@ -54,6 +55,8 @@ function getVerificationBadge(status?: string | null) {
 
 export default function ScholarshipDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
   const id = Number(params.id);
 
   const [scholarship, setScholarship] = useState<ScholarshipDetail | null>(null);
@@ -85,6 +88,10 @@ export default function ScholarshipDetailPage() {
   }, [id, loadDetail]);
 
   const handleStartApplication = async () => {
+    if (!user) {
+      router.push(`/login?redirect=/discover/${id}`);
+      return;
+    }
     try {
       setApplying(true);
       setApplyMessage(null);
@@ -282,7 +289,7 @@ export default function ScholarshipDetailPage() {
                 disabled={applying}
                 className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
               >
-                {applying ? "Opening Application Assistant..." : "Prepare Application with Assistant"}
+                {applying ? "Opening Application Assistant..." : user ? "Prepare Application with Assistant" : "Sign In to Prepare Application"}
               </button>
             )}
 
@@ -563,6 +570,30 @@ export default function ScholarshipDetailPage() {
       </section>
 
       {/* Transparent Profile Eligibility Evaluation */}
+      {!elig && (
+        <section className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#f0eae0] dark:border-[#242830] pb-3">
+            <div>
+              <h2 className="font-serif text-base font-bold text-stone-900 dark:text-stone-100">
+                Personalized Eligibility Evaluation
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400 font-serif">
+                Sign in to verify whether your department, admission quota, community category, and family income satisfy this scheme
+              </p>
+            </div>
+            <Link
+              href={`/login?redirect=/discover/${id}`}
+              className="px-3.5 py-1.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold self-start sm:self-auto transition-colors shadow-xs"
+            >
+              Sign In to Evaluate
+            </Link>
+          </div>
+          <p className="text-xs text-stone-600 dark:text-stone-400 font-serif leading-relaxed">
+            Statutory eligibility criteria and mandatory documentation are detailed below in the Verification Evidence section. Once authenticated, our deterministic intelligence engine will compare your profile against statutory rules.
+          </p>
+        </section>
+      )}
+
       {elig && (
         <section className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f0eae0] dark:border-[#242830] pb-3">

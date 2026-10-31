@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { getScholarships, formatINR } from "@/lib/api";
+import { getScholarships, formatINR, API_BASE_URL } from "@/lib/api";
 import { ScholarshipListItem } from "@/types/student";
+import { useAuth } from "@/context/AuthContext";
 
 const CATEGORY_TABS = [
   { id: "ALL", label: "All Schemes" },
@@ -17,9 +18,12 @@ const CATEGORY_TABS = [
 ];
 
 export default function DiscoverPage() {
+  const { user } = useAuth();
   const [scholarships, setScholarships] = useState<ScholarshipListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadDuration, setLoadDuration] = useState(0);
+  const [isAutoRetrying, setIsAutoRetrying] = useState(false);
 
   // Filters & Sorting state
   const [streamFilter, setStreamFilter] = useState<"ALL" | "ARTS_SCIENCE" | "ENGINEERING">("ALL");
@@ -28,46 +32,91 @@ export default function DiscoverPage() {
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recommended");
 
-  const loadScholarships = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getScholarships({
-        query: searchQuery,
-        stream: streamFilter === "ALL" ? undefined : streamFilter,
-        category_tag: categoryFilter === "ALL" ? undefined : categoryFilter,
-        eligibility_filter: eligibilityFilter === "all" ? undefined : eligibilityFilter,
-        status_filter: "ACTIVE",
-        sort_by: sortBy,
-      });
+  const hasActiveFilters =
+    searchQuery.trim() !== "" ||
+    streamFilter !== "ALL" ||
+    categoryFilter !== "ALL" ||
+    eligibilityFilter !== "all" ||
+    sortBy !== "recommended";
 
-      // Strict Defense-in-Depth: Filter out any retired demonstration or inactive records
-      const verifiedOnly = data.filter((s) => {
-        const isRetired =
-          s.status === "INACTIVE" ||
-          s.verification_status === "RETIRED_DEMO" ||
-          s.verification_status === "DEMO_DATA" ||
-          (s.provider && s.provider.includes("(Demo)"));
-        return !isRetired;
-      });
-      setScholarships(verifiedOnly);
-    } catch (err: unknown) {
-      setError((err as Error)?.message || "Failed to load scholarship records.");
-    } finally {
-      setLoading(false);
-    }
-  }, [searchQuery, streamFilter, categoryFilter, eligibilityFilter, sortBy]);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadScholarships = useCallback(
+    async (isManualRetry: boolean = false) => {
+      try {
+        setLoading(true);
+        setError(null);
+        setLoadDuration(0);
+        setIsAutoRetrying(false);
+
+        // Start duration counter to detect potential Render free-tier cold starts
+        if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+        durationTimerRef.current = setInterval(() => {
+          setLoadDuration((prev) => prev + 1);
+        }, 1000);
+
+        const data = await getScholarships({
+          query: searchQuery,
+          stream: streamFilter === "ALL" ? undefined : streamFilter,
+          category_tag: categoryFilter === "ALL" ? undefined : categoryFilter,
+          eligibility_filter: eligibilityFilter === "all" ? undefined : eligibilityFilter,
+          status_filter: "ACTIVE",
+          sort_by: sortBy,
+        });
+
+        if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+
+        // Strict Defense-in-Depth: Filter out any retired demonstration or inactive records
+        const verifiedOnly = data.filter((s) => {
+          const isRetired =
+            s.status === "INACTIVE" ||
+            s.verification_status === "RETIRED_DEMO" ||
+            s.verification_status === "DEMO_DATA" ||
+            (s.provider && s.provider.includes("(Demo)"));
+          return !isRetired;
+        });
+        setScholarships(verifiedOnly);
+      } catch (err: unknown) {
+        if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+        const errMsg = (err as Error)?.message || "Failed to load scholarship records.";
+
+        // If network connection failed on first attempt, auto-retry once after 3 seconds (Render wake-up handling)
+        const isNetworkFailure =
+          errMsg.toLowerCase().includes("unable to connect") ||
+          errMsg.toLowerCase().includes("failed to fetch") ||
+          errMsg.toLowerCase().includes("waking up");
+
+        if (isNetworkFailure && !isManualRetry && !isAutoRetrying) {
+          setIsAutoRetrying(true);
+          setError("Connecting to live database instance... Service is waking up from dormancy, retrying automatically in 3s.");
+          setTimeout(() => {
+            setRetryTrigger((prev) => prev + 1);
+          }, 3000);
+          return;
+        }
+
+        setError(errMsg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchQuery, streamFilter, categoryFilter, eligibilityFilter, sortBy, isAutoRetrying]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
       loadScholarships();
     }, 0);
-    return () => clearTimeout(timer);
-  }, [loadScholarships]);
+    return () => {
+      clearTimeout(timer);
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    };
+  }, [loadScholarships, retryTrigger]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loadScholarships();
+    loadScholarships(true);
   };
 
   const resetFilters = () => {
@@ -79,6 +128,14 @@ export default function DiscoverPage() {
   };
 
   const getRecommendationBadge = (category?: string) => {
+    if (!user) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700">
+          Official Scheme
+        </span>
+      );
+    }
+
     switch (category) {
       case "LIKELY_ELIGIBLE":
         return (
@@ -141,6 +198,22 @@ export default function DiscoverPage() {
   };
 
   const getMatchSeal = (status?: string, disqualification_reasons?: string[]) => {
+    if (!user) {
+      return (
+        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 text-xs text-stone-700 dark:text-stone-300">
+          <svg className="w-4 h-4 text-[#86192c] dark:text-[#fb7185] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <span className="font-semibold block text-stone-900 dark:text-stone-100">Official Statutory Scheme</span>
+            <span className="text-[11px] text-stone-600 dark:text-stone-400">
+              <Link href="/login?redirect=/discover" className="underline font-semibold text-[#86192c] dark:text-[#fb7185] hover:text-[#9f1239]">Sign in</Link> to run automated eligibility verification against your course, community, and income rules.
+            </span>
+          </div>
+        </div>
+      );
+    }
+
     switch (status) {
       case "eligible":
         return (
@@ -156,10 +229,11 @@ export default function DiscoverPage() {
             </div>
           </div>
         );
-      case "ineligible":
-        const primaryReason = disqualification_reasons && disqualification_reasons.length > 0
-          ? disqualification_reasons[0]
-          : "Criteria do not align with current profile.";
+      case "ineligible": {
+        const primaryReason =
+          disqualification_reasons && disqualification_reasons.length > 0
+            ? disqualification_reasons[0]
+            : "Criteria do not align with current profile.";
         return (
           <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-900 dark:text-rose-200">
             <svg className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,6 +247,7 @@ export default function DiscoverPage() {
             </div>
           </div>
         );
+      }
       case "needs_verification":
         return (
           <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200">
@@ -204,6 +279,8 @@ export default function DiscoverPage() {
               <span>VOL. 2025–2026</span>
               <span>•</span>
               <span className="text-stone-500 dark:text-stone-400">INSTITUTIONAL INTELLIGENCE GAZETTE</span>
+              <span>•</span>
+              <span className="text-stone-500 dark:text-stone-400 font-mono">EDITION v0.4.1</span>
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Collegiate Intelligence & Scheme Catalogue
@@ -226,8 +303,41 @@ export default function DiscoverPage() {
           Every record cites statutory authorities, autonomous institution coverage rules, and verified income ceilings.
         </p>
 
+        {/* Guest Mode Discovery Banner */}
+        {!user && (
+          <div className="mt-4 p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <div className="w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-900 flex items-center justify-center shrink-0 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                ℹ
+              </div>
+              <div>
+                <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                  Public Scholarship Catalogue (Guest Exploration)
+                </span>
+                <span className="text-stone-600 dark:text-stone-400 text-[11px]">
+                  Viewing authoritative higher education schemes. Sign in to evaluate personal eligibility against your department, community category, and family income ceiling.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/login?redirect=/discover"
+                className="px-3.5 py-1.5 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold transition-colors shadow-xs"
+              >
+                Sign In to Evaluate
+              </Link>
+              <Link
+                href="/register"
+                className="px-3.5 py-1.5 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 rounded-lg text-xs font-medium transition-colors"
+              >
+                Create Account
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Editorial Trust Principle Banner */}
-        <div className="mt-5 p-3.5 rounded-lg bg-[#f5f1e8] dark:bg-[#191c20] border border-[#e6dfd3] dark:border-[#2f343d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="mt-4 p-3.5 rounded-lg bg-[#f5f1e8] dark:bg-[#191c20] border border-[#e6dfd3] dark:border-[#2f343d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
             <span className="font-serif italic font-bold text-[#86192c] dark:text-[#fb7185] text-sm">
               Editorial Rule:
@@ -396,56 +506,108 @@ export default function DiscoverPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[30vh] space-y-3">
-            <div className="w-8 h-8 border-2 border-[#86192c] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 font-serif italic">
-              Scanning verified statutory scholarship gazettes against your academic profile...
-            </p>
+          <div className="flex flex-col items-center justify-center min-h-[32vh] space-y-4 p-8 bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d]">
+            <div className="w-10 h-10 border-3 border-[#86192c] border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-center space-y-1.5 max-w-md">
+              <p className="text-sm font-serif font-bold text-stone-900 dark:text-stone-100">
+                Scanning Verified Scheme Registry
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 font-serif leading-relaxed">
+                Scanning verified statutory scholarship gazettes against your academic profile...
+              </p>
+              {loadDuration > 3 && (
+                <p className="text-[11px] font-mono text-amber-800 dark:text-amber-300 pt-2 animate-pulse">
+                  ⏳ Connecting to server instance... If dormant, Render free tier instances take ~20–40 seconds to spin up.
+                </p>
+              )}
+            </div>
           </div>
         ) : error ? (
-          <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 p-6 rounded-xl text-center text-rose-800 dark:text-rose-200 text-sm">
-            <p className="font-semibold">{error}</p>
-            <button
-              onClick={() => loadScholarships()}
-              className="mt-3 px-4 py-1.5 bg-[#86192c] text-white rounded text-xs font-semibold cursor-pointer"
-            >
-              Retry Retrieval
-            </button>
+          <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 p-6 sm:p-8 rounded-xl text-center text-rose-800 dark:text-rose-200 text-sm max-w-2xl mx-auto space-y-4 shadow-xs">
+            <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-serif text-base font-bold text-stone-900 dark:text-stone-100">
+                Unable to Load Scholarship Catalogue
+              </h3>
+              <p className="text-xs text-rose-900 dark:text-rose-200 font-serif leading-relaxed">
+                {error}
+              </p>
+              <p className="text-[11px] font-mono text-stone-500 dark:text-stone-400 pt-1">
+                Trust principle: We never substitute synthetic mock schemes when the official database is unreachable.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => loadScholarships(true)}
+                className="px-5 py-2 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-xs"
+              >
+                Retry Connection Now
+              </button>
+              <a
+                href={`${API_BASE_URL}/api/health`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 rounded-lg text-xs font-medium transition-colors"
+              >
+                Check Backend Health Status ↗
+              </a>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="px-4 py-2 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-lg text-xs font-medium hover:bg-stone-200 cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
           </div>
         ) : scholarships.length === 0 ? (
-          <div className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-4">
+          <div className="bg-white dark:bg-[#191c20] rounded-xl border border-[#e6dfd3] dark:border-[#2f343d] p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-4 shadow-xs">
             <div className="w-12 h-12 mx-auto rounded-full bg-[#f5f1e8] dark:bg-[#22262c] flex items-center justify-center text-stone-500">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="space-y-1">
               <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-stone-100">
-                No Verified Scholarships Currently Available
+                {hasActiveFilters ? "No Scholarships Match Current Filters" : "No Verified Scholarships Currently Available"}
               </h3>
               <p className="text-xs text-stone-600 dark:text-stone-400 font-serif leading-relaxed">
-                In strict compliance with our platform integrity principles, retired demonstration scholarships are completely excluded from student discovery. Only authoritative, officially verified scholarship schemes are displayed.
+                {hasActiveFilters
+                  ? `We could not find any active schemes matching "${searchQuery || streamFilter || categoryFilter}". Try adjusting your keywords or clearing selected filters.`
+                  : "In strict compliance with our platform integrity principles, retired demonstration scholarships are completely excluded from student discovery. Only authoritative, officially verified scholarship schemes are displayed."}
               </p>
             </div>
 
-            <div className="p-3.5 bg-[#fbf9f5] dark:bg-[#121417] rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-left text-xs space-y-2">
-              <span className="font-semibold text-stone-800 dark:text-stone-200 block text-[11px] uppercase tracking-wider">
-                Official Primary Source Portals for Tamil Nadu:
-              </span>
-              <ul className="space-y-1 text-[11px] text-stone-600 dark:text-stone-400">
-                <li>• <a href="https://tndce.tn.gov.in/Home/scholarship_cms" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Directorate of Collegiate Education (TNDCE)</a></li>
-                <li>• <a href="https://sspdept.tnega.org/" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Tamil Nadu State Scholarship Portal (SSP / UMIS)</a></li>
-                <li>• <a href="https://bcmbcmw.tn.gov.in/welfschemes.htm" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">BC, MBC & Minorities Welfare Department</a></li>
-                <li>• <a href="https://scholarships.gov.in/All-Scholarships" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">National Scholarship Portal (Central Schemes)</a></li>
-              </ul>
-            </div>
-
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 bg-[#86192c] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-            >
-              Reset All Filters
-            </button>
+            {hasActiveFilters ? (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="px-5 py-2 bg-[#86192c] hover:bg-[#9f1239] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                >
+                  Reset All Filters & View All Schemes
+                </button>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-[#fbf9f5] dark:bg-[#121417] rounded-lg border border-[#e6dfd3] dark:border-[#2f343d] text-left text-xs space-y-2">
+                <span className="font-semibold text-stone-800 dark:text-stone-200 block text-[11px] uppercase tracking-wider">
+                  Official Primary Source Portals for Tamil Nadu:
+                </span>
+                <ul className="space-y-1 text-[11px] text-stone-600 dark:text-stone-400">
+                  <li>• <a href="https://tndce.tn.gov.in/Home/scholarship_cms" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Directorate of Collegiate Education (TNDCE)</a></li>
+                  <li>• <a href="https://sspdept.tnega.org/" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">Tamil Nadu State Scholarship Portal (SSP / UMIS)</a></li>
+                  <li>• <a href="https://bcmbcmw.tn.gov.in/welfschemes.htm" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">BC, MBC & Minorities Welfare Department</a></li>
+                  <li>• <a href="https://scholarships.gov.in/All-Scholarships" target="_blank" rel="noreferrer" className="underline hover:text-[#86192c]">National Scholarship Portal (Central Schemes)</a></li>
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -503,20 +665,23 @@ export default function DiscoverPage() {
                           {s.benefit_type.replace(/_/g, " ")}
                         </span>
                       )}
-                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono text-[11px] font-semibold">
-                        Stream: {s.stream === "BOTH" ? "Arts & Science and Engineering" : s.stream}
+
+                      <span className="px-2 py-0.5 rounded font-mono text-[11px] bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+                        {s.stream === "BOTH" ? "Arts & Science and Engineering" : s.stream}
                       </span>
-                      <span className="px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono text-[11px]">
-                        Level: {s.study_level || "Undergraduate / Postgraduate"}
+
+                      <span className="px-2 py-0.5 rounded font-mono text-[11px] bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+                        {s.category_tag || "General Scheme"}
                       </span>
-                      {s.tn_residency_required && (
-                        <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40 text-[10px] font-semibold">
-                          TN Domicile Mandatory
+
+                      {s.community_category && s.community_category !== "ALL" && (
+                        <span className="px-2 py-0.5 rounded font-mono text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                          Quota: {s.community_category}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-serif">
+                    <p className="font-serif text-sm text-stone-700 dark:text-stone-300 leading-relaxed line-clamp-3">
                       {s.description}
                     </p>
 

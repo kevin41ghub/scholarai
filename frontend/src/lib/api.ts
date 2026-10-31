@@ -44,14 +44,16 @@ import {
   DocumentConfirmPayload,
 } from "@/types/student";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  isNetworkError: boolean;
+  constructor(message: string, status: number, isNetworkError: boolean = false) {
     super(message);
     this.status = status;
+    this.isNetworkError = isNetworkError;
   }
 }
 
@@ -62,14 +64,36 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     ? {}
     : { "Content-Type": "application/json" };
 
-  const response = await fetch(url, {
-    credentials: "include",
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...(options?.headers || {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...(options?.headers || {}),
+      },
+    });
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    const rawMsg = (err as Error)?.message || "Failed to fetch";
+    const isNetwork =
+      rawMsg.toLowerCase().includes("failed to fetch") ||
+      rawMsg.toLowerCase().includes("networkerror") ||
+      rawMsg.toLowerCase().includes("load failed") ||
+      rawMsg.toLowerCase().includes("aborted");
+
+    if (isNetwork) {
+      throw new ApiError(
+        "Unable to connect to the SCHOLARAi scholarship backend. If the service was dormant, Render free tier takes ~30-50 seconds to initialize. Please retry in a few moments.",
+        0,
+        true
+      );
+    }
+    throw new ApiError(rawMsg, 0, false);
+  }
 
   if (!response.ok) {
     let errorDetail = "An unexpected error occurred";
@@ -83,7 +107,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     } catch {
       errorDetail = `Request failed with status ${response.status}: ${response.statusText}`;
     }
-    throw new ApiError(errorDetail, response.status);
+    throw new ApiError(errorDetail, response.status, false);
   }
 
   return response.json();
@@ -682,6 +706,12 @@ export async function approveApplicationAssistant(
   return request<ApplicationAssistantWorkspace>(`/api/v1/applications/${id}/assistant/approve`, {
     method: "POST",
     body: JSON.stringify({ consent }),
+  });
+}
+
+export async function launchOfficialPortal(id: number): Promise<ApplicationAssistantWorkspace> {
+  return request<ApplicationAssistantWorkspace>(`/api/v1/applications/${id}/assistant/launch-portal`, {
+    method: "POST",
   });
 }
 

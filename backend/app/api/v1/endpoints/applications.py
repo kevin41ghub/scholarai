@@ -638,6 +638,32 @@ def student_approve_application(
 
 
 @router.post(
+    "/{id}/assistant/launch-portal",
+    response_model=ApplicationAssistantWorkspaceResponse,
+    summary="Record Official Portal Launch Event",
+)
+def launch_official_portal(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Records student launching the verified official portal.
+    Transitions submission_status to SUBMISSION_IN_PROGRESS to reflect active filing.
+    """
+    app = db.query(Application).filter(Application.id == id).first()
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    verify_student_access(current_user, app.student_id)
+
+    return application_assistant_service.record_portal_launch(
+        db=db,
+        application=app,
+        actor_email=current_user.email,
+    )
+
+
+@router.post(
     "/{id}/assistant/record-external-submission",
     response_model=ApplicationResponse,
     summary="Record Verified External Application Submission",
@@ -715,7 +741,16 @@ def export_application_dossier(
     verify_student_access(current_user, app.student_id)
 
     workspace = application_assistant_service.get_or_build_workspace(db, app)
-    field_dict = {f.key: {"label": f.label, "value": f.value, "source": f.source} for f in workspace.fields}
+    field_dict = {
+        f.key: {
+            "label": f.label,
+            "value": f.value,
+            "source": f.source,
+            "verification_status": f.verification_status,
+            "is_confirmed": f.is_confirmed,
+        }
+        for f in workspace.fields
+    }
 
     return {
         "scholarship_name": workspace.scholarship_name,
@@ -725,6 +760,8 @@ def export_application_dossier(
         "application_id": app.id,
         "preparation_status": workspace.preparation_status,
         "fields": field_dict,
+        "missing_mandatory_fields": workspace.missing_mandatory_fields,
+        "unconfirmed_fields": workspace.unconfirmed_fields,
         "personal_statement": app.personal_statement,
         "export_timestamp": datetime.now(timezone.utc).isoformat(),
         "disclaimer": "AI assists. Official sources decide. Student approves.",

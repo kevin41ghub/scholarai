@@ -62,6 +62,27 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    request: Request,
+    bearer: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Resolve currently authenticated user if a valid session token is provided.
+    Returns None if unauthenticated, without raising HTTP 401.
+    """
+    token = extract_token_from_request(request, bearer)
+    if not token:
+        return None
+
+    payload = verify_session_token(token)
+    if not payload or "sub" not in payload:
+        return None
+
+    user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
+    return user
+
+
 def get_current_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -78,6 +99,22 @@ def get_current_student(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Student profile associated with this account not found",
         )
+    return student
+
+
+def get_optional_current_student(
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db)
+) -> Optional[Student]:
+    """
+    Resolve the authenticated student record if a user session is active.
+    Returns None if unauthenticated or student profile doesn't exist, without raising HTTP 401.
+    """
+    if not current_user:
+        return None
+    student = current_user.student
+    if not student and current_user.student_id:
+        student = db.query(Student).filter(Student.id == current_user.student_id).first()
     return student
 
 

@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import logging
+import os
 from fastapi import FastAPI, Depends, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -83,6 +84,7 @@ def health_endpoint(db: Session = Depends(get_db)):
         "phase": settings.PHASE,
         "environment": settings.ENVIRONMENT,
         "database": db_status,
+        "build_commit": os.environ.get("RENDER_GIT_COMMIT", "local-dev"),
         "trust_principle": "AI assists. Official sources decide. Student approves.",
     }
 

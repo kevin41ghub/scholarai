@@ -997,6 +997,27 @@ export interface ApplicationFormFieldItem {
   is_confirmed: boolean;
   guidance?: string | null;
   warning?: string | null;
+  placeholder?: string | null;
+}
+
+export interface PortalFieldItem {
+  key: string;
+  official_field_label: string;
+  portal_input_type: string;
+  value?: string | null;
+  is_confirmed: boolean;
+  verification_status: string;
+  guidance_tip?: string | null;
+  copy_value: string;
+}
+
+export interface PortalSectionMapping {
+  section_id: string;
+  section_title: string;
+  section_description: string;
+  fields: PortalFieldItem[];
+  grouped_copy_text: string;
+  is_complete: boolean;
 }
 
 export interface ApplicationAssistantWorkspace {
@@ -1029,6 +1050,10 @@ export interface ApplicationAssistantWorkspace {
   discrepancies: string[];
   is_ready_for_student_approval: boolean;
   is_ready_for_external_submission: boolean;
+  portal_type?: string;
+  is_portal_supported?: boolean;
+  portal_sections?: PortalSectionMapping[];
+  portal_guidance_notes?: string[];
   status_history: Array<{
     event_type?: string;
     previous_status?: string;

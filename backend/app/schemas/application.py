@@ -118,6 +118,27 @@ class ApplicationFormFieldItem(BaseModel):
     is_confirmed: bool = False
     guidance: Optional[str] = None
     warning: Optional[str] = None
+    placeholder: Optional[str] = None
+
+
+class PortalFieldItem(BaseModel):
+    key: str
+    official_field_label: str
+    portal_input_type: str  # text, select, date, number, textarea, upload
+    value: Optional[str] = None
+    is_confirmed: bool = False
+    verification_status: str = "NOT_PROVIDED"
+    guidance_tip: Optional[str] = None
+    copy_value: str = ""
+
+
+class PortalSectionMapping(BaseModel):
+    section_id: str
+    section_title: str
+    section_description: str
+    fields: List[PortalFieldItem] = []
+    grouped_copy_text: str = ""
+    is_complete: bool = False
 
 
 class ApplicationAssistantWorkspaceResponse(BaseModel):
@@ -155,6 +176,10 @@ class ApplicationAssistantWorkspaceResponse(BaseModel):
     is_ready_for_student_approval: bool = False
     is_ready_for_external_submission: bool = False
     status_history: List[Dict[str, Any]] = []
+    portal_type: str = "UNSUPPORTED"
+    is_portal_supported: bool = True
+    portal_sections: List[PortalSectionMapping] = []
+    portal_guidance_notes: List[str] = []
 
 
 class UpdateApplicationFieldsRequest(BaseModel):

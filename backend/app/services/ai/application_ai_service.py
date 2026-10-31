@@ -40,22 +40,49 @@ def generate_application_draft(
 
     evidence_items = ev_query.all()
 
-    scholarship_name = app_obj.scholarship.name if app_obj else "Scholarship"
-    course = student.profile.course if (student and student.profile) else "Computer Science"
-    institution = student.profile.institution if (student and student.profile) else "Demo College"
-    cgpa = student.profile.cgpa if (student and student.profile) else 8.4
+    scholarship_name = app_obj.scholarship.name if app_obj and app_obj.scholarship else "Scholarship"
+    prof = student.profile if (student and student.profile) else None
+
+    # Truthful profile attributes without fabricated fallbacks
+    course = prof.course.strip() if (prof and prof.course and prof.course.strip()) else None
+    institution = prof.institution.strip() if (prof and prof.institution and prof.institution.strip()) else None
+    cgpa = prof.cgpa if (prof and prof.cgpa is not None) else None
+    year_raw = str(prof.year).strip() if (prof and prof.year and str(prof.year).strip()) else None
 
     evidence_used: List[Dict[str, Any]] = []
-    sources_used: List[str] = [
-        f"Student Profile ({course}, {institution}, CGPA: {cgpa})"
-    ]
+    sources_used: List[str] = []
+    claims_detected: List[str] = []
 
-    claims_detected: List[str] = [
-        f"Enrolled in {course} at {institution}",
-        f"Current cumulative GPA of {cgpa}",
-    ]
+    # Build truthful academic descriptors
+    academic_descriptors = []
+    if course:
+        academic_descriptors.append(f"enrolled in {course}")
+        claims_detected.append(f"Enrolled in {course}")
+    if institution:
+        academic_descriptors.append(f"at {institution}")
+        claims_detected.append(f"Student at {institution}")
+    if cgpa is not None:
+        academic_descriptors.append(f"maintaining a CGPA of {cgpa}")
+        claims_detected.append(f"Current cumulative GPA of {cgpa}")
 
-    # Structure draft grounded in available evidence
+    profile_summary = ", ".join(academic_descriptors) if academic_descriptors else "Student Profile"
+    sources_used.append(f"Student Profile ({profile_summary})")
+
+    # Determine truthful phrasing
+    year_phrase = f"{year_raw if year_raw.lower().startswith('year') else f'Year {year_raw}'} undergraduate" if year_raw else "undergraduate student"
+    course_phrase = f"in {course}" if course else "in higher education"
+    inst_phrase = f"at {institution}" if institution else ""
+    cgpa_phrase = f" with a CGPA of {cgpa}" if cgpa is not None else ""
+
+    missing_profile_elements = []
+    if not course:
+        missing_profile_elements.append("Degree Course")
+    if not institution:
+        missing_profile_elements.append("Institution Name")
+    if cgpa is None:
+        missing_profile_elements.append("Academic Marks / CGPA")
+
+    # Structure draft strictly grounded in available evidence
     if evidence_items:
         for ev in evidence_items[:2]:
             evidence_used.append({
@@ -70,20 +97,29 @@ def generate_application_draft(
 
         primary_ev = evidence_items[0]
         draft_text = (
-            f"As a dedicated 2nd-year student pursuing {course} at {institution}, I have maintained a strong "
-            f"academic track record with a CGPA of {cgpa}. In addressing this requirement for the {scholarship_name}, "
-            f"my primary practical experience centers on {primary_ev.title} with {primary_ev.organization or 'academic coursework'}. "
-            f"{primary_ev.description} "
+            f"As an {year_phrase} pursuing studies {course_phrase} {inst_phrase}{cgpa_phrase}, "
+            f"I am applying for the {scholarship_name}. "
+            f"In addressing this requirement, my primary practical experience centers on {primary_ev.title} "
+            f"with {primary_ev.organization or 'academic coursework'}. {primary_ev.description} "
             f"\n\nThis initiative strengthened my problem-solving competencies and reinforced my long-term career focus. "
             f"Securing support from {scholarship_name} will alleviate critical tuition constraints, permitting dedicated focus on academic rigor and technical development."
         )
     else:
         draft_text = (
-            f"As a 2nd-year undergraduate enrolled in {course} at {institution} maintaining an 8.4 CGPA, "
-            f"I am applying for the {scholarship_name} to fulfill my higher education objectives. "
-            f"*(Note: No detailed project or leadership items were selected from your Evidence Bank. "
-            f"Add items in the Evidence Bank to substantiate specific achievements in this draft.)*"
+            f"As an enrolled {year_phrase} pursuing studies {course_phrase} {inst_phrase}{cgpa_phrase}, "
+            f"I am applying for the {scholarship_name} to fulfill my higher education objectives and support my academic progression. "
+            f"\n\nSecuring support from {scholarship_name} will alleviate financial constraints, enabling dedicated focus on academic rigor and technical development."
         )
+
+    # If key details are missing, add explicit guidance note rather than fabricating assumptions
+    notes = []
+    if missing_profile_elements:
+        notes.append(f"Missing Profile Details: Please update {', '.join(missing_profile_elements)} in Settings → My Profile.")
+    if not evidence_items:
+        notes.append("No project or credential records were selected from your Evidence Bank. Add items in your Evidence Bank to substantiate specific achievements in this draft.")
+
+    if notes:
+        draft_text += "\n\n*(Notice: " + " ".join(notes) + ")*"
 
     return ApplicationDraftResponse(
         draft_text=draft_text,
@@ -109,7 +145,9 @@ def check_unsupported_claims(
 
     profile_text = ""
     if student and student.profile:
-        profile_text = f"{student.profile.course} {student.profile.institution} {student.profile.cgpa} {student.profile.state}"
+        p = student.profile
+        profile_parts = [p.course or "", p.institution or "", str(p.cgpa or "") if p.cgpa is not None else "", p.state or ""]
+        profile_text = " ".join(x for x in profile_parts if x)
 
     evidence_corpus = " ".join(
         f"{e.title} {e.description} {e.organization or ''} {e.evidence_text or ''}" for e in ev_items
